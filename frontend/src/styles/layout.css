@@ -1,0 +1,137 @@
+/* Outer Grid Shell - Day 5 Flexbox & Grid */
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr var(--chat-panel-width);
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-areas: 
+    "sidebar header header"
+    "sidebar main chat";
+  width: 100vw;
+  height: 100vh;
+  transition: grid-template-columns var(--transition-normal);
+  background-color: var(--bg-primary);
+}
+
+/* Areas mapping */
+.app-sidebar {
+  grid-area: sidebar;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.app-header {
+  grid-area: header;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-lg);
+  z-index: 9;
+}
+
+.app-main {
+  grid-area: main;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-lg);
+}
+
+.app-chat {
+  grid-area: chat;
+  background-color: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Sidebar Toggle Modifier States */
+.app-shell--collapsed-sidebar {
+  grid-template-columns: 70px 1fr var(--chat-panel-width);
+}
+
+.app-shell--collapsed-chat {
+  grid-template-columns: var(--sidebar-width) 1fr 0px;
+}
+
+.app-shell--collapsed-both {
+  grid-template-columns: 70px 1fr 0px;
+}
+
+/* Header Content Elements - Flexbox */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.header-brand__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  box-shadow: var(--cyan-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--bg-primary);
+}
+
+.header-brand__title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to right, #FFF, #94A3B8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Header Presence Controls */
+.header-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.user-badge__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-cyan);
+}
+
+.user-badge__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-badge__name {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.user-badge__role {
+  font-size: 10px;
+  color: var(--text-muted);
+}

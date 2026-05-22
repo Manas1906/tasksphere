@@ -1,0 +1,32 @@
+# --- Maven (Java) Exclusions ---
+**/target/
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+.mvn/
+
+# --- Node / Frontend Exclusions ---
+**/node_modules/
+**/dist/
+.env
+.env.local
+.env.production
+.env.production.local
+.eslintcache
+
+# --- IDE and Editor Exclusions ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.metadata/
+
+# --- System and Log Exclusions ---
+*.log
+.DS_Store
+Thumbs.db

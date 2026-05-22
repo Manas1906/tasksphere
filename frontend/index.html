@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskSphere Enterprise - Collaborative Agile Hub</title>
+  <!-- Google Fonts Inter & Fira Code - Day 3 Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <script>
+    if (typeof global === 'undefined') {
+      window.global = window;
+    }
+  </script>
+</head>
+<body>
+
+  <!-- App Shell Grid - Day 5 Grid Layout -->
+  <div id="appShell" class="app-shell">
+
+    <!-- Header Panel - Day 5 Flexbox -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="header-brand__logo">T</div>
+        <h1 class="header-brand__title">TaskSphere Enterprise</h1>
+      </div>
+      
+      <!-- Operations presence controller -->
+      <div class="header-profile">
+        <button id="inspectModeBtn" class="filter-btn" title="Inspect UI Spec Guides">Figma Inspect</button>
+        <button id="sprintPlannerBtn" class="btn btn--submit">+ New Ticket</button>
+        <div class="user-badge" id="currentUserBadge">
+          <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" class="user-badge__avatar" alt="Avatar" id="myAvatar">
+          <div class="user-badge__info">
+            <span class="user-badge__name" id="myUsername">CTO Guest</span>
+            <span class="user-badge__role" id="myRole">Product Owner</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar Panel - Navigation & Project Scopes -->
+    <aside class="app-sidebar">
+      <div class="chat-panel-header">
+        <h3 class="chat-panel-header__title" style="color: var(--accent-cyan)">Navigation</h3>
+      </div>
+      <ul class="active-users-bar" style="flex-direction: column; overflow-y: auto; flex: 1; gap: var(--spacing-sm); padding: var(--spacing-md)">
+        <li>
+          <button id="navDashboard" class="filter-btn filter-btn--active" style="width: 100%; text-align: left">📊 Executive Dashboard</button>
+        </li>
+        <li>
+          <button id="navBoard" class="filter-btn" style="width: 100%; text-align: left">📋 Scrum Kanban Board</button>
+        </li>
+        <li>
+          <button id="navTeam" class="filter-btn" style="width: 100%; text-align: left">👥 Resource Directory</button>
+        </li>
+      </ul>
+      <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted)">
+        <p>Spring Status: <span id="wsStatus" class="text-rose">● Disconnected</span></p>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel - Dynamic Views loaded via JS -->
+    <main class="app-main" id="mainContainer">
+      <!-- Views will be injected dynamically: Dashboard, Kanban Board, or Resource List -->
+    </main>
+
+    <!-- Chat Sidebar Panel - Real-time active collaboration room -->
+    <aside class="app-chat" id="chatContainer">
+      <div class="chat-panel">
+        <div class="chat-panel-header">
+          <h3 class="chat-panel-header__title">
+            <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+            Operations Chat
+          </h3>
+          <div class="chat-panel-header__active-badge">
+            <span class="chat-panel-header__active-dot"></span>
+            <span id="activeUserCount">1 active session</span>
+          </div>
+        </div>
+
+        <!-- Horizontal user avatars scrolling bar -->
+        <div class="active-users-bar" id="activeUsersList">
+          <!-- Avatars injected dynamically -->
+        </div>
+
+        <!-- Chat messages thread -->
+        <div class="chat-messages-container" id="chatMessages">
+          <!-- Message bubbles injected dynamically -->
+        </div>
+
+        <!-- Active typing indicator -->
+        <div class="typing-indicator hidden" id="typingIndicator">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span style="margin-left: var(--spacing-xs)">someone is typing...</span>
+        </div>
+
+        <!-- Message input bar -->
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <input type="text" id="chatInput" placeholder="Send team message..." class="chat-input" autocomplete="off">
+          </div>
+          <button id="chatSendBtn" class="chat-send-btn">
+            <svg style="width: 16px; height: 16px; fill: var(--bg-primary)" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Login Modal overlay (Active on startup) -->
+  <div id="loginModal" class="modal-overlay modal-overlay--active">
+    <div class="modal-container" style="max-width: 420px">
+      <div class="modal-header">
+        <h2 class="modal-header__title">Initialize Developer Session</h2>
+      </div>
+      <form class="enterprise-form" id="loginForm" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="loginUsername">Session Username</label>
+          <input type="text" id="loginUsername" required class="form-input" placeholder="e.g. cto_reviewer, agile_lead" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginRole">Enterprise Role</label>
+          <select id="loginRole" class="form-select">
+            <option value="PRODUCT_OWNER">Product Owner (Agile Scope)</option>
+            <option value="DEVELOPER">Senior Developer (Task Delivery)</option>
+            <option value="DESIGNER">UI/UX Designer (Pixel Inspector)</option>
+            <option value="STAKEHOLDER">CTO Executive (Velocity Stats)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn--submit" style="width: 100%; margin-top: var(--spacing-sm)">Launch Workspace</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ticket Creator Form Modal -->
+  <div id="ticketModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-header__title">Create Scrum Ticket</h2>
+        <button id="closeTicketModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form class="enterprise-form" id="ticketForm" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="ticketTitle">Ticket Title</label>
+          <input type="text" id="ticketTitle" required class="form-input" placeholder="Enter concise task title" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ticketDescription">Scope Description</label>
+          <textarea id="ticketDescription" class="form-textarea" placeholder="Detail the business deliverables..."></textarea>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="ticketPriority">Priority Level</label>
+            <select id="ticketPriority" class="form-select">
+              <option value="LOW">Low Priority</option>
+              <option value="MEDIUM">Medium Priority</option>
+              <option value="HIGH">High Priority</option>
+              <option value="URGENT">Urgent Priority</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ticketPoints">Story Points</label>
+            <input type="number" id="ticketPoints" class="form-input" min="1" max="13" value="3">
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="ticketDueDate">Target Due Date</label>
+            <input type="date" id="ticketDueDate" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ticketAssignee">Assignee Profile</label>
+            <select id="ticketAssignee" class="form-select">
+              <option value="">Unassigned</option>
+              <!-- Populated dynamically via JS -->
+            </select>
+          </div>
+        </div>
+        
+        <!-- Checklist builder - Day 2 forms & lists -->
+        <div class="form-group">
+          <label class="form-label">Deliverable Checklist</label>
+          <div class="form-checklist-builder">
+            <div class="checklist-builder-input-row">
+              <input type="text" id="checklistBuilderInput" class="form-input" style="flex: 1; padding: 6px 12px; font-size: 13px" placeholder="Add checklist task..." autocomplete="off">
+              <button type="button" id="checklistBuilderAddBtn" class="btn btn--submit" style="padding: 6px 16px; font-size: 12px">+</button>
+            </div>
+            <div class="checklist-builder-list" id="checklistBuilderList">
+              <!-- Dynamically built checklist tasks -->
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelTicketBtn" class="btn btn--cancel">Cancel</button>
+          <button type="submit" class="btn btn--submit">Create Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrapping Frontend Script -->
+  <script type="module" src="/src/js/main.js"></script>
+</body>
+</html>

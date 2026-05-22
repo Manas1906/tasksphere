@@ -1,0 +1,156 @@
+/* AI Copilot Panel Style */
+.copilot-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.copilot-panel-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.copilot-panel-header__title {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.copilot-panel-header__logo {
+  color: var(--accent-purple);
+  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.4));
+}
+
+.copilot-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Prompt Engineering Context Section - Day 13 requirements */
+.prompt-section {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+}
+
+.prompt-section__title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prompt-editor {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  padding: var(--spacing-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-main);
+  min-height: 120px;
+  overflow-y: auto;
+}
+
+.prompt-editor__system {
+  color: var(--accent-cyan);
+}
+
+.prompt-editor__variable {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--accent-purple);
+  font-weight: bold;
+}
+
+.prompt-variable-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.variable-chip {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.variable-chip:hover {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+/* Response sandbox */
+.copilot-response-container {
+  flex: 1;
+  background-color: rgba(11, 15, 23, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-height: 180px;
+  position: relative;
+}
+
+.copilot-response {
+  font-size: var(--font-size-sm);
+  color: var(--text-main);
+  line-height: 1.5;
+  overflow-y: auto;
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.copilot-response--empty {
+  color: var(--text-muted);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.copilot-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: auto;
+}
+
+.btn--copilot {
+  flex: 1;
+  font-size: var(--font-size-xs);
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-rose));
+  color: var(--text-main);
+  box-shadow: var(--purple-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.btn--copilot:hover {
+  filter: brightness(1.1);
+}

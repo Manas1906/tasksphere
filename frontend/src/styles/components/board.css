@@ -1,0 +1,203 @@
+/* Kanban Board Area - Flex Layout */
+.kanban-board {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex: 1;
+  overflow-x: auto;
+  padding-bottom: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  align-items: flex-start;
+}
+
+/* Column Lane Style */
+.kanban-column {
+  flex: 1;
+  min-width: 280px;
+  max-width: 360px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  box-shadow: var(--card-shadow);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+/* Advanced Selector Curriculum Showcase - Day 4 :has() Selector */
+/* Highlights the column container if it contains any ticket cards that are overdue */
+.kanban-column:has(.task-card--overdue) {
+  border-color: rgba(244, 63, 94, 0.4);
+  box-shadow: 0 4px 20px rgba(244, 63, 94, 0.1);
+}
+
+.kanban-column:has(.task-card--urgent) {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.kanban-column-header__title {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Color codes for lanes */
+.kanban-column-header__indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.kanban-column--todo .kanban-column-header__indicator { background-color: var(--text-muted); }
+.kanban-column--progress .kanban-column-header__indicator { background-color: var(--accent-cyan); }
+.kanban-column--review .kanban-column-header__indicator { background-color: var(--accent-purple); }
+.kanban-column--done .kanban-column-header__indicator { background-color: var(--accent-emerald); }
+
+.kanban-column-header__count {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* Cards Wrapper */
+.kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 200px;
+}
+
+/* Task Card - BEM Styling */
+.task-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  cursor: grab;
+  position: relative;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  backdrop-filter: var(--glass-blur);
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--card-shadow);
+}
+
+.task-card:active {
+  cursor: grabbing;
+}
+
+/* Day 4 Curriculum :not() Selector Showcase */
+/* Apply a warning border glow to task cards that do NOT have a custom active assignee (i.e. they are unassigned) */
+.task-card:not(:has(.task-card__assignee-avatar)) {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.task-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.task-card__priority-badge {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.task-card__priority-badge--low { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+.task-card__priority-badge--medium { background: rgba(0, 240, 255, 0.15); color: var(--accent-cyan); }
+.task-card__priority-badge--high { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+.task-card__priority-badge--urgent { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+
+.task-card__title {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-main);
+  line-height: 1.4;
+  margin-bottom: var(--spacing-xs);
+}
+
+.task-card__description {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+}
+
+.task-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: var(--spacing-sm);
+}
+
+.task-card__metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.task-card__metric-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-card__assignee-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary);
+}
+
+/* Overdue alert indicator card modifiers */
+.task-card--overdue {
+  border-left: 3px solid var(--accent-rose);
+}
+
+.task-card--overdue::before {
+  content: "OVERDUE";
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-sm);
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--accent-rose);
+  letter-spacing: 0.5px;
+}
+
+/* Drag & Drop Visual State cues */
+.kanban-cards--drag-over {
+  background-color: rgba(0, 240, 255, 0.02);
+  border: 1px dashed rgba(0, 240, 255, 0.2);
+  border-radius: var(--radius-sm);
+}

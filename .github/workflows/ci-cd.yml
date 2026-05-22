@@ -1,0 +1,44 @@
+name: TaskSphere Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Job 1: Build and Test Spring Boot Backend
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Compile and Test Backend
+      run: |
+        cd backend
+        mvn clean test
+
+  # Job 2: Deploy to Render and Vercel (Only on merge/push to main)
+  deploy:
+    needs: build-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger Render Container Deploy
+      env:
+        RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+      run: |
+        if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+          echo "WARNING: RENDER_DEPLOY_HOOK secret is not set. Skipping backend auto-deploy trigger."
+        else
+          echo "Triggering live backend container redeployment..."
+          curl -X POST "$RENDER_DEPLOY_HOOK"
+        fi

@@ -1,0 +1,66 @@
+/* Import Core Tokens & Base Resets */
+@import "./variables.css";
+@import "./reset.css";
+
+/* Import Layout structures */
+@import "./layout.css";
+
+/* Import Feature Components */
+@import "./components/board.css";
+@import "./components/chat.css";
+@import "./components/dashboard.css";
+@import "./components/forms.css";
+@import "./components/copilot.css";
+
+/* Utility classes - Day 6 Figma integration overlay specs */
+.text-cyan { color: var(--accent-cyan) !important; }
+.text-purple { color: var(--accent-purple) !important; }
+.text-emerald { color: var(--accent-emerald) !important; }
+.text-amber { color: var(--accent-amber) !important; }
+.text-rose { color: var(--accent-rose) !important; }
+
+.bg-cyan-glow { box-shadow: var(--cyan-glow); }
+.bg-purple-glow { box-shadow: var(--purple-glow); }
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.visible {
+  display: block !important;
+}
+
+/* Day 6 Curriculum: Mini-Figma design spec guide overlay */
+.design-spec-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: #000;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 100;
+}
+
+.figma-inspect-mode * {
+  position: relative;
+}
+
+.figma-inspect-mode *:hover > .design-spec-badge {
+  opacity: 0.95;
+}
+
+.figma-inspect-mode *:hover {
+  outline: 1px dashed var(--accent-cyan);
+}
