@@ -17,9 +17,7 @@ export class ChatController {
 
   init() {
     this.bindEvents();
-    this.subscribeChannels();
     this.loadChatHistory();
-    this.syncMyPresence();
   }
 
   bindEvents() {

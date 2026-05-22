@@ -82,8 +82,9 @@ class TaskSphereApp {
   }
 
   initRealtimeSync() {
-    // Instantiate chat controller
+    // Instantiate and initialize chat controller instantly so the Send button binds and works immediately
     this.chatController = new ChatController();
+    this.chatController.init();
 
     // Connect socket
     socket.connect(
@@ -101,8 +102,9 @@ class TaskSphereApp {
           }
         });
 
-        // Initialize Chat controls
-        this.chatController.init();
+        // Initialize Chat WebSocket subscriptions and presence sync
+        this.chatController.subscribeChannels();
+        this.chatController.syncMyPresence();
       },
       () => {
         console.warn('Real-time broker disconnected. degraded REST synchronization active.');
