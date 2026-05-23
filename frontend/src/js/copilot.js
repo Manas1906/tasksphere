@@ -5,6 +5,8 @@
 export class AICopilot {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
+    // Explicitly wipe any corrupted key from previous testing sessions to ensure perfect fallback operation
+    localStorage.removeItem('gemini_api_key');
     this.promptTemplate = `You are a Senior Scrum Master helping the team draft high-quality user stories.
 Analyze the following scope parameters:
 - Title: {{TICKET_TITLE}}
@@ -123,7 +125,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      const apiKey = localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM';
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM';
       let resultText = '';
 
       if (apiKey) {
