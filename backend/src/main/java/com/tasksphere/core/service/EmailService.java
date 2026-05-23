@@ -3,10 +3,18 @@ package com.tasksphere.core.service;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -16,6 +24,9 @@ public class EmailService {
 
     @Value("${spring.mail.username:tasksphere.developer@gmail.com}")
     private String fromEmail;
+
+    @Value("${resend.api.key:}")
+    private String resendApiKey;
 
     @Async
     public void sendOtpEmail(String toEmail, String otp) {
@@ -27,6 +38,32 @@ public class EmailService {
         System.out.println("Deliver OTP to: " + cleanEmail);
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
+
+        // Try Resend API if API key is supplied (HTTPS port 443 is never blocked by cloud firewalls)
+        if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
+            System.out.println("[RESEND-START] Attempting real-time email delivery via Resend API...");
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", "Bearer " + resendApiKey.trim());
+
+                Map<String, Object> body = new HashMap<>();
+                body.put("from", "TaskSphere <onboarding@resend.dev>");
+                body.put("to", cleanEmail);
+                body.put("subject", "TaskSphere Security - Your 6-Digit Verification Code: " + otp);
+                body.put("html", htmlMessage);
+
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity("https://api.resend.com/emails", entity, String.class);
+                
+                System.out.println("[RESEND-SUCCESS] Real-time mail dispatched via Resend API. Response: " + response.getBody());
+                return; // Successfully sent, bypass SMTP fallback!
+            } catch (Exception ex) {
+                System.err.println("[RESEND-FAILURE] Resend API failed: " + ex.getMessage());
+                System.out.println("[RESEND-INFO] Falling back to standard SMTP/Simulator...");
+            }
+        }
 
         if (mailSender == null) {
             System.out.println("[SMTP-WARN] JavaMailSender is not initialized or configured. Fallback Simulator successfully generated the code above.");
