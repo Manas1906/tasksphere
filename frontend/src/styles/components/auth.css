@@ -68,6 +68,12 @@
 .auth-card__subtitle {
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+  line-height: 1.5;
+  margin-top: var(--spacing-xs);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  display: block;
 }
 
 .auth-form-container {
@@ -84,6 +90,7 @@
 
 .auth-step {
   width: 50%;
+  flex: 0 0 50%;
   padding: 0 var(--spacing-xs);
   box-sizing: border-box;
 }
