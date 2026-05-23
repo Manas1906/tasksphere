@@ -133,7 +133,7 @@ class TaskSphereApp {
     };
 
     // 1. Submit Email Form to Dispatch OTP
-    emailForm.onsubmit = async (e) => {
+    emailForm.onsubmit = (e) => {
       e.preventDefault();
       clearError();
 
@@ -143,31 +143,36 @@ class TaskSphereApp {
 
       if (!email || !email.includes('@')) {
         showError('Please supply a valid email address.');
-        return;
+        return false;
       }
 
       sendBtn.disabled = true;
       sendBtn.innerHTML = '<span class="auth-spinner"></span>Sending...';
 
-      try {
-        console.log(`[AUTH-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
-        await api.sendOtp(email);
-        
-        submittedEmail = email;
-        subtitle.textContent = `Security code sent to ${email}. Please enter it below.`;
-        formContainer.classList.add('show-otp');
-        document.getElementById('authOtpInput').focus();
-      } catch (err) {
-        console.error('[AUTH-OTP] OTP dispatch failed:', err);
-        showError(err.message || 'Verification service failed. Please try again.');
-      } finally {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Verification Code';
-      }
+      // Perform async fetch safely in the background
+      (async () => {
+        try {
+          console.log(`[AUTH-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
+          await api.sendOtp(email);
+          
+          submittedEmail = email;
+          subtitle.innerHTML = `Security code sent to:<br><b style="color: var(--accent-cyan); word-break: break-all;">${email}</b><br>Please enter it below.`;
+          formContainer.classList.add('show-otp');
+          document.getElementById('authOtpInput').focus();
+        } catch (err) {
+          console.error('[AUTH-OTP] OTP dispatch failed:', err);
+          showError(err.message || 'Verification service failed. Please try again.');
+        } finally {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send Verification Code';
+        }
+      })();
+
+      return false;
     };
 
     // 2. Submit OTP Code Form to Verify Session
-    otpForm.onsubmit = async (e) => {
+    otpForm.onsubmit = (e) => {
       e.preventDefault();
       clearError();
 
@@ -177,41 +182,46 @@ class TaskSphereApp {
 
       if (otp.length !== 6 || isNaN(otp)) {
         showError('Verification code must be 6 digits.');
-        return;
+        return false;
       }
 
       verifyBtn.disabled = true;
       verifyBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
 
-      try {
-        console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
-        const data = await api.verifyOtp(submittedEmail, otp);
+      // Perform async verification safely in the background
+      (async () => {
+        try {
+          console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
+          const data = await api.verifyOtp(submittedEmail, otp);
 
-        console.log('[AUTH-SUCCESS] OTP verified successfully. Establishing authorized workspace session.');
-        
-        // Cache JWT, profile and role
-        localStorage.setItem('tasksphere_jwt', data.token);
-        localStorage.setItem('chat_username', data.username);
-        localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${data.username}`);
-        localStorage.setItem('chat_role', 'DEVELOPER');
+          console.log('[AUTH-SUCCESS] OTP verified successfully. Establishing authorized workspace session.');
+          
+          // Cache JWT, profile and role
+          localStorage.setItem('tasksphere_jwt', data.token);
+          localStorage.setItem('chat_username', data.username);
+          localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${data.username}`);
+          localStorage.setItem('chat_role', 'DEVELOPER');
 
-        this.applyProfileUI();
+          this.applyProfileUI();
 
-        // Unlock dashboard shell
-        loginOverlay.classList.add('hidden');
+          // Unlock dashboard shell
+          loginOverlay.classList.add('hidden');
 
-        // Spin up live WebSocket broker sync
-        this.initRealtimeSync();
+          // Spin up live WebSocket broker sync
+          this.initRealtimeSync();
 
-        // Refresh views to trigger REST calls with valid bearer token
-        this.switchRoute(this.activeRoute);
-      } catch (err) {
-        console.error('[AUTH-VERIFY] OTP verification failed:', err);
-        showError(err.message || 'Invalid or expired verification code.');
-      } finally {
-        verifyBtn.disabled = false;
-        verifyBtn.textContent = 'Verify & Authenticate';
-      }
+          // Refresh views to trigger REST calls with valid bearer token
+          this.switchRoute(this.activeRoute);
+        } catch (err) {
+          console.error('[AUTH-VERIFY] OTP verification failed:', err);
+          showError(err.message || 'Invalid or expired verification code.');
+        } finally {
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = 'Verify & Authenticate';
+        }
+      })();
+
+      return false;
     };
 
     // 3. Back to Email Link
