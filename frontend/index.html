@@ -24,6 +24,11 @@
     <!-- Header Panel - Day 5 Flexbox -->
     <header class="app-header">
       <div class="header-brand">
+        <button id="sidebarToggleBtn" class="mobile-nav-toggle" title="Toggle Navigation">
+          <svg style="width: 18px; height: 18px; fill: var(--text-muted)" viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </button>
         <div class="header-brand__logo">T</div>
         <h1 class="header-brand__title">TaskSphere Enterprise</h1>
       </div>
@@ -32,6 +37,11 @@
       <div class="header-profile">
         <button id="inspectModeBtn" class="filter-btn" title="Inspect UI Spec Guides">Figma Inspect</button>
         <button id="sprintPlannerBtn" class="btn btn--submit">+ New Ticket</button>
+        <button id="mobileChatToggleBtn" class="mobile-nav-toggle" title="Toggle Chat">
+          <svg style="width: 18px; height: 18px; fill: var(--text-muted)" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+          </svg>
+        </button>
         <div class="user-badge" id="currentUserBadge">
           <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" class="user-badge__avatar" alt="Avatar" id="myAvatar">
           <div class="user-badge__info">
@@ -205,6 +215,10 @@
       </form>
     </div>
   </div>
+
+  <!-- Drawer Backdrops for mobile -->
+  <div id="sidebarBackdrop" class="drawer-backdrop"></div>
+  <div id="chatBackdrop" class="drawer-backdrop"></div>
 
   <!-- Bootstrapping Frontend Script -->
   <script type="module" src="/src/js/main.js"></script>

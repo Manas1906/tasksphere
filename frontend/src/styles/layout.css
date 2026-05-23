@@ -135,3 +135,129 @@
   font-size: 10px;
   color: var(--text-muted);
 }
+
+/* Mobile Toggle Buttons & Responsive Drawer Overlays */
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.mobile-nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1024px) {
+  .mobile-nav-toggle {
+    display: flex;
+  }
+  
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-height) 1fr;
+    grid-template-areas: 
+      "header"
+      "main";
+    overflow-x: hidden;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    bottom: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 1000;
+    transition: left var(--transition-normal);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .app-chat {
+    position: fixed;
+    top: 0;
+    right: -320px;
+    bottom: 0;
+    width: 320px;
+    height: 100vh;
+    z-index: 1000;
+    transition: right var(--transition-normal);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Active overlay slide-in triggers */
+  .app-shell--show-sidebar .app-sidebar {
+    left: 0;
+  }
+
+  .app-shell--show-chat .app-chat {
+    right: 0;
+  }
+
+  /* Blurred Backdrop Overlay */
+  .drawer-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: fadeIn var(--transition-fast) ease-out;
+  }
+
+  .app-shell--show-sidebar #sidebarBackdrop,
+  .app-shell--show-chat #chatBackdrop {
+    display: block;
+  }
+
+  /* Header adjustments for spacing */
+  .app-header {
+    padding: 0 var(--spacing-md);
+  }
+
+  .header-brand__title {
+    font-size: var(--font-size-sm);
+  }
+
+  .user-badge {
+    display: none !important; /* Hide badge on mobile header for room */
+  }
+
+  .header-profile {
+    gap: var(--spacing-xs);
+  }
+
+  #inspectModeBtn {
+    display: none !important; /* Hide inspect mode on tablets/mobiles */
+  }
+
+  /* Grid Panel adjustments */
+  .chart-panel-row {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-md);
+  }
+
+  /* Horizontal scrolling board canvas */
+  .kanban-board {
+    grid-template-columns: repeat(4, 290px) !important;
+    overflow-x: auto !important;
+    padding-bottom: var(--spacing-md);
+    gap: var(--spacing-md);
+    align-items: stretch;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -22,9 +22,48 @@ class TaskSphereApp {
     this.bindNavigation();
     this.setupModals();
     this.setupLogin();
+    this.setupMobileToggles();
     
     // Default load dashboard
     this.switchRoute('DASHBOARD');
+  }
+
+  setupMobileToggles() {
+    console.log('[APP-MOBILE] Initializing mobile nav & chat toggle listeners.');
+    const shell = document.getElementById('appShell');
+    const sidebarToggle = document.getElementById('sidebarToggleBtn');
+    const chatToggle = document.getElementById('mobileChatToggleBtn');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const chatBackdrop = document.getElementById('chatBackdrop');
+
+    const closeAll = () => {
+      shell.classList.remove('app-shell--show-sidebar');
+      shell.classList.remove('app-shell--show-chat');
+    };
+
+    if (sidebarToggle) {
+      sidebarToggle.onclick = (e) => {
+        e.stopPropagation();
+        shell.classList.remove('app-shell--show-chat');
+        shell.classList.toggle('app-shell--show-sidebar');
+      };
+    }
+
+    if (chatToggle) {
+      chatToggle.onclick = (e) => {
+        e.stopPropagation();
+        shell.classList.remove('app-shell--show-sidebar');
+        shell.classList.toggle('app-shell--show-chat');
+      };
+    }
+
+    if (sidebarBackdrop) sidebarBackdrop.onclick = closeAll;
+    if (chatBackdrop) chatBackdrop.onclick = closeAll;
+
+    // Auto-close overlay drawers when navigating views
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', closeAll);
+    });
   }
 
   /**

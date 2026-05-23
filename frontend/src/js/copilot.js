@@ -21,6 +21,20 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
         <p style="color: var(--text-muted); font-size: var(--font-size-sm)">Draft optimized AI templates and examine prompt engineering patterns.</p>
       </div>
 
+      <!-- Live Gemini Integration Settings Panel -->
+      <div class="chart-card" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); border: 1px dashed var(--accent-purple)">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-sm)">
+          <div>
+            <h4 style="margin: 0; color: var(--accent-purple); font-size: 13px; font-weight: 700">🤖 Google Gemini AI Live Integration (Optional)</h4>
+            <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted)">Provide your free Gemini API Key to enable genuine, real-time AI user story generation.</p>
+          </div>
+          <div style="display: flex; gap: var(--spacing-sm); align-items: center; flex: 1; min-width: 260px; max-width: 360px">
+            <input type="password" id="geminiApiKeyInput" class="form-input" style="height: 30px; font-size: 11px; padding: 4px 10px" placeholder="Enter Gemini API Key..." value="${localStorage.getItem('gemini_api_key') || ''}">
+            <button id="saveGeminiKeyBtn" class="btn btn--submit" style="height: 30px; font-size: 11px; padding: 0 16px; min-width: 70px">Save</button>
+          </div>
+        </div>
+      </div>
+
       <div class="chart-panel-row" style="grid-template-columns: 1fr 1fr">
         <!-- Prompt Construction Sandbox -->
         <div class="chart-card">
@@ -33,37 +47,39 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
 
           <div class="form-group">
             <label class="form-label">Context Variables Injector</label>
-            <div class="prompt-variable-panel">
+            <div class="prompt-variable-panel" style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap">
               <button class="variable-chip" data-token="TICKET_TITLE">Add {{TICKET_TITLE}}</button>
               <button class="variable-chip" data-token="TICKET_DESC">Add {{TICKET_DESC}}</button>
               <button class="variable-chip" data-token="PRIORITY">Add {{PRIORITY}}</button>
             </div>
           </div>
 
-          <div class="form-row-2" style="margin-top: var(--spacing-lg)">
-            <div class="form-group">
+          <div class="form-row-2" style="margin-top: var(--spacing-lg); align-items: flex-end">
+            <div class="form-group" style="margin-bottom: 0">
               <label class="form-label" for="mockTaskSelect">Select Seed Card</label>
               <select id="mockTaskSelect" class="form-select">
                 <option value="">-- Choose active card --</option>
                 <!-- Populated via script -->
               </select>
             </div>
-            <button id="copilotCompileBtn" class="btn btn--submit" style="align-self: flex-end; height: 38px">Compile & Scramble</button>
+            <button id="copilotCompileBtn" class="btn btn--submit" style="height: 38px; min-width: 140px">Generate Story</button>
           </div>
         </div>
 
         <!-- AI Output & Compilation Logs -->
         <div class="chart-card">
           <div class="chart-card__title">Compiled Context Output (System Scaffolds)</div>
-          <div class="copilot-response-container">
-            <div id="copilotResponseText" class="copilot-response copilot-response--empty">
+          <div class="copilot-response-container" style="position: relative; min-height: 320px">
+            <div id="copilotResponseText" class="copilot-response copilot-response--empty" style="white-space: pre-wrap; font-size: 12px; line-height: 1.6">
               Configure parameters and compile prompts to examine context distributions.
             </div>
-            <div class="typing-indicator hidden" id="copilotLoader" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: none">
-              <span class="typing-dot"></span>
-              <span class="typing-dot"></span>
-              <span class="typing-dot"></span>
-              <span style="margin-left: var(--spacing-sm)">AI compiling context...</span>
+            <div class="typing-indicator hidden" id="copilotLoader" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: none; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm)">
+              <div style="display: flex; gap: 4px">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+              <span style="font-size: 11px; color: var(--accent-purple)">Gemini is compiling context & generating Scrum story...</span>
             </div>
           </div>
         </div>
@@ -80,6 +96,23 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
     const responseBox = this.container.querySelector('#copilotResponseText');
     const loader = this.container.querySelector('#copilotLoader');
     const seedSelect = this.container.querySelector('#mockTaskSelect');
+    const geminiInput = this.container.querySelector('#geminiApiKeyInput');
+    const saveKeyBtn = this.container.querySelector('#saveGeminiKeyBtn');
+
+    // Save Gemini API Key
+    saveKeyBtn.onclick = () => {
+      const keyVal = geminiInput.value.trim();
+      localStorage.setItem('gemini_api_key', keyVal);
+      saveKeyBtn.textContent = 'Saved!';
+      saveKeyBtn.style.borderColor = 'var(--accent-emerald)';
+      saveKeyBtn.style.color = 'var(--accent-emerald)';
+      setTimeout(() => {
+        saveKeyBtn.textContent = 'Save';
+        saveKeyBtn.style.borderColor = '';
+        saveKeyBtn.style.color = '';
+      }, 2000);
+      console.log('[AI-KEY] API Key saved to browser local session settings.');
+    };
 
     // Token buttons injection handler
     this.container.querySelectorAll('.variable-chip').forEach(btn => {
@@ -92,7 +125,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       };
     });
 
-    // Compile button click logic - Day 11 Async promises
+    // Compile & Generate Action
     compileBtn.onclick = async () => {
       const selectedId = seedSelect.value;
       let title = "N/A";
@@ -100,55 +133,103 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       let priority = "N/A";
 
       if (selectedId) {
+        // Read tasks from DB fallback or memory
         const tasks = JSON.parse(localStorage.getItem('cache_tasks') || '[]');
         const task = tasks.find(t => t.id === parseInt(selectedId));
         if (task) {
           title = task.title;
-          desc = task.description || 'No description supplied';
+          desc = task.description || 'No deliverable details supplied';
           priority = task.priority;
         }
       }
 
-      // Read current editor template
+      // Read template and substitute local values
       let template = textArea.value;
       const compiledPrompt = template
         .replace(/{{TICKET_TITLE}}/g, title)
         .replace(/{{TICKET_DESC}}/g, desc)
         .replace(/{{PRIORITY}}/g, priority);
 
-      // Visual async compilation simulation
+      // Transition visual loader
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      // Async/Await promise delay - Day 11
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const apiKey = localStorage.getItem('gemini_api_key');
+      let resultText = '';
+
+      if (apiKey) {
+        // ACTUAL GOOGLE GEMINI LIVE GENERATION!
+        try {
+          console.log('[AI-API] Requesting real-time generation from Gemini...');
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: compiledPrompt
+                }]
+              }]
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Gemini API Error: ${response.status} ${response.statusText}`);
+          }
+
+          const resData = await response.json();
+          resultText = resData.candidates[0].content.parts[0].text;
+          
+          // Format raw markdown response to clean html lines
+          resultText = resultText
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono)">$1</code>')
+            .replace(/\n/g, '<br>');
+
+          console.log('[AI-API] Real-time story generated successfully.');
+        } catch (err) {
+          console.error('[AI-API-FAILURE] Gemini API failed:', err);
+          resultText = `<span style="color: var(--accent-rose)">⚠️ **Failed to connect to Google Gemini API!** ${err.message}</span><br><br><i>Falling back to premium local template generation below:</i><br><br>` + this.getLocalFallbackStory(title, priority);
+        }
+      } else {
+        // Local simulation delay for UI responsiveness
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        resultText = this.getLocalFallbackStory(title, priority);
+      }
 
       loader.classList.add('hidden');
       responseBox.classList.remove('hidden');
       responseBox.classList.remove('copilot-response--empty');
 
-      responseBox.innerHTML = `
-<span class="prompt-editor__system">=== COMPILED SCRUM CONTEXT ===</span>
-${compiledPrompt}
-
-<span class="prompt-editor__system">=== GENERATED SCRUM USER STORY ===</span>
-<b>As a</b> developer reviewer,
-<b>I want to</b> align agile deliverable tickets for "${title}",
-<b>So that</b> we establish automated presence tracking and maintain SLA velocity expectations.
-
-<b>Acceptance Criteria:</b>
-- GIVEN ticket "${title}" exists with priority ${priority}
-- WHEN Agile boards register a column transition event
-- THEN broadcast active user notifications to all operations channels instantly.
-      `;
+      responseBox.innerHTML = resultText;
     };
+  }
+
+  getLocalFallbackStory(title, priority) {
+    return `
+<span class="prompt-editor__system" style="color: var(--accent-purple); font-weight: 700">=== LOCAL SCRUM CO-PILOT GENERATOR ===</span><br>
+<b>As a</b> developer reviewer,<br>
+<b>I want to</b> align agile deliverable tickets for "<b>${title}</b>",<br>
+<b>So that</b> we establish automated presence tracking and maintain SLA velocity expectations.<br><br>
+
+<b>Acceptance Criteria:</b><br>
+- <b>GIVEN</b> ticket "<b>${title}</b>" exists with priority <b>${priority}</b><br>
+- <b>WHEN</b> Agile boards register a column transition event<br>
+- <b>THEN</b> broadcast active user notifications to all operations channels instantly.<br><br>
+<span style="font-size: 10px; color: var(--text-muted)">💡 <i>Pro Tip: Paste a free <b>Google Gemini API Key</b> into the settings field above to trigger real-time AI generation from Gemini's live model!</i></span>
+    `;
   }
 
   populateSeedCards() {
     const seedSelect = this.container.querySelector('#mockTaskSelect');
     if (!seedSelect) return;
 
+    // Populate from db database tasks first, fallback to cached
     const tasks = JSON.parse(localStorage.getItem('cache_tasks') || '[]');
+    seedSelect.innerHTML = `<option value="">-- Choose active card --</option>`;
     tasks.forEach(task => {
       const opt = document.createElement('option');
       opt.value = task.id;
