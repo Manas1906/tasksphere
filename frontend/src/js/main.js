@@ -24,6 +24,7 @@ class TaskSphereApp {
     this.setupLogin();
     this.setupMobileToggles();
     this.setupProfileDropdown();
+    this.setupThemeToggle();
     
     const token = localStorage.getItem('tasksphere_jwt');
     const username = localStorage.getItem('chat_username');
@@ -394,6 +395,41 @@ class TaskSphereApp {
         window.location.reload();
       };
     }
+  }
+
+  setupThemeToggle() {
+    const btn = document.getElementById('themeToggleBtn');
+    const icon = document.getElementById('themeToggleIcon');
+    const label = document.getElementById('themeToggleLabel');
+
+    if (!btn || !icon || !label) return;
+
+    // Load active state from localStorage
+    const savedTheme = localStorage.getItem('tasksphere_theme') || 'dark';
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-theme');
+      icon.textContent = '🌙';
+      label.textContent = 'Dark Mode';
+    } else {
+      document.body.classList.remove('light-theme');
+      icon.textContent = '☀️';
+      label.textContent = 'Light Mode';
+    }
+
+    // Toggle active state on click
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const isLight = document.body.classList.toggle('light-theme');
+      if (isLight) {
+        localStorage.setItem('tasksphere_theme', 'light');
+        icon.textContent = '🌙';
+        label.textContent = 'Dark Mode';
+      } else {
+        localStorage.setItem('tasksphere_theme', 'dark');
+        icon.textContent = '☀️';
+        label.textContent = 'Light Mode';
+      }
+    };
   }
 
   initRealtimeSync() {
