@@ -69,19 +69,95 @@
 
 /* Premium Light Theme overrides - Day 2/6 Aesthetics */
 body.light-theme {
+  /* Color Palette - Premium Space-Light Mode */
   --bg-primary: #F8FAFC;
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #F1F5F9;
-  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.9);
   
   --border-color: rgba(15, 23, 42, 0.08);
   
+  /* Rich Aesthetics Overrides for Light Mode Accents */
+  --accent-cyan: #0284C7; /* Rich readable Sky Blue instead of neon cyan */
+  --accent-purple: #7C3AED; /* Rich Indigo/Purple instead of neon purple */
+  --accent-emerald: #10B981; /* Premium deep emerald */
+  --accent-rose: #E11D48; /* Premium deep rose */
+  --accent-amber: #D97706; /* Premium deep amber */
+  
+  /* Text Contrast Overrides */
   --text-main: #0F172A;
   --text-muted: #64748B;
   --text-light: #334155;
   
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --card-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  /* Glassmorphism overrides for Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --card-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  --cyan-glow: 0 0 15px rgba(2, 132, 199, 0.15);
+  --purple-glow: 0 0 15px rgba(124, 58, 237, 0.15);
+}
+
+/* Page Element Overrides for Premium Light Mode Contrast */
+body.light-theme .header-brand__title {
+  background: linear-gradient(to right, #0F172A, #475569) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+body.light-theme .modal-header__title {
+  background: linear-gradient(to right, #0F172A, #475569) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+body.light-theme .svg-chart__axis {
+  stroke: rgba(15, 23, 42, 0.1) !important;
+}
+
+body.light-theme .svg-chart__grid-line {
+  stroke: rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .circular-gauge__track {
+  stroke: rgba(15, 23, 42, 0.05) !important;
+}
+
+body.light-theme .chat-messages-container {
+  background-color: rgba(15, 23, 42, 0.02) !important;
+}
+
+body.light-theme .kanban-column-header__count {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: var(--text-muted) !important;
+}
+
+body.light-theme .filter-btn {
+  background: rgba(15, 23, 42, 0.02);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+body.light-theme .filter-btn:hover {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+body.light-theme .task-card:hover {
+  border-color: rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .active-users-bar li button {
+  color: var(--text-muted);
+}
+
+body.light-theme .active-users-bar li button.filter-btn--active {
+  color: var(--accent-cyan) !important;
+  background: rgba(2, 132, 199, 0.06) !important;
+  border-color: var(--accent-cyan) !important;
+}
+
+body.light-theme select.auth-input option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 /* Base resets & setups */
