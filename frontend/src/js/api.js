@@ -72,7 +72,7 @@ class ApiService {
     if (!isOnline) {
       this.offlineMode = true;
       if (wsStatusText) {
-        wsStatusText.textContent = '● Offline Cache Active';
+        wsStatusText.textContent = '● Offline';
         wsStatusText.className = 'text-amber';
       }
     } else {

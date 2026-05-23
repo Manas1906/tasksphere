@@ -64,10 +64,10 @@ class WebSocketManager {
     console.log(`[WS-STATUS-UI] Updating status indicator to isConnected=${isConnected}`);
     if (wsStatusText) {
       if (isConnected) {
-        wsStatusText.textContent = '● Connected Live';
+        wsStatusText.textContent = '● Online';
         wsStatusText.className = 'text-cyan bg-cyan-glow';
       } else {
-        wsStatusText.textContent = '● Disconnected';
+        wsStatusText.textContent = '● Offline';
         wsStatusText.className = 'text-rose';
       }
     }
