@@ -241,7 +241,8 @@ class TaskSphereApp {
           usernameInput.focus();
         } catch (err) {
           console.error('[AUTH-VERIFY] OTP verification failed:', err);
-          showError(err.message || 'Invalid or expired verification code.');
+          const displayMsg = err.message === 'Invalid or expired verification code.' ? 'Wrong OTP' : (err.message || 'Invalid or expired verification code.');
+          showError(displayMsg);
         } finally {
           verifyBtn.disabled = false;
           verifyBtn.textContent = 'Verify & Authenticate';

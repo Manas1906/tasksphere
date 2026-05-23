@@ -29,33 +29,11 @@ class ApiService {
       ...options.headers
     };
 
+    let response;
     try {
-      const response = await fetch(url, options);
-      if (response.status === 401) {
-        console.warn('[API-UNAUTHORIZED] Access denied. Directing to login overlay.');
-        localStorage.removeItem('tasksphere_jwt');
-        localStorage.removeItem('tasksphere_user');
-        const loginOverlay = document.getElementById('loginOverlay');
-        if (loginOverlay) {
-          loginOverlay.classList.remove('hidden');
-        }
-        throw new Error('Unauthorized session terminated.');
-      }
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
-      this.setOnline(true);
-      
-      // If response has no content (like 204 No Content), return null
-      if (response.status === 204) {
-        console.log(`[API-SUCCESS] ${method} ${endpoint} - 204 No Content`);
-        return null;
-      }
-      const data = await response.json();
-      console.log(`[API-SUCCESS] ${method} ${endpoint} - Successfully received payload:`, data);
-      return data;
-    } catch (error) {
-      console.error(`[API-FAILURE] Fetch to ${endpoint} failed. Engaging LocalStorage fallback cache mechanism.`, error);
+      response = await fetch(url, options);
+    } catch (networkError) {
+      console.error(`[API-FAILURE] Fetch to ${endpoint} failed. Connection offline.`, networkError);
       this.setOnline(false);
       
       if (endpoint.startsWith('/auth/')) {
@@ -64,6 +42,40 @@ class ApiService {
       
       return this.handleFallback(endpoint, options);
     }
+
+    this.setOnline(true);
+
+    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
+      console.warn('[API-UNAUTHORIZED] Access denied. Directing to login overlay.');
+      localStorage.removeItem('tasksphere_jwt');
+      localStorage.removeItem('tasksphere_user');
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) {
+        loginOverlay.classList.remove('hidden');
+      }
+      throw new Error('Unauthorized session terminated.');
+    }
+
+    if (!response.ok) {
+      let errMsg = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        const errData = await response.json();
+        errMsg = errData.error || errData.message || errMsg;
+      } catch (e) {
+        // Ignore JSON parsing failure for non-JSON responses
+      }
+      throw new Error(errMsg);
+    }
+
+    // If response has no content (like 204 No Content), return null
+    if (response.status === 204) {
+      console.log(`[API-SUCCESS] ${method} ${endpoint} - 204 No Content`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log(`[API-SUCCESS] ${method} ${endpoint} - Successfully received payload:`, data);
+    return data;
   }
 
   setOnline(isOnline) {
