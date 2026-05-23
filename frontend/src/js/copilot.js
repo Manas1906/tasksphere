@@ -21,20 +21,6 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
         <p style="color: var(--text-muted); font-size: var(--font-size-sm)">Draft optimized AI templates and examine prompt engineering patterns.</p>
       </div>
 
-      <!-- Live Gemini Integration Settings Panel -->
-      <div class="chart-card" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); border: 1px dashed var(--accent-purple)">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-sm)">
-          <div>
-            <h4 style="margin: 0; color: var(--accent-purple); font-size: 13px; font-weight: 700">🤖 Google Gemini AI Live Integration (Optional)</h4>
-            <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted)">Provide your free Gemini API Key to enable genuine, real-time AI user story generation.</p>
-          </div>
-          <div style="display: flex; gap: var(--spacing-sm); align-items: center; flex: 1; min-width: 260px; max-width: 360px">
-            <input type="password" id="geminiApiKeyInput" class="form-input" style="height: 30px; font-size: 11px; padding: 4px 10px" placeholder="Enter Gemini API Key..." value="${localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM'}">
-            <button id="saveGeminiKeyBtn" class="btn btn--submit" style="height: 30px; font-size: 11px; padding: 0 16px; min-width: 70px">Save</button>
-          </div>
-        </div>
-      </div>
-
       <div class="chart-panel-row" style="grid-template-columns: 1fr 1fr">
         <!-- Prompt Construction Sandbox -->
         <div class="chart-card">
@@ -54,7 +40,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
             </div>
           </div>
 
-          <div class="form-row-2" style="margin-top: var(--spacing-lg); align-items: flex-end">
+          <div class="form-row-2" style="margin-top: var(--spacing-lg); align-items: flex-end; grid-template-columns: 2fr 1fr">
             <div class="form-group" style="margin-bottom: 0">
               <label class="form-label" for="mockTaskSelect">Select Seed Card</label>
               <select id="mockTaskSelect" class="form-select">
@@ -96,23 +82,6 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
     const responseBox = this.container.querySelector('#copilotResponseText');
     const loader = this.container.querySelector('#copilotLoader');
     const seedSelect = this.container.querySelector('#mockTaskSelect');
-    const geminiInput = this.container.querySelector('#geminiApiKeyInput');
-    const saveKeyBtn = this.container.querySelector('#saveGeminiKeyBtn');
-
-    // Save Gemini API Key
-    saveKeyBtn.onclick = () => {
-      const keyVal = geminiInput.value.trim();
-      localStorage.setItem('gemini_api_key', keyVal);
-      saveKeyBtn.textContent = 'Saved!';
-      saveKeyBtn.style.borderColor = 'var(--accent-emerald)';
-      saveKeyBtn.style.color = 'var(--accent-emerald)';
-      setTimeout(() => {
-        saveKeyBtn.textContent = 'Save';
-        saveKeyBtn.style.borderColor = '';
-        saveKeyBtn.style.color = '';
-      }, 2000);
-      console.log('[AI-KEY] API Key saved to browser local session settings.');
-    };
 
     // Token buttons injection handler
     this.container.querySelectorAll('.variable-chip').forEach(btn => {
