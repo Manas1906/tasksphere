@@ -157,7 +157,8 @@ class TaskSphereApp {
           
           submittedEmail = email;
           subtitle.innerHTML = `Security code sent to:<br><b style="color: var(--accent-cyan); word-break: break-all;">${email}</b><br>Please enter it below.`;
-          formContainer.classList.add('show-otp');
+          document.getElementById('authEmailStep').classList.add('hidden');
+          document.getElementById('authOtpStep').classList.remove('hidden');
           document.getElementById('authOtpInput').focus();
         } catch (err) {
           console.error('[AUTH-OTP] OTP dispatch failed:', err);
@@ -227,8 +228,8 @@ class TaskSphereApp {
     // 3. Back to Email Link
     changeEmailLink.onclick = (e) => {
       e.preventDefault();
-      clearError();
-      formContainer.classList.remove('show-otp');
+      document.getElementById('authOtpStep').classList.add('hidden');
+      document.getElementById('authEmailStep').classList.remove('hidden');
       subtitle.textContent = 'Verify your identity to access the agile workspace';
       document.getElementById('authEmailInput').focus();
     };
