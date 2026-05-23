@@ -125,9 +125,9 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      // Split the fallback developer key to prevent GitHub's automated secret scanner from flagging and blocking it
-      const keyParts = ['AIzaSyCdlJqwY', '8S1mJ7c61eCpqT', 'nGCQAGnumoMk'];
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || keyParts.join('');
+      // Wiped to prevent public key leaks - please populate VITE_GEMINI_API_KEY inside your local untracked environment
+      const keyParts = ['', '', ''];
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       let resultText = '';
 
       if (apiKey) {
