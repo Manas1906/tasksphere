@@ -29,7 +29,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
             <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted)">Provide your free Gemini API Key to enable genuine, real-time AI user story generation.</p>
           </div>
           <div style="display: flex; gap: var(--spacing-sm); align-items: center; flex: 1; min-width: 260px; max-width: 360px">
-            <input type="password" id="geminiApiKeyInput" class="form-input" style="height: 30px; font-size: 11px; padding: 4px 10px" placeholder="Enter Gemini API Key..." value="${localStorage.getItem('gemini_api_key') || ''}">
+            <input type="password" id="geminiApiKeyInput" class="form-input" style="height: 30px; font-size: 11px; padding: 4px 10px" placeholder="Enter Gemini API Key..." value="${localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM'}">
             <button id="saveGeminiKeyBtn" class="btn btn--submit" style="height: 30px; font-size: 11px; padding: 0 16px; min-width: 70px">Save</button>
           </div>
         </div>
@@ -154,7 +154,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      const apiKey = localStorage.getItem('gemini_api_key');
+      const apiKey = localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM';
       let resultText = '';
 
       if (apiKey) {
