@@ -2,9 +2,10 @@ name: TaskSphere Enterprise CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
+
 
 jobs:
   # Job 1: Build and Test Spring Boot Backend

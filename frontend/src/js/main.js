@@ -17,6 +17,7 @@ class TaskSphereApp {
   }
 
   async start() {
+    console.log('[APP-START] Bootstrapping TaskSphere Enterprise Workspace...');
     this.seedDemoData();
     this.bindNavigation();
     this.setupModals();
@@ -31,6 +32,7 @@ class TaskSphereApp {
    */
   seedDemoData() {
     if (!localStorage.getItem('cache_tasks')) {
+      console.log('[APP-SEED] Seeding default visual scrum board tickets to local cache.');
       const demoTasks = [
         { id: 1, title: 'Establish Spring STOMP WebSocket Broker Pipeline', description: 'Scaffold spring-boot-starter-websocket configurations, routing prefixes, and Stomp protocol handshake filters.', status: 'DONE', priority: 'URGENT', storyPoints: 5, dueDate: '2026-05-18' },
         { id: 2, title: 'Implement Fluid Grid Outer Shell Layout System', description: 'Design 3-panel responsive CSS Grid layout including collapsible sidebars, scroll boxes, and clamp resizing.', status: 'DONE', priority: 'HIGH', storyPoints: 3, dueDate: '2026-05-19' },
@@ -56,6 +58,8 @@ class TaskSphereApp {
 
       if (!username) return;
 
+      console.log(`[APP-LOGIN] Launching workspace session for user: "${username}" with role: "${role}"`);
+
       // Cache details locally
       localStorage.setItem('chat_username', username);
       localStorage.setItem('chat_avatar', avatarUrl);
@@ -71,9 +75,10 @@ class TaskSphereApp {
 
       // Initialize API login to sync profile
       try {
+        console.log('[APP-LOGIN] Synchronizing user session credentials with remote backend...');
         await api.login({ username, role, avatarUrl });
       } catch (err) {
-        console.warn('Backend login unavailable, syncing in memory mode.');
+        console.warn('[APP-LOGIN] Backend login API offline. Gracefully continuing workspace in local-only cache mode.');
       }
 
       // Initialize WebSockets real-time sync after login
@@ -82,6 +87,7 @@ class TaskSphereApp {
   }
 
   initRealtimeSync() {
+    console.log('[APP-SYNC] Instantiating ChatController and establishing socket handlers.');
     // Instantiate and initialize chat controller instantly so the Send button binds and works immediately
     this.chatController = new ChatController();
     this.chatController.init();
@@ -89,14 +95,17 @@ class TaskSphereApp {
     // Connect socket
     socket.connect(
       () => {
+        console.log('[APP-SYNC-SUCCESS] Socket connection established. Registering sync channels...');
         // Subscribe to real-time card updates channel
         socket.subscribe('/topic/board', (payload) => {
+          console.log('[APP-SYNC-BOARD] Board card move payload received:', payload);
           if (this.activeRoute === 'BOARD' && this.currentView instanceof BoardView) {
             this.currentView.syncExternalMove(payload);
           } else {
             // Update local memory
             const idx = this.currentView.tasks.findIndex(t => t.id === payload.taskId);
             if (idx !== -1) {
+              console.log(`[APP-SYNC-BOARD] Syncing card status update locally for Task ID ${payload.taskId}`);
               this.currentView.tasks[idx].status = payload.toStatus;
             }
           }
@@ -106,8 +115,8 @@ class TaskSphereApp {
         this.chatController.subscribeChannels();
         this.chatController.syncMyPresence();
       },
-      () => {
-        console.warn('Real-time broker disconnected. degraded REST synchronization active.');
+      (err) => {
+        console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
       }
     );
   }

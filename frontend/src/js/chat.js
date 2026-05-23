@@ -16,6 +16,7 @@ export class ChatController {
   }
 
   init() {
+    console.log('[CHAT-INIT] Initializing ChatController...');
     this.bindEvents();
     this.loadChatHistory();
   }
@@ -32,15 +33,20 @@ export class ChatController {
         message: msgText
       };
 
+      console.log('[CHAT-SEND-CLICK] User initiated message dispatch:', payload);
+
       // Broadcast via socket
       const sent = socket.send('/app/chat.send', payload);
       if (!sent) {
+        console.warn('[CHAT-OFFLINE] WebSocket send failed! Appending message to local thread as OFFLINE fallback cache.');
         // Mock offline display if socket disconnected
         this.appendMessage({
           ...payload,
           timestamp: new Date().toISOString(),
           offline: true
         });
+      } else {
+        console.log('[CHAT-SUCCESS] Message successfully dispatched over live socket broker!');
       }
       
       this.input.value = '';
@@ -54,13 +60,16 @@ export class ChatController {
   }
 
   async loadChatHistory() {
+    console.log('[CHAT-HISTORY] Requesting recent chat thread history...');
     this.messagesContainer.innerHTML = '';
     
     // Read from DB fallback cache if offline, else fetch
     try {
       const messages = await api.request('/chat-messages') || [];
+      console.log(`[CHAT-HISTORY] Loaded ${messages.length} messages successfully from database.`);
       messages.forEach(msg => this.appendMessage(msg));
     } catch (e) {
+      console.warn('[CHAT-HISTORY] REST call failed. Retrieving chat history from localstorage cache.', e);
       // Offline fallback history loading
       const cache = JSON.parse(localStorage.getItem('cache_chat') || '[]');
       cache.forEach(msg => this.appendMessage(msg));
@@ -68,26 +77,34 @@ export class ChatController {
   }
 
   subscribeChannels() {
+    console.log('[CHAT-SUBSCRIBE] Subscribing to chat and user presence topics...');
+    
     // Subscribe to chat stream
     socket.subscribe('/topic/chat', (message) => {
+      console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
       this.appendMessage(message);
     });
 
     // Subscribe to users presence mapping
     socket.subscribe('/topic/users', (presenceUpdate) => {
+      console.log('[CHAT-PRESENCE-IN] Received user presence update from broker:', presenceUpdate);
       this.updateActiveUsersList(presenceUpdate);
     });
   }
 
   syncMyPresence() {
+    console.log('[CHAT-PRESENCE-SYNC] Preparing periodic presence registration...');
     // Register periodic presence broadcasts
     const registerPresence = () => {
-      socket.send('/app/user.presence', {
+      const presencePayload = {
         username: this.myUsername,
         avatarUrl: this.myAvatar,
         role: localStorage.getItem('chat_role') || 'DEVELOPER',
         status: 'ONLINE'
-      });
+      };
+      
+      console.log('[CHAT-PRESENCE-SEND] Registering presence heartbeat:', presencePayload);
+      socket.send('/app/user.presence', presencePayload);
     };
 
     // Initial register when connection completes
@@ -95,7 +112,11 @@ export class ChatController {
     
     // Periodic presence ping every 20 seconds
     setInterval(() => {
-      if (socket.connected) registerPresence();
+      if (socket.connected) {
+        registerPresence();
+      } else {
+        console.log('[CHAT-PRESENCE-SKIP] Socket is offline. Skipping presence heartbeat.');
+      }
     }, 20000);
   }
 

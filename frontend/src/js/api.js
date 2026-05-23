@@ -4,9 +4,10 @@
  * Features automated fallback to localStorage if backend is offline.
  */
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const CLEAN_API_URL = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
 
 class ApiService {
-  constructor(baseUrl = `${API_URL}/api`) {
+  constructor(baseUrl = `${CLEAN_API_URL}/api`) {
     this.baseUrl = baseUrl;
     this.offlineMode = false;
   }
@@ -15,7 +16,10 @@ class ApiService {
    * Universal fetch wrapper with timeout & offline recovery
    */
   async request(endpoint, options = {}) {
+    const method = options.method || 'GET';
     const url = `${this.baseUrl}${endpoint}`;
+    
+    console.log(`[API-REQUEST] Sending ${method} request to: ${url}`);
     
     // Configure default headers
     options.headers = {
@@ -31,10 +35,15 @@ class ApiService {
       this.setOnline(true);
       
       // If response has no content (like 204 No Content), return null
-      if (response.status === 204) return null;
-      return await response.json();
+      if (response.status === 204) {
+        console.log(`[API-SUCCESS] ${method} ${endpoint} - 204 No Content`);
+        return null;
+      }
+      const data = await response.json();
+      console.log(`[API-SUCCESS] ${method} ${endpoint} - Successfully received payload:`, data);
+      return data;
     } catch (error) {
-      console.warn(`Fetch to ${endpoint} failed. Engaging LocalStorage cache.`, error);
+      console.error(`[API-FAILURE] Fetch to ${endpoint} failed. Engaging LocalStorage fallback cache mechanism.`, error);
       this.setOnline(false);
       return this.handleFallback(endpoint, options);
     }
@@ -42,6 +51,7 @@ class ApiService {
 
   setOnline(isOnline) {
     const wsStatusText = document.getElementById('wsStatus');
+    console.log(`[API-STATUS] Setting API connectivity online state: ${isOnline}`);
     if (!isOnline) {
       this.offlineMode = true;
       if (wsStatusText) {
