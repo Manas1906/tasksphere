@@ -280,6 +280,16 @@
   }
 }
 
+.mobile-nav-close {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .mobile-nav-close {
+    display: block !important;
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

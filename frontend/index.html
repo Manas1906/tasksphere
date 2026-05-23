@@ -54,8 +54,9 @@
 
     <!-- Sidebar Panel - Navigation & Project Scopes -->
     <aside class="app-sidebar">
-      <div class="chat-panel-header">
-        <h3 class="chat-panel-header__title" style="color: var(--accent-cyan)">Navigation</h3>
+      <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: center">
+        <h3 class="chat-panel-header__title" style="color: var(--accent-cyan); margin-bottom: 0">Navigation</h3>
+        <button id="closeSidebarBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
       </div>
       <ul class="active-users-bar" style="flex-direction: column; overflow-y: auto; flex: 1; gap: var(--spacing-sm); padding: var(--spacing-md)">
         <li>
@@ -81,15 +82,18 @@
     <!-- Chat Sidebar Panel - Real-time active collaboration room -->
     <aside class="app-chat" id="chatContainer">
       <div class="chat-panel">
-        <div class="chat-panel-header">
-          <h3 class="chat-panel-header__title">
-            <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-            Operations Chat
-          </h3>
-          <div class="chat-panel-header__active-badge">
-            <span class="chat-panel-header__active-dot"></span>
-            <span id="activeUserCount">1 active session</span>
+        <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start">
+          <div>
+            <h3 class="chat-panel-header__title" style="margin-bottom: var(--spacing-xs)">
+              <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+              Operations Chat
+            </h3>
+            <div class="chat-panel-header__active-badge">
+              <span class="chat-panel-header__active-dot"></span>
+              <span id="activeUserCount">1 active session</span>
+            </div>
           </div>
+          <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
         </div>
 
         <!-- Horizontal user avatars scrolling bar -->

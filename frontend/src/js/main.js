@@ -70,6 +70,11 @@ class TaskSphereApp {
     if (sidebarBackdrop) sidebarBackdrop.onclick = closeMobileDrawers;
     if (chatBackdrop) chatBackdrop.onclick = closeMobileDrawers;
 
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+    if (closeSidebarBtn) closeSidebarBtn.onclick = closeMobileDrawers;
+    if (closeChatBtn) closeChatBtn.onclick = closeMobileDrawers;
+
     // Auto-close overlay drawers when navigating views
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', closeMobileDrawers);
