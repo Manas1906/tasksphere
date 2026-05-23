@@ -23,18 +23,40 @@ class TaskSphereApp {
     this.setupModals();
     this.setupLogin();
     this.setupMobileToggles();
+    this.setupProfileDropdown();
     
     const token = localStorage.getItem('tasksphere_jwt');
+    const username = localStorage.getItem('chat_username');
+    const role = localStorage.getItem('chat_role');
     const loginOverlay = document.getElementById('loginOverlay');
     
-    if (token) {
+    if (token && username && role) {
       console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
       this.applyProfileUI();
       if (loginOverlay) loginOverlay.classList.add('hidden');
       this.initRealtimeSync();
     } else {
-      console.log('[APP-START] No active session found. Gating workspace behind secure login modal.');
-      if (loginOverlay) loginOverlay.classList.remove('hidden');
+      console.log('[APP-START] No active session or incomplete profile. Gating workspace behind login overlay.');
+      if (loginOverlay) {
+        loginOverlay.classList.remove('hidden');
+        if (token) {
+          console.log('[APP-START] JWT session found but profile incomplete. Navigating to Step 3 Profile Initialization.');
+          document.getElementById('authEmailStep').classList.add('hidden');
+          document.getElementById('authOtpStep').classList.add('hidden');
+          document.getElementById('authProfileStep').classList.remove('hidden');
+          
+          document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
+          document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
+          document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
+          
+          const subtitle = document.getElementById('authSubtitle');
+          if (subtitle) subtitle.textContent = '';
+          
+          const userPrefix = localStorage.getItem('chat_username') || '';
+          document.getElementById('authUsernameInput').value = userPrefix;
+          document.getElementById('authUsernameInput').focus();
+        }
+      }
     }
     
     // Default load dashboard
@@ -116,6 +138,7 @@ class TaskSphereApp {
     const loginOverlay = document.getElementById('loginOverlay');
     const emailForm = document.getElementById('emailSubmitForm');
     const otpForm = document.getElementById('otpSubmitForm');
+    const profileForm = document.getElementById('profileSubmitForm');
     const formContainer = document.getElementById('authFormContainer');
     const subtitle = document.getElementById('authSubtitle');
     const errorMsg = document.getElementById('authErrorMsg');
@@ -195,24 +218,26 @@ class TaskSphereApp {
           console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
           const data = await api.verifyOtp(submittedEmail, otp);
 
-          console.log('[AUTH-SUCCESS] OTP verified successfully. Establishing authorized workspace session.');
+          console.log('[AUTH-SUCCESS] OTP verified successfully. Transitioning to Step 3 Profile Selection.');
           
-          // Cache JWT, profile and role
+          // Cache JWT immediately
           localStorage.setItem('tasksphere_jwt', data.token);
-          localStorage.setItem('chat_username', data.username);
-          localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${data.username}`);
-          localStorage.setItem('chat_role', 'DEVELOPER');
+          localStorage.setItem('tasksphere_email', submittedEmail);
 
-          this.applyProfileUI();
-
-          // Unlock dashboard shell
-          loginOverlay.classList.add('hidden');
-
-          // Spin up live WebSocket broker sync
-          this.initRealtimeSync();
-
-          // Refresh views to trigger REST calls with valid bearer token
-          this.switchRoute(this.activeRoute);
+          // Transition to Step 3 Profile setup
+          document.getElementById('authOtpStep').classList.add('hidden');
+          document.getElementById('authProfileStep').classList.remove('hidden');
+          
+          // Dynamic title conversion matching mockup
+          document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
+          document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
+          document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
+          subtitle.textContent = '';
+          
+          // Pre-populate input with server's suggested username prefix
+          const usernameInput = document.getElementById('authUsernameInput');
+          usernameInput.value = data.username || '';
+          usernameInput.focus();
         } catch (err) {
           console.error('[AUTH-VERIFY] OTP verification failed:', err);
           showError(err.message || 'Invalid or expired verification code.');
@@ -225,12 +250,80 @@ class TaskSphereApp {
       return false;
     };
 
-    // 3. Back to Email Link
+    // 3. Submit Profile Form to Launch Workspace
+    if (profileForm) {
+      profileForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
+
+        const usernameInput = document.getElementById('authUsernameInput');
+        const roleSelect = document.getElementById('authRoleSelect');
+        const launchBtn = document.getElementById('launchWorkspaceBtn');
+
+        const username = usernameInput.value.trim();
+        const role = roleSelect.value;
+
+        if (!username) {
+          showError('Session Username is required.');
+          return false;
+        }
+
+        launchBtn.disabled = true;
+        launchBtn.innerHTML = '<span class="auth-spinner"></span>Launching...';
+
+        (async () => {
+          try {
+            console.log(`[AUTH-PROFILE] Finalizing user profile: ${username} as role: ${role}`);
+            
+            // Persist locally
+            localStorage.setItem('chat_username', username);
+            localStorage.setItem('chat_role', role);
+            localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`);
+
+            // Call /api/users/login to register active session on backend
+            await api.login({
+              username: username,
+              role: role,
+              avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
+              status: 'ONLINE'
+            });
+
+            // Update UI headers
+            this.applyProfileUI();
+
+            // Hide overlay card
+            loginOverlay.classList.add('hidden');
+
+            // Initialize sockets synchronization
+            this.initRealtimeSync();
+
+            // Refresh views
+            this.switchRoute(this.activeRoute);
+          } catch (err) {
+            console.error('[AUTH-PROFILE] Profile setup failed:', err);
+            showError(err.message || 'Failed to initialize session. Please try again.');
+          } finally {
+            launchBtn.disabled = false;
+            launchBtn.textContent = 'Launch Workspace';
+          }
+        })();
+
+        return false;
+      };
+    }
+
+    // 4. Back to Email Link
     changeEmailLink.onclick = (e) => {
       e.preventDefault();
+      
+      // Restore default branding header
+      document.querySelector('.auth-card__logo').textContent = 'TaskSphere';
+      document.querySelector('.auth-card__logo').style.fontSize = '';
+      document.querySelector('.auth-card__logo').style.letterSpacing = '';
+      subtitle.textContent = 'Verify your identity to access the agile workspace';
+
       document.getElementById('authOtpStep').classList.add('hidden');
       document.getElementById('authEmailStep').classList.remove('hidden');
-      subtitle.textContent = 'Verify your identity to access the agile workspace';
       document.getElementById('authEmailInput').focus();
     };
   }
@@ -239,10 +332,68 @@ class TaskSphereApp {
     const username = localStorage.getItem('chat_username') || 'Guest';
     const role = localStorage.getItem('chat_role') || 'DEVELOPER';
     const avatar = localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    const email = localStorage.getItem('tasksphere_email') || `${username.toLowerCase()}@tasksphere.com`;
 
     document.getElementById('myUsername').textContent = username;
     document.getElementById('myRole').textContent = role.replace('_', ' ');
     document.getElementById('myAvatar').src = avatar;
+
+    // Populate profile dropdown popup elements
+    const dName = document.getElementById('dropdownUsername');
+    const dRole = document.getElementById('dropdownRole');
+    const dAvatar = document.getElementById('dropdownAvatar');
+    const dEmail = document.getElementById('dropdownEmail');
+
+    if (dName) dName.textContent = username;
+    if (dRole) dRole.textContent = role.replace('_', ' ');
+    if (dAvatar) dAvatar.src = avatar;
+    if (dEmail) dEmail.textContent = email;
+  }
+
+  setupProfileDropdown() {
+    const badge = document.getElementById('currentUserBadge');
+    const dropdown = document.getElementById('profileDropdown');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    if (!badge || !dropdown) return;
+
+    // Toggle dropdown card visibility
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+    };
+
+    // Close dropdown card when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!badge.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    // Handle logout click handler
+    if (logoutBtn) {
+      logoutBtn.onclick = (e) => {
+        e.preventDefault();
+        console.log('[AUTH-LOGOUT] Terminating session. Wiping local security context...');
+
+        // Wipe local storage credentials
+        localStorage.removeItem('tasksphere_jwt');
+        localStorage.removeItem('chat_username');
+        localStorage.removeItem('chat_role');
+        localStorage.removeItem('chat_avatar');
+        localStorage.removeItem('tasksphere_email');
+
+        // Disconnect WebSockets
+        try {
+          socket.disconnect();
+        } catch (err) {
+          console.warn('[AUTH-LOGOUT] WebSocket close failed:', err);
+        }
+
+        // Full clean reload to trigger standard gated startup overlay state
+        window.location.reload();
+      };
+    }
   }
 
   initRealtimeSync() {

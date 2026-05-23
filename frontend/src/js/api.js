@@ -57,6 +57,11 @@ class ApiService {
     } catch (error) {
       console.error(`[API-FAILURE] Fetch to ${endpoint} failed. Engaging LocalStorage fallback cache mechanism.`, error);
       this.setOnline(false);
+      
+      if (endpoint.startsWith('/auth/')) {
+        throw new Error('Authentication service is currently offline. Please ensure your backend is active and try again.');
+      }
+      
       return this.handleFallback(endpoint, options);
     }
   }
