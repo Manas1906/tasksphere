@@ -28,6 +28,12 @@ public class EmailService {
     @Value("${resend.api.key:}")
     private String resendApiKey;
 
+    @Value("${mailjet.api.key:}")
+    private String mailjetApiKey;
+
+    @Value("${mailjet.secret.key:}")
+    private String mailjetSecretKey;
+
     @Async
     public void sendOtpEmail(String toEmail, String otp) {
         String cleanEmail = toEmail.toLowerCase().trim();
@@ -38,6 +44,50 @@ public class EmailService {
         System.out.println("Deliver OTP to: " + cleanEmail);
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
+
+        // Try Mailjet API if API keys are supplied (HTTPS port 443 is never blocked by cloud firewalls)
+        if (mailjetApiKey != null && !mailjetApiKey.trim().isEmpty() && mailjetSecretKey != null && !mailjetSecretKey.trim().isEmpty()) {
+            System.out.println("[MAILJET-START] Attempting real-time email delivery via Mailjet API...");
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.setBasicAuth(mailjetApiKey.trim(), mailjetSecretKey.trim());
+
+                // Prepare Mailjet JSON payload matching v3.1 schema
+                Map<String, Object> fromMap = new HashMap<>();
+                fromMap.put("Email", fromEmail); // must be verified sender, e.g. acharyamanas1906@gmail.com
+                fromMap.put("Name", "TaskSphere");
+
+                Map<String, Object> toMap = new HashMap<>();
+                toMap.put("Email", cleanEmail);
+                toMap.put("Name", "Developer");
+
+                java.util.List<Map<String, Object>> toList = new java.util.ArrayList<>();
+                toList.add(toMap);
+
+                Map<String, Object> messageMap = new HashMap<>();
+                messageMap.put("From", fromMap);
+                messageMap.put("To", toList);
+                messageMap.put("Subject", "TaskSphere Security - Your 6-Digit Verification Code: " + otp);
+                messageMap.put("HTMLPart", htmlMessage);
+
+                java.util.List<Map<String, Object>> messagesList = new java.util.ArrayList<>();
+                messagesList.add(messageMap);
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("Messages", messagesList);
+
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity("https://api.mailjet.com/v3.1/send", entity, String.class);
+                
+                System.out.println("[MAILJET-SUCCESS] Real-time mail dispatched via Mailjet API. Response: " + response.getBody());
+                return; // Successfully sent, bypass SMTP/Resend fallback!
+            } catch (Exception ex) {
+                System.err.println("[MAILJET-FAILURE] Mailjet API failed: " + ex.getMessage());
+                System.out.println("[MAILJET-INFO] Falling back to standard SMTP/Simulator...");
+            }
+        }
 
         // Try Resend API if API key is supplied (HTTPS port 443 is never blocked by cloud firewalls)
         if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
