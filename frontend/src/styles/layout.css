@@ -22,6 +22,7 @@
   height: 100%;
   overflow: hidden;
   z-index: 10;
+  transition: width var(--transition-normal), opacity var(--transition-normal), border-right var(--transition-normal);
 }
 
 .app-header {
@@ -53,6 +54,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  transition: width var(--transition-normal), opacity var(--transition-normal), border-left var(--transition-normal);
 }
 
 /* Sidebar Toggle Modifier States */
@@ -136,9 +138,9 @@
   color: var(--text-muted);
 }
 
-/* Mobile Toggle Buttons & Responsive Drawer Overlays */
+/* Mobile & Desktop Toggle Buttons */
 .mobile-nav-toggle {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 34px;
@@ -154,11 +156,34 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Desktop Hiding / Collapsing Columns */
+.app-shell--hide-sidebar {
+  grid-template-columns: 0px 1fr var(--chat-panel-width) !important;
+}
+
+.app-shell--hide-chat {
+  grid-template-columns: var(--sidebar-width) 1fr 0px !important;
+}
+
+.app-shell--hide-sidebar.app-shell--hide-chat {
+  grid-template-columns: 0px 1fr 0px !important;
+}
+
+.app-shell--hide-sidebar .app-sidebar {
+  width: 0px !important;
+  opacity: 0 !important;
+  border-right: none !important;
+  pointer-events: none;
+}
+
+.app-shell--hide-chat .app-chat {
+  width: 0px !important;
+  opacity: 0 !important;
+  border-left: none !important;
+  pointer-events: none;
+}
+
 @media (max-width: 1024px) {
-  .mobile-nav-toggle {
-    display: flex;
-  }
-  
   .app-shell {
     grid-template-columns: 1fr;
     grid-template-rows: var(--header-height) 1fr;
@@ -174,7 +199,6 @@
     left: -280px;
     bottom: 0;
     width: 280px;
-    height: 100vh;
     z-index: 1000;
     transition: left var(--transition-normal);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
@@ -186,7 +210,6 @@
     right: -320px;
     bottom: 0;
     width: 320px;
-    height: 100vh;
     z-index: 1000;
     transition: right var(--transition-normal);
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
