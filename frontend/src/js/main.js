@@ -24,6 +24,19 @@ class TaskSphereApp {
     this.setupLogin();
     this.setupMobileToggles();
     
+    const token = localStorage.getItem('tasksphere_jwt');
+    const loginOverlay = document.getElementById('loginOverlay');
+    
+    if (token) {
+      console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
+      this.applyProfileUI();
+      if (loginOverlay) loginOverlay.classList.add('hidden');
+      this.initRealtimeSync();
+    } else {
+      console.log('[APP-START] No active session found. Gating workspace behind secure login modal.');
+      if (loginOverlay) loginOverlay.classList.remove('hidden');
+    }
+    
     // Default load dashboard
     this.switchRoute('DASHBOARD');
   }
@@ -100,44 +113,125 @@ class TaskSphereApp {
   }
 
   setupLogin() {
-    const loginModal = document.getElementById('loginModal');
-    const loginForm = document.getElementById('loginForm');
+    const loginOverlay = document.getElementById('loginOverlay');
+    const emailForm = document.getElementById('emailSubmitForm');
+    const otpForm = document.getElementById('otpSubmitForm');
+    const formContainer = document.getElementById('authFormContainer');
+    const subtitle = document.getElementById('authSubtitle');
+    const errorMsg = document.getElementById('authErrorMsg');
+    const changeEmailLink = document.getElementById('changeEmailLink');
 
-    loginForm.onsubmit = async (e) => {
+    let submittedEmail = '';
+
+    const showError = (msg) => {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('visible');
+    };
+
+    const clearError = () => {
+      errorMsg.classList.remove('visible');
+    };
+
+    // 1. Submit Email Form to Dispatch OTP
+    emailForm.onsubmit = async (e) => {
       e.preventDefault();
-      
-      const username = document.getElementById('loginUsername').value.trim();
-      const role = document.getElementById('loginRole').value;
-      const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+      clearError();
 
-      if (!username) return;
+      const emailInput = document.getElementById('authEmailInput');
+      const sendBtn = document.getElementById('sendOtpBtn');
+      const email = emailInput.value.trim();
 
-      console.log(`[APP-LOGIN] Launching workspace session for user: "${username}" with role: "${role}"`);
-
-      // Cache details locally
-      localStorage.setItem('chat_username', username);
-      localStorage.setItem('chat_avatar', avatarUrl);
-      localStorage.setItem('chat_role', role);
-
-      // Render profile badges in header
-      document.getElementById('myUsername').textContent = username;
-      document.getElementById('myRole').textContent = role.replace('_', ' ');
-      document.getElementById('myAvatar').src = avatarUrl;
-
-      // Close modal
-      loginModal.classList.remove('modal-overlay--active');
-
-      // Initialize API login to sync profile
-      try {
-        console.log('[APP-LOGIN] Synchronizing user session credentials with remote backend...');
-        await api.login({ username, role, avatarUrl });
-      } catch (err) {
-        console.warn('[APP-LOGIN] Backend login API offline. Gracefully continuing workspace in local-only cache mode.');
+      if (!email || !email.includes('@')) {
+        showError('Please supply a valid email address.');
+        return;
       }
 
-      // Initialize WebSockets real-time sync after login
-      this.initRealtimeSync();
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span class="auth-spinner"></span>Sending...';
+
+      try {
+        console.log(`[AUTH-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
+        await api.sendOtp(email);
+        
+        submittedEmail = email;
+        subtitle.textContent = `Security code sent to ${email}. Please enter it below.`;
+        formContainer.classList.add('show-otp');
+        document.getElementById('authOtpInput').focus();
+      } catch (err) {
+        console.error('[AUTH-OTP] OTP dispatch failed:', err);
+        showError(err.message || 'Verification service failed. Please try again.');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Verification Code';
+      }
     };
+
+    // 2. Submit OTP Code Form to Verify Session
+    otpForm.onsubmit = async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const otpInput = document.getElementById('authOtpInput');
+      const verifyBtn = document.getElementById('verifyOtpBtn');
+      const otp = otpInput.value.trim();
+
+      if (otp.length !== 6 || isNaN(otp)) {
+        showError('Verification code must be 6 digits.');
+        return;
+      }
+
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+
+      try {
+        console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
+        const data = await api.verifyOtp(submittedEmail, otp);
+
+        console.log('[AUTH-SUCCESS] OTP verified successfully. Establishing authorized workspace session.');
+        
+        // Cache JWT, profile and role
+        localStorage.setItem('tasksphere_jwt', data.token);
+        localStorage.setItem('chat_username', data.username);
+        localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${data.username}`);
+        localStorage.setItem('chat_role', 'DEVELOPER');
+
+        this.applyProfileUI();
+
+        // Unlock dashboard shell
+        loginOverlay.classList.add('hidden');
+
+        // Spin up live WebSocket broker sync
+        this.initRealtimeSync();
+
+        // Refresh views to trigger REST calls with valid bearer token
+        this.switchRoute(this.activeRoute);
+      } catch (err) {
+        console.error('[AUTH-VERIFY] OTP verification failed:', err);
+        showError(err.message || 'Invalid or expired verification code.');
+      } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify & Authenticate';
+      }
+    };
+
+    // 3. Back to Email Link
+    changeEmailLink.onclick = (e) => {
+      e.preventDefault();
+      clearError();
+      formContainer.classList.remove('show-otp');
+      subtitle.textContent = 'Verify your identity to access the agile workspace';
+      document.getElementById('authEmailInput').focus();
+    };
+  }
+
+  applyProfileUI() {
+    const username = localStorage.getItem('chat_username') || 'Guest';
+    const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+    const avatar = localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+
+    document.getElementById('myUsername').textContent = username;
+    document.getElementById('myRole').textContent = role.replace('_', ' ');
+    document.getElementById('myAvatar').src = avatar;
   }
 
   initRealtimeSync() {

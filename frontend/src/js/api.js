@@ -21,14 +21,26 @@ class ApiService {
     
     console.log(`[API-REQUEST] Sending ${method} request to: ${url}`);
     
-    // Configure default headers
+    // Configure default headers with JWT integration
+    const token = localStorage.getItem('tasksphere_jwt');
     options.headers = {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers
     };
 
     try {
       const response = await fetch(url, options);
+      if (response.status === 401) {
+        console.warn('[API-UNAUTHORIZED] Access denied. Directing to login overlay.');
+        localStorage.removeItem('tasksphere_jwt');
+        localStorage.removeItem('tasksphere_user');
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) {
+          loginOverlay.classList.remove('hidden');
+        }
+        throw new Error('Unauthorized session terminated.');
+      }
       if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
@@ -134,6 +146,14 @@ class ApiService {
   getUsers() { return this.request('/users'); }
   login(user) { 
     return this.request('/users/login', { method: 'POST', body: JSON.stringify(user) }); 
+  }
+
+  /* ---- Authentication Endpoints ---- */
+  sendOtp(email) {
+    return this.request('/auth/otp/send', { method: 'POST', body: JSON.stringify({ email }) });
+  }
+  verifyOtp(email, otp) {
+    return this.request('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, otp }) });
   }
 }
 

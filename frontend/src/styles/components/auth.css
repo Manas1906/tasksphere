@@ -1,0 +1,206 @@
+/* auth.css - Premium Glassmorphism Login Modal */
+
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(8, 12, 24, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+.auth-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(135deg, rgba(25, 30, 56, 0.45) 0%, rgba(13, 17, 38, 0.7) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.1);
+  border-radius: 16px;
+  padding: var(--spacing-xl);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card__logo {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 2px;
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+}
+
+.auth-card__subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.auth-form-container {
+  display: flex;
+  width: 200%;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-form-container.show-otp {
+  transform: translateX(-50%);
+}
+
+.auth-step {
+  width: 50%;
+  padding: 0 var(--spacing-xs);
+  box-sizing: border-box;
+}
+
+.auth-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px var(--spacing-md) 12px 42px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-light);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.auth-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+}
+
+.auth-input:focus + .auth-input-icon {
+  color: var(--accent-purple);
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #7c3aed 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.auth-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+}
+
+.auth-btn:active {
+  transform: translateY(1px);
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-switch-link {
+  display: block;
+  text-align: center;
+  color: var(--accent-cyan);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-md);
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.auth-switch-link:hover {
+  opacity: 0.8;
+}
+
+.auth-error-msg {
+  color: var(--accent-rose);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-sm);
+  min-height: 18px;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  text-align: center;
+}
+
+.auth-error-msg.visible {
+  opacity: 1;
+}
+
+.auth-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: auth-spin 1s ease-in-out infinite;
+  margin-right: var(--spacing-xs);
+  vertical-align: middle;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}

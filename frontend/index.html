@@ -128,30 +128,7 @@
 
   </div>
 
-  <!-- Login Modal overlay (Active on startup) -->
-  <div id="loginModal" class="modal-overlay modal-overlay--active">
-    <div class="modal-container" style="max-width: 420px">
-      <div class="modal-header">
-        <h2 class="modal-header__title">Initialize Developer Session</h2>
-      </div>
-      <form class="enterprise-form" id="loginForm" onsubmit="return false;">
-        <div class="form-group">
-          <label class="form-label" for="loginUsername">Session Username</label>
-          <input type="text" id="loginUsername" required class="form-input" placeholder="e.g. cto_reviewer, agile_lead" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="loginRole">Enterprise Role</label>
-          <select id="loginRole" class="form-select">
-            <option value="PRODUCT_OWNER">Product Owner (Agile Scope)</option>
-            <option value="DEVELOPER">Senior Developer (Task Delivery)</option>
-            <option value="DESIGNER">UI/UX Designer (Pixel Inspector)</option>
-            <option value="STAKEHOLDER">CTO Executive (Velocity Stats)</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn--submit" style="width: 100%; margin-top: var(--spacing-sm)">Launch Workspace</button>
-      </form>
-    </div>
-  </div>
+
 
   <!-- Ticket Creator Form Modal -->
   <div id="ticketModal" class="modal-overlay">
@@ -224,7 +201,51 @@
   <div id="sidebarBackdrop" class="drawer-backdrop"></div>
   <div id="chatBackdrop" class="drawer-backdrop"></div>
 
+  <!-- Authentication Glassmorphism Overlay Modal -->
+  <div id="loginOverlay" class="auth-overlay hidden">
+    <div class="auth-card">
+      <div class="auth-card__header">
+        <div class="auth-card__logo">TaskSphere</div>
+        <div class="auth-card__subtitle" id="authSubtitle">Verify your identity to access the agile workspace</div>
+      </div>
+
+      <div class="auth-form-container" id="authFormContainer">
+        <!-- STEP 1: Email Request -->
+        <div class="auth-step" id="authEmailStep">
+          <form id="emailSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
+              <div class="auth-input-wrapper">
+                <input type="email" id="authEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
+                <span class="auth-input-icon">✉</span>
+              </div>
+            </div>
+            <button type="submit" id="sendOtpBtn" class="auth-btn">Send Verification Code</button>
+          </form>
+        </div>
+
+        <!-- STEP 2: OTP Verification -->
+        <div class="auth-step" id="authOtpStep">
+          <form id="otpSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit Security Code</label>
+              <div class="auth-input-wrapper">
+                <input type="text" id="authOtpInput" class="auth-input" placeholder="Enter 6-digit code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <span class="auth-input-icon">🔑</span>
+              </div>
+            </div>
+            <button type="submit" id="verifyOtpBtn" class="auth-btn">Verify & Authenticate</button>
+            <a class="auth-switch-link" id="changeEmailLink">← Back to Email Change</a>
+          </form>
+        </div>
+      </div>
+
+      <div id="authErrorMsg" class="auth-error-msg">Please specify a valid email address.</div>
+    </div>
+  </div>
+
   <!-- Bootstrapping Frontend Script -->
   <script type="module" src="/src/js/main.js"></script>
 </body>
 </html>
+

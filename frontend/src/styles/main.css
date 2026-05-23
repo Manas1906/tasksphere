@@ -11,6 +11,8 @@
 @import "./components/dashboard.css";
 @import "./components/forms.css";
 @import "./components/copilot.css";
+@import "./components/auth.css";
+
 
 /* Utility classes - Day 6 Figma integration overlay specs */
 .text-cyan { color: var(--accent-cyan) !important; }

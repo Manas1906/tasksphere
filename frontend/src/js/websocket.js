@@ -33,7 +33,10 @@ class WebSocketManager {
       console.log(`[STOMP-FRAME] ${msg}`);
     };
 
-    this.stompClient.connect({}, 
+    const token = localStorage.getItem('tasksphere_jwt');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    this.stompClient.connect(headers, 
       (frame) => {
         this.connected = true;
         this.setWsStatusIndicator(true);
