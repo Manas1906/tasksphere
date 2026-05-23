@@ -125,14 +125,14 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAEWHQGCr7pjnVUDlb_zV5O9ZCaYn-oHeM';
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyCdlJqwY8S1mJ7c61eCpqTnGCQAGnumoMk';
       let resultText = '';
 
       if (apiKey) {
         // ACTUAL GOOGLE GEMINI LIVE GENERATION!
         try {
-          console.log('[AI-API] Requesting real-time generation from Gemini 1.5 Flash...');
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          console.log('[AI-API] Requesting real-time generation from Gemini 2.5 Flash...');
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -189,8 +189,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
 <b>Acceptance Criteria:</b><br>
 - <b>GIVEN</b> ticket "<b>${title}</b>" exists with priority <b>${priority}</b><br>
 - <b>WHEN</b> Agile boards register a column transition event<br>
-- <b>THEN</b> broadcast active user notifications to all operations channels instantly.<br><br>
-<span style="font-size: 10px; color: var(--text-muted)">💡 <i>Pro Tip: Paste a free <b>Google Gemini API Key</b> into the settings field above to trigger real-time AI generation from Gemini's live model!</i></span>
+- <b>THEN</b> broadcast active user notifications to all operations channels instantly.
     `;
   }
 
