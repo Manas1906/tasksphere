@@ -227,26 +227,72 @@ class TaskSphereApp {
           console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
           const data = await api.verifyOtp(submittedEmail, otp);
 
-          console.log('[AUTH-SUCCESS] OTP verified successfully. Transitioning to Step 3 Profile Selection.');
+          console.log('[AUTH-SUCCESS] OTP verified successfully. Checking profile state.');
           
           // Cache JWT immediately
           localStorage.setItem('tasksphere_jwt', data.token);
           localStorage.setItem('tasksphere_email', submittedEmail);
 
-          // Transition to Step 3 Profile setup
-          document.getElementById('authOtpStep').classList.add('hidden');
-          document.getElementById('authProfileStep').classList.remove('hidden');
-          
-          // Dynamic title conversion matching mockup
-          document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
-          document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
-          document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
-          subtitle.textContent = '';
-          
-          // Pre-populate input with server's suggested username prefix
-          const usernameInput = document.getElementById('authUsernameInput');
-          usernameInput.value = data.username || '';
-          usernameInput.focus();
+          // Check if this username is already registered in the system
+          let isPreviouslyRegistered = false;
+          let existingProfile = null;
+          try {
+            const users = await api.getUsers();
+            existingProfile = users.find(u => u.username.toLowerCase() === data.username.toLowerCase());
+            if (existingProfile) {
+              isPreviouslyRegistered = true;
+            }
+          } catch (fetchErr) {
+            console.warn('[AUTH-CHECK] Failed to fetch active users list, defaulting to manual profile setup:', fetchErr);
+          }
+
+          if (isPreviouslyRegistered && existingProfile) {
+            console.log('[AUTH-LOGIN] Previously registered user recognized. Auto-bypassing Profile Setup.');
+            
+            // Persist details locally
+            localStorage.setItem('chat_username', existingProfile.username);
+            localStorage.setItem('chat_role', existingProfile.role);
+            localStorage.setItem('chat_avatar', existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`);
+            
+            // Log in silently on backend to register active ONLINE session status
+            await api.login({
+              username: existingProfile.username,
+              role: existingProfile.role,
+              avatarUrl: existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`,
+              status: 'ONLINE'
+            });
+            
+            // Update UI headers
+            this.applyProfileUI();
+            
+            // Hide overlay card
+            loginOverlay.classList.add('hidden');
+            
+            // Initialize sockets synchronization
+            this.initRealtimeSync();
+            
+            // Refresh views (trigger current nav filter click to populate cards under correct profile details)
+            const activeNav = document.querySelector('.filter-btn--active');
+            if (activeNav) {
+              activeNav.click();
+            }
+          } else {
+            console.log('[AUTH-PROFILE] First-time user detected. Transitioning to Step 3 Profile Selection.');
+            // Transition to Step 3 Profile setup
+            document.getElementById('authOtpStep').classList.add('hidden');
+            document.getElementById('authProfileStep').classList.remove('hidden');
+            
+            // Dynamic title conversion matching mockup
+            document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
+            document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
+            document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
+            subtitle.textContent = '';
+            
+            // Pre-populate input with server's suggested username prefix
+            const usernameInput = document.getElementById('authUsernameInput');
+            usernameInput.value = data.username || '';
+            usernameInput.focus();
+          }
         } catch (err) {
           console.error('[AUTH-VERIFY] OTP verification failed:', err);
           const displayMsg = err.message === 'Invalid or expired verification code.' ? 'Wrong OTP' : (err.message || 'Invalid or expired verification code.');

@@ -23,7 +23,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
         <p style="color: var(--text-muted); font-size: var(--font-size-sm)">Draft optimized AI templates and examine prompt engineering patterns.</p>
       </div>
 
-      <div class="chart-panel-row" style="grid-template-columns: 1fr 1fr">
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-lg)">
         <!-- Prompt Construction Sandbox -->
         <div class="chart-card">
           <div class="chart-card__title">Scaffold Agile Prompt Template</div>
