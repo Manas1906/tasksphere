@@ -190,7 +190,7 @@
 .auth-error-msg {
   color: var(--accent-rose);
   font-size: var(--font-size-sm);
-  margin: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+  margin: var(--spacing-md) 0 0 0;
   min-height: 18px;
   transition: opacity 0.3s ease;
   opacity: 0;
@@ -246,7 +246,7 @@ select.auth-input option {
     padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
   }
   .auth-error-msg {
-    margin: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+    margin: var(--spacing-sm) 0 0 0;
   }
   .auth-input {
     padding: 10px var(--spacing-sm) 10px 38px;
