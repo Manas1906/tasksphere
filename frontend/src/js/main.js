@@ -5,6 +5,7 @@ import { BoardView } from './board';
 import { ChatController } from './chat';
 import { AICopilot } from './copilot';
 import { AIChatbot } from './chatbot';
+import { AdminView } from './admin';
 
 /**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
@@ -40,33 +41,52 @@ class TaskSphereApp {
     const loginOverlay = document.getElementById('loginOverlay');
     
     if (token && username && role) {
-      console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
-      this.applyProfileUI();
-      if (loginOverlay) loginOverlay.classList.add('hidden');
-
-      // Recover email directly from JWT subject claim if missing to self-heal browser state
-      let email = localStorage.getItem('tasksphere_email');
-      if (!email && token) {
+      console.log('[APP-START] Active JWT session recovered. Checking approval status...');
+      
+      // Before letting them in, verify their status is not PENDING_APPROVAL
+      (async () => {
         try {
-          const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-          email = payload.sub;
-          if (email) {
-            localStorage.setItem('tasksphere_email', email);
+          const users = await api.getUsers() || [];
+          const me = users.find(u => u.username === username);
+          if (me && me.status === 'PENDING_APPROVAL') {
+            console.log('[APP-START] Recovered session requires admin approval. Gating.');
+            if (loginOverlay) loginOverlay.classList.remove('hidden');
+            this.waitForApproval(username, role);
+            return;
           }
-        } catch (jwtErr) {
-          console.warn('[APP-START] Failed to decode email from active JWT:', jwtErr);
+        } catch (e) {
+          console.warn('[APP-START] Could not verify database registration status, assuming active.', e);
         }
-      }
+        
+        console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
+        this.applyProfileUI();
+        if (loginOverlay) loginOverlay.classList.add('hidden');
 
-      if (email) {
-        localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
-          username: username,
-          role: role,
-          avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
-        }));
-      }
+        // Recover email directly from JWT subject claim if missing to self-heal browser state
+        let email = localStorage.getItem('tasksphere_email');
+        if (!email && token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            email = payload.sub;
+            if (email) {
+              localStorage.setItem('tasksphere_email', email);
+            }
+          } catch (jwtErr) {
+            console.warn('[APP-START] Failed to decode email from active JWT:', jwtErr);
+          }
+        }
 
-      this.initRealtimeSync();
+        if (email) {
+          localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
+            username: username,
+            role: role,
+            avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+          }));
+        }
+
+        this.toggleAdminTab();
+        this.initRealtimeSync();
+      })();
     } else {
       console.log('[APP-START] No active session or incomplete profile. Gating workspace behind login overlay.');
       if (loginOverlay) {
@@ -304,26 +324,33 @@ class TaskSphereApp {
             localStorage.setItem('chat_avatar', existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`);
             
             // Log in silently on backend to register active ONLINE session status
-            await api.login({
+            const activeSession = await api.login({
               username: existingProfile.username,
               role: existingProfile.role,
               avatarUrl: existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`,
               status: 'ONLINE'
             });
-            
-            // Update UI headers
-            this.applyProfileUI();
-            
-            // Hide overlay card
-            loginOverlay.classList.add('hidden');
-            
-            // Initialize sockets synchronization
-            this.initRealtimeSync();
-            
-            // Refresh views (trigger current nav filter click to populate cards under correct profile details)
-            const activeNav = document.querySelector('.filter-btn--active');
-            if (activeNav) {
-              activeNav.click();
+
+            if (activeSession && activeSession.status === 'PENDING_APPROVAL') {
+              console.log('[AUTH-LOGIN] Session requires administrator activation.');
+              this.waitForApproval(existingProfile.username, existingProfile.role);
+            } else {
+              console.log('[AUTH-LOGIN] Session authorized immediately.');
+              // Update UI headers
+              this.applyProfileUI();
+              
+              // Hide overlay card
+              loginOverlay.classList.add('hidden');
+              this.toggleAdminTab();
+              
+              // Initialize sockets synchronization
+              this.initRealtimeSync();
+              
+              // Refresh views (trigger current nav filter click to populate cards under correct profile details)
+              const activeNav = document.querySelector('.filter-btn--active');
+              if (activeNav) {
+                activeNav.click();
+              }
             }
           } else {
             console.log('[AUTH-PROFILE] First-time user detected. Transitioning to Step 3 Profile Selection.');
@@ -380,40 +407,55 @@ class TaskSphereApp {
           try {
             console.log(`[AUTH-PROFILE] Finalizing user profile: ${username} as role: ${role}`);
             
-            // Persist locally
-            localStorage.setItem('chat_username', username);
-            localStorage.setItem('chat_role', role);
-            localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`);
-
-            // Cache profile details for the active email to bypass Step 3 during next login on this browser (even after H2 reset)
-            const activeEmail = localStorage.getItem('tasksphere_email');
-            if (activeEmail) {
-              localStorage.setItem('profile_' + activeEmail.toLowerCase().trim(), JSON.stringify({
-                username: username,
-                role: role,
-                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
-              }));
-            }
-
             // Call /api/users/login to register active session on backend
-            await api.login({
+            const activeSession = await api.login({
               username: username,
               role: role,
               avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
               status: 'ONLINE'
             });
 
-            // Update UI headers
-            this.applyProfileUI();
+            if (activeSession && activeSession.status === 'PENDING_APPROVAL') {
+              console.log('[AUTH-PROFILE] User session requires administrator activation.');
+              
+              // Persist locally for blocker display / reload recovery
+              localStorage.setItem('chat_username', username);
+              localStorage.setItem('chat_role', role);
+              localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`);
+              
+              // Trigger the blocker flow
+              this.waitForApproval(username, role);
+            } else {
+              console.log('[AUTH-PROFILE] User session authorized immediately.');
+              
+              // Persist locally
+              localStorage.setItem('chat_username', username);
+              localStorage.setItem('chat_role', role);
+              localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`);
 
-            // Hide overlay card
-            loginOverlay.classList.add('hidden');
+              // Cache profile details for the active email to bypass Step 3 during next login on this browser (even after H2 reset)
+              const activeEmail = localStorage.getItem('tasksphere_email');
+              if (activeEmail) {
+                localStorage.setItem('profile_' + activeEmail.toLowerCase().trim(), JSON.stringify({
+                  username: username,
+                  role: role,
+                  avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+                }));
+              }
 
-            // Initialize sockets synchronization
-            this.initRealtimeSync();
+              // Update UI headers
+              this.applyProfileUI();
 
-            // Refresh views
-            this.switchRoute(this.activeRoute);
+              // Hide overlay card
+              loginOverlay.classList.add('hidden');
+              this.toggleAdminTab();
+
+              // Initialize sockets synchronization
+              this.initRealtimeSync();
+
+              // Refresh views
+              this.switchRoute(this.activeRoute);
+            }
           } catch (err) {
             console.error('[AUTH-PROFILE] Profile setup failed:', err);
             showError(err.message || 'Failed to initialize session. Please try again.');
@@ -585,16 +627,21 @@ class TaskSphereApp {
     const dashboardBtn = document.getElementById('navDashboard');
     const boardBtn = document.getElementById('navBoard');
     const teamBtn = document.getElementById('navTeam');
-
+    const adminBtn = document.getElementById('navAdmin');
+ 
     const clearActive = () => {
       dashboardBtn.classList.remove('filter-btn--active');
       boardBtn.classList.remove('filter-btn--active');
       teamBtn.classList.remove('filter-btn--active');
+      if (adminBtn) adminBtn.classList.remove('filter-btn--active');
     };
-
+ 
     dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('filter-btn--active'); this.switchRoute('DASHBOARD'); };
     boardBtn.onclick = () => { clearActive(); boardBtn.classList.add('filter-btn--active'); this.switchRoute('BOARD'); };
     teamBtn.onclick = () => { clearActive(); teamBtn.classList.add('filter-btn--active'); this.switchRoute('AI_LAB'); };
+    if (adminBtn) {
+      adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('filter-btn--active'); this.switchRoute('ADMIN_PANEL'); };
+    }
 
     // Figma Inspect Spec Mode toggle - Day 6 UI specifications
     const inspectBtn = document.getElementById('inspectModeBtn');
@@ -688,17 +735,153 @@ class TaskSphereApp {
     };
   }
 
+  waitForApproval(username, role) {
+    console.log(`[APPROVAL-GATE] Gating session for user: ${username} (Role: ${role}). Awaiting admin activation...`);
+    
+    // Switch auth step card views to blocker
+    document.getElementById('authEmailStep').classList.add('hidden');
+    document.getElementById('authOtpStep').classList.add('hidden');
+    document.getElementById('authProfileStep').classList.add('hidden');
+    document.getElementById('authApprovalStep').classList.remove('hidden');
+    document.getElementById('blockedRoleText').textContent = role.replace(/_/g, ' ');
+ 
+    // Subtitle check
+    const subtitle = document.getElementById('authSubtitle');
+    if (subtitle) subtitle.textContent = '';
+    document.querySelector('.auth-card__logo').textContent = 'Workspace Lock';
+ 
+    // Connect WebSocket to listen to active presence updates for immediate activation
+    socket.connect(
+      () => {
+        console.log('[APPROVAL-GATE-WS] WebSocket established. Subscribing to presence stream...');
+        socket.subscribe('/topic/users', (presenceUpdate) => {
+          console.log('[APPROVAL-GATE-WS] Received presence broadcast:', presenceUpdate);
+          if (presenceUpdate.username === username && presenceUpdate.status === 'ONLINE' && presenceUpdate.action === 'APPROVED') {
+            console.log('[APPROVAL-GATE-WS] Real-time approval received! Launching workspace.');
+            clearInterval(intervalId);
+            socket.disconnect();
+            this.handleApprovalSuccess(username, role);
+          } else if (presenceUpdate.username === username && presenceUpdate.status === 'OFFLINE' && presenceUpdate.action === 'REJECTED') {
+            console.log('[APPROVAL-GATE-WS] Session rejected. Resetting credentials.');
+            clearInterval(intervalId);
+            socket.disconnect();
+            alert('Your request to join the workspace has been declined by an administrator.');
+            localStorage.removeItem('tasksphere_jwt');
+            localStorage.removeItem('chat_username');
+            localStorage.removeItem('chat_role');
+            localStorage.removeItem('chat_avatar');
+            localStorage.removeItem('tasksphere_email');
+            window.location.reload();
+          }
+        });
+      },
+      (err) => {
+        console.warn('[APPROVAL-GATE-WS] Real-time WS connection unreachable, relying on REST polling.', err);
+      }
+    );
+ 
+    // Fallback polling registry status verification check (every 5 seconds)
+    const intervalId = setInterval(async () => {
+      try {
+        const users = await api.getUsers() || [];
+        const me = users.find(u => u.username === username);
+        
+        if (!me) {
+          // Admin deleted user
+          console.log('[APPROVAL-GATE-POLL] User removed from database. Resetting...');
+          clearInterval(intervalId);
+          socket.disconnect();
+          localStorage.removeItem('tasksphere_jwt');
+          localStorage.removeItem('chat_username');
+          localStorage.removeItem('chat_role');
+          localStorage.removeItem('chat_avatar');
+          localStorage.removeItem('tasksphere_email');
+          window.location.reload();
+          return;
+        }
+ 
+        if (me && me.status !== 'PENDING_APPROVAL') {
+          console.log('[APPROVAL-GATE-POLL] User status transition recognized! Unblocking.');
+          clearInterval(intervalId);
+          socket.disconnect();
+          this.handleApprovalSuccess(username, role);
+        }
+      } catch (pollErr) {
+        console.warn('[APPROVAL-GATE-POLL] Directory polling status fetch failed:', pollErr);
+      }
+    }, 5000);
+ 
+    // Bind cancel approval back button to reset storage and refresh
+    const cancelBtn = document.getElementById('cancelApprovalBtn');
+    if (cancelBtn) {
+      cancelBtn.onclick = (e) => {
+        e.preventDefault();
+        clearInterval(intervalId);
+        socket.disconnect();
+        
+        localStorage.removeItem('tasksphere_jwt');
+        localStorage.removeItem('chat_username');
+        localStorage.removeItem('chat_role');
+        localStorage.removeItem('chat_avatar');
+        localStorage.removeItem('tasksphere_email');
+        
+        window.location.reload();
+      };
+    }
+  }
+ 
+  handleApprovalSuccess(username, role) {
+    console.log(`[APPROVAL-SUCCESS] Granting full access credentials to username: ${username}`);
+    
+    // Cache profile details for the active email to bypass OTP setup completely
+    const email = localStorage.getItem('tasksphere_email');
+    if (email) {
+      localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
+        username: username,
+        role: role,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+      }));
+    }
+ 
+    // Close blocking overlay
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay) loginOverlay.classList.add('hidden');
+    document.getElementById('authApprovalStep').classList.add('hidden');
+ 
+    // Apply layout changes
+    this.applyProfileUI();
+    this.toggleAdminTab();
+    this.initRealtimeSync();
+    
+    // Load Dashboard
+    this.switchRoute('DASHBOARD');
+  }
+ 
+  toggleAdminTab() {
+    const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+    const adminNav = document.getElementById('navAdminItem');
+    if (adminNav) {
+      if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
+        adminNav.style.display = 'block';
+      } else {
+        adminNav.style.display = 'none';
+      }
+    }
+  }
+ 
   async switchRoute(route) {
     this.activeRoute = route;
-
+ 
     if (route === 'DASHBOARD') {
       this.currentView = new DashboardView('mainContainer');
     } else if (route === 'BOARD') {
       this.currentView = new BoardView('mainContainer');
     } else if (route === 'AI_LAB') {
       this.currentView = new AICopilot('mainContainer');
+    } else if (route === 'ADMIN_PANEL') {
+      this.currentView = new AdminView('mainContainer');
     }
-
+ 
     await this.currentView.render();
   }
 }

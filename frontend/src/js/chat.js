@@ -2,7 +2,7 @@ import { socket } from './websocket';
 import { api } from './api';
 
 /**
- * ChatController - Real-time Slack/Operations Chat coordinator
+ * ChatController - Real-time Slack/Operations Chat & Direct Messaging coordinator
  */
 export class ChatController {
   constructor() {
@@ -13,6 +13,10 @@ export class ChatController {
     this.userCountSpan = document.getElementById('activeUserCount');
     this.myUsername = localStorage.getItem('chat_username') || 'CTO Guest';
     this.myAvatar = localStorage.getItem('chat_avatar') || 'https://api.dicebear.com/7.x/bottts/svg?seed=Admin';
+    
+    // Direct message tracking states
+    this.activeChatPartner = null; // null = Operations Group Chat, otherwise 'username'
+    this.historyMessages = [];     // In-memory cache of loaded DB messages
   }
 
   init() {
@@ -24,8 +28,13 @@ export class ChatController {
   bindEvents() {
     // Send message action
     const handleSend = () => {
-      const msgText = this.input.value.trim();
+      let msgText = this.input.value.trim();
       if (!msgText) return;
+
+      // Prefix message body if we are in private DM mode
+      if (this.activeChatPartner) {
+        msgText = `[DM:${this.activeChatPartner}] ${msgText}`;
+      }
 
       const payload = {
         username: this.myUsername,
@@ -38,13 +47,15 @@ export class ChatController {
       // Broadcast via socket
       const sent = socket.send('/app/chat.send', payload);
       if (!sent) {
-        console.warn('[CHAT-OFFLINE] WebSocket send failed! Appending message to local thread as OFFLINE fallback cache.');
-        // Mock offline display if socket disconnected
-        this.appendMessage({
+        console.warn('[CHAT-OFFLINE] WebSocket send failed! Appending to local offline cache.');
+        // Add offline fallback
+        const offlineMsg = {
           ...payload,
           timestamp: new Date().toISOString(),
           offline: true
-        });
+        };
+        this.historyMessages.push(offlineMsg);
+        this.redrawMessages();
       } else {
         console.log('[CHAT-SUCCESS] Message successfully dispatched over live socket broker!');
       }
@@ -57,22 +68,32 @@ export class ChatController {
     this.input.onkeydown = (e) => {
       if (e.key === 'Enter') handleSend();
     };
+
+    // Bind DM Back Button switches
+    const backLink = document.getElementById('chatModeBackLink');
+    if (backLink) {
+      backLink.onclick = () => {
+        this.switchChatPartner(null);
+      };
+    }
   }
 
   async loadChatHistory() {
     console.log('[CHAT-HISTORY] Requesting recent chat thread history...');
     this.messagesContainer.innerHTML = '';
     
-    // Read from DB fallback cache if offline, else fetch
     try {
+      // Fetch persisted history from new backend API endpoint
       const messages = await api.request('/chat-messages') || [];
       console.log(`[CHAT-HISTORY] Loaded ${messages.length} messages successfully from database.`);
-      messages.forEach(msg => this.appendMessage(msg));
+      this.historyMessages = messages;
+      this.redrawMessages();
     } catch (e) {
       console.warn('[CHAT-HISTORY] REST call failed. Retrieving chat history from localstorage cache.', e);
       // Offline fallback history loading
       const cache = JSON.parse(localStorage.getItem('cache_chat') || '[]');
-      cache.forEach(msg => this.appendMessage(msg));
+      this.historyMessages = cache;
+      this.redrawMessages();
     }
   }
 
@@ -82,7 +103,8 @@ export class ChatController {
     // Subscribe to chat stream
     socket.subscribe('/topic/chat', (message) => {
       console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
-      this.appendMessage(message);
+      this.historyMessages.push(message);
+      this.redrawMessages();
     });
 
     // Subscribe to users presence mapping
@@ -94,7 +116,6 @@ export class ChatController {
 
   syncMyPresence() {
     console.log('[CHAT-PRESENCE-SYNC] Preparing periodic presence registration...');
-    // Register periodic presence broadcasts
     const registerPresence = () => {
       const presencePayload = {
         username: this.myUsername,
@@ -120,9 +141,82 @@ export class ChatController {
     }, 20000);
   }
 
-  appendMessage(msg) {
+  switchChatPartner(partner) {
+    this.activeChatPartner = partner;
+    const backLink = document.getElementById('chatModeBackLink');
+    const chatTitle = document.querySelector('.chat-panel-header__title');
+    
+    if (partner) {
+      // Direct message (DM) tab active
+      if (backLink) backLink.style.display = 'flex';
+      if (chatTitle) {
+        chatTitle.innerHTML = `
+          <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 4px; color: #ff0080; font-weight: 700; text-transform: uppercase;">
+            💬 Chat with ${partner}
+          </span>
+        `;
+      }
+      this.input.placeholder = `Send direct message to ${partner}...`;
+    } else {
+      // Group room active
+      if (backLink) backLink.style.display = 'none';
+      if (chatTitle) {
+        chatTitle.innerHTML = `
+          <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+          Operations Chat
+        `;
+      }
+      this.input.placeholder = `Send team message...`;
+    }
+
+    // Refresh active members display to update partner selected outline state
+    this.updateActiveUsersList({ username: '', status: 'ONLINE' });
+
+    // Rerender chat bubbles matching current active channel
+    this.redrawMessages();
+  }
+
+  redrawMessages() {
+    this.messagesContainer.innerHTML = '';
+    
+    const filtered = this.historyMessages.filter(msg => {
+      const isDm = msg.message && msg.message.startsWith('[DM:');
+      
+      if (this.activeChatPartner === null) {
+        // General group room: show only public non-prefixed messages
+        return !isDm;
+      } else {
+        // Direct private message tab: show only DM conversation matches
+        if (!isDm) return false;
+        
+        const match = msg.message.match(/^\[DM:([^\]]+)\]\s*(.*)$/);
+        if (!match) return false;
+        
+        const recipient = match[1];
+        const sender = msg.username;
+        
+        // Match if (I sent to partner) OR (partner sent to me)
+        return (sender === this.myUsername && recipient === this.activeChatPartner) ||
+               (sender === this.activeChatPartner && recipient === this.myUsername);
+      }
+    });
+
+    filtered.forEach(msg => this.renderSingleMessage(msg));
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  renderSingleMessage(msg) {
     const isSelf = msg.username === this.myUsername;
     const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+
+    // Strip out routing DM tags if printing
+    let cleanMessage = msg.message;
+    if (cleanMessage && cleanMessage.startsWith('[DM:')) {
+      const match = cleanMessage.match(/^\[DM:[^\]]+\]\s*(.*)$/);
+      if (match) {
+        cleanMessage = match[1];
+      }
+    }
 
     const msgElement = document.createElement('div');
     msgElement.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
@@ -135,48 +229,78 @@ export class ChatController {
           <span>${time}</span>
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
-        <div class="chat-msg__bubble">${msg.message}</div>
+        <div class="chat-msg__bubble">${cleanMessage}</div>
       </div>
     `;
 
     this.messagesContainer.appendChild(msgElement);
-    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
   }
 
   updateActiveUsersList(presence) {
     // Collect active members and cache details locally
     let activeMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
     
-    const existingIdx = activeMembers.findIndex(m => m.username === presence.username);
-    const memberObj = {
-      id: presence.id || (existingIdx !== -1 ? activeMembers[existingIdx].id : 'user_' + Date.now()),
-      username: presence.username,
-      avatarUrl: presence.avatarUrl,
-      role: presence.role || 'DEVELOPER',
-      status: presence.status || 'ONLINE',
-      lastActive: Date.now()
-    };
-
-    if (existingIdx !== -1) {
-      activeMembers[existingIdx] = memberObj;
-    } else {
-      activeMembers.push(memberObj);
+    // Invalidate/Remove account from list immediately if they went offline, got pending state, or were revoked
+    if (presence.username && (presence.status === 'OFFLINE' || presence.status === 'PENDING_APPROVAL' || presence.action === 'REJECTED')) {
+      activeMembers = activeMembers.filter(m => m.username !== presence.username);
+      localStorage.setItem('cache_users', JSON.stringify(activeMembers));
+      
+      // If we were chatting with this partner and they disappeared, return to group room
+      if (this.activeChatPartner === presence.username) {
+        this.switchChatPartner(null);
+      } else {
+        this.drawAvatars(activeMembers);
+      }
+      return;
     }
 
-    // Keep active users filtered for showing in scrolling bar (active in last 45 seconds)
-    // In mock setup we preserve them all for visual flair
-    localStorage.setItem('cache_users', JSON.stringify(activeMembers));
+    // Register active user in cache
+    if (presence.username && presence.username !== this.myUsername) {
+      const existingIdx = activeMembers.findIndex(m => m.username === presence.username);
+      const memberObj = {
+        id: presence.id || (existingIdx !== -1 ? activeMembers[existingIdx].id : 'user_' + Date.now()),
+        username: presence.username,
+        avatarUrl: presence.avatarUrl,
+        role: presence.role || 'DEVELOPER',
+        status: presence.status || 'ONLINE',
+        lastActive: Date.now()
+      };
 
-    // Redraw avatars bar
+      if (existingIdx !== -1) {
+        activeMembers[existingIdx] = memberObj;
+      } else {
+        activeMembers.push(memberObj);
+      }
+      localStorage.setItem('cache_users', JSON.stringify(activeMembers));
+    }
+
+    this.drawAvatars(activeMembers);
+  }
+
+  drawAvatars(activeMembers) {
     this.activeUsersContainer.innerHTML = '';
     
     activeMembers.forEach(user => {
       const avatarWrap = document.createElement('div');
       avatarWrap.className = 'active-user-avatar-wrap';
-      avatarWrap.title = `${user.username} (${user.role}) - ${user.status}`;
-      
-      const statusClass = user.status.toLowerCase();
+      avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g, ' ')}) - ${user.status}`;
+      avatarWrap.style.cursor = 'pointer';
+      avatarWrap.style.transition = 'outline 0.2s ease, transform 0.2s ease';
 
+      // Outline the selected partner
+      if (this.activeChatPartner === user.username) {
+        avatarWrap.style.outline = '2px solid #ff0080';
+        avatarWrap.style.outlineOffset = '2px';
+        avatarWrap.style.transform = 'scale(1.05)';
+      }
+
+      avatarWrap.onclick = () => {
+        if (user.username !== this.myUsername) {
+          this.switchChatPartner(user.username);
+        }
+      };
+
+      const statusClass = user.status.toLowerCase();
       avatarWrap.innerHTML = `
         <img src="${user.avatarUrl}" class="active-user-avatar" alt="${user.username}">
         <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>

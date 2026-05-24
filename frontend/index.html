@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="stylesheet" href="/src/styles/components/admin.css">
   <script>
     if (typeof global === 'undefined') {
       window.global = window;
@@ -86,6 +86,9 @@
         <li>
           <button id="navTeam" class="filter-btn" style="width: 100%; text-align: left">👥 Resource Directory</button>
         </li>
+        <li id="navAdminItem" style="display: none;">
+          <button id="navAdmin" class="filter-btn" style="width: 100%; text-align: left; color: #ff0080">👑 Admin Panel</button>
+        </li>
       </ul>
       <!-- Theme Switch Panel -->
       <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm)">
@@ -119,6 +122,11 @@
             </div>
           </div>
           <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
+        </div>
+
+        <!-- Dynamic mode switcher back-link for DM chats -->
+        <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(255, 0, 128, 0.05); align-items: center; gap: 6px; cursor: pointer;">
+          <span style="color: #ff0080; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
         </div>
 
         <!-- Horizontal user avatars scrolling bar -->
@@ -298,6 +306,24 @@
             </div>
             <button type="submit" id="launchWorkspaceBtn" class="auth-btn auth-btn--launch">Launch Workspace</button>
           </form>
+        </div>
+
+        <!-- STEP 4: Awaiting Admin Approval -->
+        <div class="auth-step hidden" id="authApprovalStep" style="text-align: center; padding: var(--spacing-md) 0;">
+          <div class="blocker-icon-wrap">
+            🔒
+            <div class="blocker-pulse-ring"></div>
+          </div>
+          <h3 class="modal-header__title" style="font-size: 16px; margin-bottom: var(--spacing-sm); display: inline-block;">Account Pending Approval</h3>
+          <p style="color: var(--text-muted); font-size: 11px; line-height: 1.6; margin-bottom: var(--spacing-md); max-width: 320px; margin-left: auto; margin-right: auto;">
+            Your request to join the workspace as a <strong id="blockedRoleText" style="color: var(--accent-cyan)">DEVELOPER</strong> has been submitted. An administrator must approve your session.
+          </p>
+          <div class="blocker-status" style="margin: 0 auto;">
+            <div class="blocker-spinner"></div>
+            <span style="font-size: 11px;">Awaiting admin activation...</span>
+          </div>
+          
+          <button id="cancelApprovalBtn" class="auth-switch-link" style="margin-top: var(--spacing-lg); background: none; border: none; font-size: 11px; cursor: pointer; color: var(--text-muted); display: block; width: 100%; text-align: center;">← Log Out / Reset Email</button>
         </div>
       </div>
     </div>
