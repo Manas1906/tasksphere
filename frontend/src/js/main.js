@@ -233,17 +233,41 @@ class TaskSphereApp {
           localStorage.setItem('tasksphere_jwt', data.token);
           localStorage.setItem('tasksphere_email', submittedEmail);
 
-          // Check if this username is already registered in the system
+          // Dual-layered bypass strategy (local cache check first, then remote database list fallback)
           let isPreviouslyRegistered = false;
           let existingProfile = null;
+          
+          // 1. Try local cache check first (handles browser re-logins and database resets)
           try {
-            const users = await api.getUsers();
-            existingProfile = users.find(u => u.username.toLowerCase() === data.username.toLowerCase());
-            if (existingProfile) {
+            const localCached = localStorage.getItem('profile_' + submittedEmail.toLowerCase().trim());
+            if (localCached) {
+              existingProfile = JSON.parse(localCached);
               isPreviouslyRegistered = true;
+              console.log('[AUTH-CHECK] Local profile cache found:', existingProfile);
             }
-          } catch (fetchErr) {
-            console.warn('[AUTH-CHECK] Failed to fetch active users list, defaulting to manual profile setup:', fetchErr);
+          } catch (localErr) {
+            console.warn('[AUTH-CHECK] Failed to parse local profile cache:', localErr);
+          }
+
+          // 2. Fallback to querying active users in the database
+          if (!isPreviouslyRegistered) {
+            try {
+              const users = await api.getUsers();
+              existingProfile = users.find(u => u.username.toLowerCase() === data.username.toLowerCase());
+              if (existingProfile) {
+                isPreviouslyRegistered = true;
+                console.log('[AUTH-CHECK] Database profile found:', existingProfile);
+                
+                // Cache it locally to speed up subsequent logins
+                localStorage.setItem('profile_' + submittedEmail.toLowerCase().trim(), JSON.stringify({
+                  username: existingProfile.username,
+                  role: existingProfile.role,
+                  avatarUrl: existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`
+                }));
+              }
+            } catch (fetchErr) {
+              console.warn('[AUTH-CHECK] Failed to fetch active users list, defaulting to manual profile setup:', fetchErr);
+            }
           }
 
           if (isPreviouslyRegistered && existingProfile) {
@@ -335,6 +359,16 @@ class TaskSphereApp {
             localStorage.setItem('chat_username', username);
             localStorage.setItem('chat_role', role);
             localStorage.setItem('chat_avatar', `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`);
+
+            // Cache profile details for the active email to bypass Step 3 during next login on this browser (even after H2 reset)
+            const activeEmail = localStorage.getItem('tasksphere_email');
+            if (activeEmail) {
+              localStorage.setItem('profile_' + activeEmail.toLowerCase().trim(), JSON.stringify({
+                username: username,
+                role: role,
+                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+              }));
+            }
 
             // Call /api/users/login to register active session on backend
             await api.login({

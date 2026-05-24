@@ -64,6 +64,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Prevents the header from vanishing when messages stretch */
 }
 
 .chatbot-header__title {
@@ -94,12 +95,33 @@
 .chatbot-messages {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  max-height: 375px; /* Enforces strict maximum height bounds on desktop to guarantee internal scrolling */
   padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   scroll-behavior: smooth;
+}
+
+/* Chatbot high-contrast custom scrollbar */
+.chatbot-messages::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.chatbot-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border-radius: 4px;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb {
+  background: var(--accent-purple) !important;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-cyan) !important;
 }
 
 .chatbot-bubble {
@@ -152,6 +174,7 @@
   background-color: rgba(0, 0, 0, 0.05);
   display: flex;
   gap: var(--spacing-sm);
+  flex-shrink: 0; /* Prevents the input footer from shrinking when messages stretch */
 }
 
 .chatbot-input {
@@ -204,6 +227,9 @@
   .chatbot-toggle {
     bottom: 16px;
     right: 16px;
+  }
+  .chatbot-messages {
+    max-height: 275px; /* Enforces strict maximum height bounds on mobile to guarantee internal scrolling */
   }
 }
 
