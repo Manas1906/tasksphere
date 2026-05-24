@@ -44,8 +44,20 @@ class TaskSphereApp {
       this.applyProfileUI();
       if (loginOverlay) loginOverlay.classList.add('hidden');
 
-      // Seed the profile cache if missing, to ensure future logouts can bypass Step 3 on this browser
-      const email = localStorage.getItem('tasksphere_email');
+      // Recover email directly from JWT subject claim if missing to self-heal browser state
+      let email = localStorage.getItem('tasksphere_email');
+      if (!email && token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          email = payload.sub;
+          if (email) {
+            localStorage.setItem('tasksphere_email', email);
+          }
+        } catch (jwtErr) {
+          console.warn('[APP-START] Failed to decode email from active JWT:', jwtErr);
+        }
+      }
+
       if (email) {
         localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
           username: username,
@@ -53,6 +65,13 @@ class TaskSphereApp {
           avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
         }));
       }
+
+      // Populate general failsafe profile cache to handle any browser/email mismatch edge cases
+      localStorage.setItem('profile_registered_user', JSON.stringify({
+        username: username,
+        role: role,
+        avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+      }));
 
       this.initRealtimeSync();
     } else {
@@ -281,6 +300,20 @@ class TaskSphereApp {
             }
           }
 
+          // 3. Failsafe general browser cache (if they have registered any user previously on this browser)
+          if (!isPreviouslyRegistered) {
+            try {
+              const generalCached = localStorage.getItem('profile_registered_user');
+              if (generalCached) {
+                existingProfile = JSON.parse(generalCached);
+                isPreviouslyRegistered = true;
+                console.log('[AUTH-CHECK] Failsafe general profile cache found:', existingProfile);
+              }
+            } catch (generalErr) {
+              console.warn('[AUTH-CHECK] Failed to parse general profile cache:', generalErr);
+            }
+          }
+
           if (isPreviouslyRegistered && existingProfile) {
             console.log('[AUTH-LOGIN] Previously registered user recognized. Auto-bypassing Profile Setup.');
             
@@ -380,6 +413,13 @@ class TaskSphereApp {
                 avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
               }));
             }
+
+            // Also populate general failsafe cache to cover any other browser session logs
+            localStorage.setItem('profile_registered_user', JSON.stringify({
+              username: username,
+              role: role,
+              avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+            }));
 
             // Call /api/users/login to register active session on backend
             await api.login({
