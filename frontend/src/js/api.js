@@ -172,6 +172,9 @@ class ApiService {
   verifyOtp(email, otp) {
     return this.request('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, otp }) });
   }
+  checkEmail(email) {
+    return this.request(`/auth/check-email?email=${encodeURIComponent(email)}`);
+  }
 }
 
 export const api = new ApiService();

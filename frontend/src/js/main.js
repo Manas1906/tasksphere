@@ -94,7 +94,7 @@ class TaskSphereApp {
         loginOverlay.classList.remove('hidden');
         if (token) {
           console.log('[APP-START] JWT session found but profile incomplete. Navigating to Step 3 Profile Initialization.');
-          document.getElementById('authEmailStep').classList.add('hidden');
+          document.getElementById('authLoginStep').classList.add('hidden');
           document.getElementById('authOtpStep').classList.add('hidden');
           document.getElementById('authProfileStep').classList.remove('hidden');
           
@@ -189,13 +189,17 @@ class TaskSphereApp {
 
   setupLogin() {
     const loginOverlay = document.getElementById('loginOverlay');
-    const emailForm = document.getElementById('emailSubmitForm');
+    const loginForm = document.getElementById('loginSubmitForm');
+    const registerForm = document.getElementById('registerEmailForm');
     const otpForm = document.getElementById('otpSubmitForm');
     const profileForm = document.getElementById('profileSubmitForm');
-    const formContainer = document.getElementById('authFormContainer');
     const subtitle = document.getElementById('authSubtitle');
     const errorMsg = document.getElementById('authErrorMsg');
-    const changeEmailLink = document.getElementById('changeEmailLink');
+
+    const createAccountBtn = document.getElementById('createAccountBtn');
+    const backToLoginLink = document.getElementById('backToLoginLink');
+    const backToRegisterLink = document.getElementById('backToRegisterLink');
+    const cancelMfaLink = document.getElementById('cancelMfaLink');
 
     let submittedEmail = '';
 
@@ -208,204 +212,235 @@ class TaskSphereApp {
       errorMsg.classList.remove('visible');
     };
 
-    // 1. Submit Email Form to Dispatch OTP
-    emailForm.onsubmit = (e) => {
-      e.preventDefault();
-      clearError();
+    // --- Action Button Triggers for Steps Navigation ---
 
-      const emailInput = document.getElementById('authEmailInput');
-      const sendBtn = document.getElementById('sendOtpBtn');
-      const email = emailInput.value.trim();
+    if (createAccountBtn) {
+      createAccountBtn.onclick = () => {
+        clearError();
+        document.getElementById('authLoginStep').classList.add('hidden');
+        document.getElementById('authRegisterStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your email to verify and register';
+        document.getElementById('registerEmailInput').focus();
+      };
+    }
 
-      if (!email || !email.includes('@')) {
-        showError('Please supply a valid email address.');
-        return false;
-      }
+    if (backToLoginLink) {
+      backToLoginLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authRegisterStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        document.getElementById('loginEmailInput').focus();
+      };
+    }
 
-      sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+    if (backToRegisterLink) {
+      backToRegisterLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authOtpStep').classList.add('hidden');
+        document.getElementById('authRegisterStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your email to verify and register';
+        document.getElementById('registerEmailInput').focus();
+      };
+    }
 
-      // Perform async fetch safely in the background
-      (async () => {
+    if (cancelMfaLink) {
+      cancelMfaLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authMfaOtpStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        document.getElementById('loginPasswordInput').focus();
+      };
+    }
+
+    // --- Submission Handlers ---
+
+    // 1. Submit Unified Password Login Form
+    if (loginForm) {
+      loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const emailInput = document.getElementById('loginEmailInput');
+        const passwordInput = document.getElementById('loginPasswordInput');
+        const submitBtn = document.getElementById('submitLoginBtn');
+
+        const emailVal = emailInput.value.trim();
+        const passwordVal = passwordInput.value;
+
+        if (!emailVal || !emailVal.includes('@')) {
+          showError('Please supply a valid email address.');
+          return false;
+        }
+
+        if (!passwordVal) {
+          showError('Password is required.');
+          return false;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="auth-spinner"></span>Logging In...';
+
         try {
-          console.log(`[AUTH-CHECK] Checking if user ${email} already has password credentials...`);
-          const users = await api.getUsers() || [];
-          const existingUser = users.find(u => {
-            const parts = (u.avatarUrl || '').split('||');
-            for (const part of parts) {
-              if (part.startsWith('email:')) {
-                return part.substring(6).toLowerCase().trim() === email.toLowerCase().trim();
-              }
-            }
-            return false;
+          console.log('[AUTH-LOGIN] Submitting password login for:', emailVal);
+          const res = await api.request('/auth/password/login', {
+            method: 'POST',
+            body: JSON.stringify({ email: emailVal, password: passwordVal })
           });
 
-          if (existingUser) {
-            console.log('[AUTH-CHECK] Profile exists for email. Transitioning to Password Login.');
-            localStorage.setItem('tasksphere_email', email);
-            submittedEmail = email;
-            
-            document.getElementById('authEmailStep').classList.add('hidden');
-            document.getElementById('authPasswordStep').classList.remove('hidden');
-            document.getElementById('loginPasswordInput').value = '';
-            document.getElementById('loginPasswordInput').focus();
-            return;
-          }
+          if (res.mfaRequired) {
+            console.log('[AUTH-LOGIN] Password verified. MFA OTP is required.');
+            localStorage.setItem('tasksphere_email', emailVal);
+            submittedEmail = emailVal;
 
-          console.log(`[AUTH-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
-          await api.sendOtp(email);
-          
-          submittedEmail = email;
-          subtitle.innerHTML = `Security code sent to:<br><b style="color: var(--accent-cyan); word-break: break-all;">${email}</b><br>Please enter it below.`;
-          document.getElementById('authEmailStep').classList.add('hidden');
-          document.getElementById('authOtpStep').classList.remove('hidden');
-          document.getElementById('authOtpInput').focus();
+            document.getElementById('authLoginStep').classList.add('hidden');
+            document.getElementById('authMfaOtpStep').classList.remove('hidden');
+            document.getElementById('authMfaOtpInput').value = '';
+            document.getElementById('authMfaOtpInput').focus();
+          } else if (res.success && res.token) {
+            console.log('[AUTH-LOGIN] Direct login authorized.');
+            
+            localStorage.setItem('tasksphere_jwt', res.token);
+            localStorage.setItem('chat_username', res.username);
+            localStorage.setItem('chat_role', res.role);
+            localStorage.setItem('chat_avatar', res.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${res.username}`);
+            localStorage.setItem('tasksphere_email', emailVal);
+
+            // BypassOTP local caching details
+            localStorage.setItem('profile_' + emailVal.toLowerCase().trim(), JSON.stringify({
+              username: res.username,
+              role: res.role,
+              avatarUrl: res.avatarUrl
+            }));
+
+            this.applyProfileUI();
+            
+            if (loginOverlay) loginOverlay.classList.add('hidden');
+            this.toggleAdminTab();
+            this.initRealtimeSync();
+            this.switchRoute(this.activeRoute);
+          }
         } catch (err) {
-          console.error('[AUTH-OTP] OTP dispatch/check failed:', err);
-          showError(err.message || 'Verification service failed. Please try again.');
+          console.error('[AUTH-LOGIN] Login validation failed:', err);
+          showError(err.message || 'Incorrect email or password.');
         } finally {
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Send Verification Code';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
         }
-      })();
-
-      return false;
-    };
-
-    // 2. Submit OTP Code Form to Verify Session
-    otpForm.onsubmit = (e) => {
-      e.preventDefault();
-      clearError();
-
-      const otpInput = document.getElementById('authOtpInput');
-      const verifyBtn = document.getElementById('verifyOtpBtn');
-      const otp = otpInput.value.trim();
-
-      if (otp.length !== 6 || isNaN(otp)) {
-        showError('Verification code must be 6 digits.');
         return false;
-      }
+      };
+    }
 
-      verifyBtn.disabled = true;
-      verifyBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+    // 2. Submit Email Registration Form (OTP request)
+    if (registerForm) {
+      registerForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
 
-      // Perform async verification safely in the background
-      (async () => {
-        try {
-          console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
-          const data = await api.verifyOtp(submittedEmail, otp);
+        const emailInput = document.getElementById('registerEmailInput');
+        const sendBtn = document.getElementById('sendRegisterOtpBtn');
+        const email = emailInput.value.trim();
 
-          console.log('[AUTH-SUCCESS] OTP verified successfully. Checking profile state.');
-          
-          // Cache JWT immediately
-          localStorage.setItem('tasksphere_jwt', data.token);
-          localStorage.setItem('tasksphere_email', submittedEmail);
+        if (!email || !email.includes('@')) {
+          showError('Please supply a valid email address.');
+          return false;
+        }
 
-          // Dual-layered bypass strategy (local cache check first, then remote database list fallback)
-          let isPreviouslyRegistered = false;
-          let existingProfile = null;
-          
-          // 1. Try local cache check first (handles browser re-logins and database resets)
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+
+        (async () => {
           try {
-            const localCached = localStorage.getItem('profile_' + submittedEmail.toLowerCase().trim());
-            if (localCached) {
-              existingProfile = JSON.parse(localCached);
-              isPreviouslyRegistered = true;
-              console.log('[AUTH-CHECK] Local profile cache found:', existingProfile);
+            console.log(`[AUTH-REGISTER-CHECK] Checking if email ${email} is already registered...`);
+            const checkResult = await api.checkEmail(email);
+
+            if (checkResult && checkResult.registered) {
+              showError('This email address is already registered. Please log in using your password!');
+              return;
             }
-          } catch (localErr) {
-            console.warn('[AUTH-CHECK] Failed to parse local profile cache:', localErr);
-          }
 
-          // 2. Fallback to querying active users in the database
-          if (!isPreviouslyRegistered) {
-            try {
-              const users = await api.getUsers();
-              existingProfile = users.find(u => u.username.toLowerCase() === data.username.toLowerCase());
-              if (existingProfile) {
-                isPreviouslyRegistered = true;
-                console.log('[AUTH-CHECK] Database profile found:', existingProfile);
-                
-                // Cache it locally to speed up subsequent logins
-                localStorage.setItem('profile_' + submittedEmail.toLowerCase().trim(), JSON.stringify({
-                  username: existingProfile.username,
-                  role: existingProfile.role,
-                  avatarUrl: existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`
-                }));
-              }
-            } catch (fetchErr) {
-              console.warn('[AUTH-CHECK] Failed to fetch active users list, defaulting to manual profile setup:', fetchErr);
-            }
-          }
-
-
-
-          if (isPreviouslyRegistered && existingProfile) {
-            console.log('[AUTH-LOGIN] Previously registered user recognized. Auto-bypassing Profile Setup.');
+            console.log(`[AUTH-REGISTER-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
+            await api.sendOtp(email);
             
-            // Persist details locally
-            localStorage.setItem('chat_username', existingProfile.username);
-            localStorage.setItem('chat_role', existingProfile.role);
-            localStorage.setItem('chat_avatar', existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`);
-            
-            // Log in silently on backend to register active ONLINE session status
-            const activeSession = await api.login({
-              username: existingProfile.username,
-              role: existingProfile.role,
-              avatarUrl: existingProfile.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${existingProfile.username}`,
-              status: 'ONLINE'
-            });
+            submittedEmail = email;
+            subtitle.innerHTML = `Security code sent to:<br><b style="color: var(--accent-cyan); word-break: break-all;">${email}</b><br>Please enter it below.`;
+            document.getElementById('authRegisterStep').classList.add('hidden');
+            document.getElementById('authOtpStep').classList.remove('hidden');
+            document.getElementById('authOtpInput').value = '';
+            document.getElementById('authOtpInput').focus();
+          } catch (err) {
+            console.error('[AUTH-REGISTER-OTP] OTP dispatch failed:', err);
+            showError(err.message || 'Verification service failed. Please try again.');
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Verification Code';
+          }
+        })();
 
-            if (activeSession && activeSession.status === 'PENDING_APPROVAL') {
-              console.log('[AUTH-LOGIN] Session requires administrator activation.');
-              this.waitForApproval(existingProfile.username, existingProfile.role);
-            } else {
-              console.log('[AUTH-LOGIN] Session authorized immediately.');
-              // Update UI headers
-              this.applyProfileUI();
-              
-              // Hide overlay card
-              loginOverlay.classList.add('hidden');
-              this.toggleAdminTab();
-              
-              // Initialize sockets synchronization
-              this.initRealtimeSync();
-              
-              // Refresh views (trigger current nav filter click to populate cards under correct profile details)
-              const activeNav = document.querySelector('.filter-btn--active');
-              if (activeNav) {
-                activeNav.click();
-              }
-            }
-          } else {
-            console.log('[AUTH-PROFILE] First-time user detected. Transitioning to Step 3 Profile Selection.');
-            // Transition to Step 3 Profile setup
+        return false;
+      };
+    }
+
+    // 3. Submit OTP Code Form to Verify Session
+    if (otpForm) {
+      otpForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
+
+        const otpInput = document.getElementById('authOtpInput');
+        const verifyBtn = document.getElementById('verifyOtpBtn');
+        const otp = otpInput.value.trim();
+
+        if (otp.length !== 6 || isNaN(otp)) {
+          showError('Verification code must be 6 digits.');
+          return false;
+        }
+
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+
+        (async () => {
+          try {
+            console.log(`[AUTH-VERIFY] Verifying OTP: ${otp} for email: ${submittedEmail}`);
+            const data = await api.verifyOtp(submittedEmail, otp);
+
+            console.log('[AUTH-SUCCESS] OTP verified successfully. Preparing profile session.');
+            
+            localStorage.setItem('tasksphere_jwt', data.token);
+            localStorage.setItem('tasksphere_email', submittedEmail);
+
+            // Since it's OTP registration, we ALWAYS route them to Step 3 Profile Setup
+            // to choose Username, Role, and Password for H2/Database persistence!
+            console.log('[AUTH-PROFILE] Routing to Step 3 Profile Selection.');
+            
             document.getElementById('authOtpStep').classList.add('hidden');
             document.getElementById('authProfileStep').classList.remove('hidden');
             
-            // Dynamic title conversion matching mockup
             document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
             document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
             document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
             subtitle.textContent = '';
             
-            // Pre-populate input with server's suggested username prefix
             const usernameInput = document.getElementById('authUsernameInput');
             usernameInput.value = data.username || '';
             usernameInput.focus();
+          } catch (err) {
+            console.error('[AUTH-VERIFY] OTP verification failed:', err);
+            const displayMsg = err.message === 'Invalid or expired verification code.' ? 'Wrong OTP' : (err.message || 'Invalid or expired verification code.');
+            showError(displayMsg);
+          } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = 'Verify & Authenticate';
           }
-        } catch (err) {
-          console.error('[AUTH-VERIFY] OTP verification failed:', err);
-          const displayMsg = err.message === 'Invalid or expired verification code.' ? 'Wrong OTP' : (err.message || 'Invalid or expired verification code.');
-          showError(displayMsg);
-        } finally {
-          verifyBtn.disabled = false;
-          verifyBtn.textContent = 'Verify & Authenticate';
-        }
-      })();
+        })();
 
-      return false;
-    };
+        return false;
+      };
+    }
 
     // 3. Submit Profile Form to Launch Workspace
     if (profileForm) {
@@ -523,101 +558,6 @@ class TaskSphereApp {
       };
     }
 
-    // Reset back to Email link from Password Login Step
-    const resetToEmailLink = document.getElementById('resetToEmailLink');
-    if (resetToEmailLink) {
-      resetToEmailLink.onclick = (e) => {
-        e.preventDefault();
-        clearError();
-        document.getElementById('authPasswordStep').classList.add('hidden');
-        document.getElementById('authEmailStep').classList.remove('hidden');
-        document.getElementById('authEmailInput').focus();
-      };
-    }
-
-    // Cancel MFA back link from MFA Step
-    const cancelMfaLink = document.getElementById('cancelMfaLink');
-    if (cancelMfaLink) {
-      cancelMfaLink.onclick = (e) => {
-        e.preventDefault();
-        clearError();
-        document.getElementById('authMfaOtpStep').classList.add('hidden');
-        document.getElementById('authPasswordStep').classList.remove('hidden');
-        document.getElementById('loginPasswordInput').focus();
-      };
-    }
-
-    // Submit Password Login Form
-    const passwordForm = document.getElementById('passwordSubmitForm');
-    if (passwordForm) {
-      passwordForm.onsubmit = async (e) => {
-        e.preventDefault();
-        clearError();
-
-        const passwordValInput = document.getElementById('loginPasswordInput');
-        const passwordVal = passwordValInput.value;
-        const emailVal = localStorage.getItem('tasksphere_email') || submittedEmail;
-
-        if (!passwordVal) {
-          showError('Password is required.');
-          return false;
-        }
-
-        const submitBtn = document.getElementById('submitPasswordBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Verifying...';
-
-        try {
-          console.log('[AUTH-PASSWORD] Sending credential validation check for:', emailVal);
-          const res = await api.request('/auth/password/login', {
-            method: 'POST',
-            body: JSON.stringify({ email: emailVal, password: passwordVal })
-          });
-
-          if (res.mfaRequired) {
-            console.log('[AUTH-PASSWORD] Credential correct. MFA dynamically active.');
-            // Route to MFA verification step
-            document.getElementById('authPasswordStep').classList.add('hidden');
-            document.getElementById('authMfaOtpStep').classList.remove('hidden');
-            document.getElementById('authMfaOtpInput').value = '';
-            document.getElementById('authMfaOtpInput').focus();
-          } else if (res.success && res.token) {
-            console.log('[AUTH-PASSWORD] Credential authorized. Session direct entry.');
-            
-            localStorage.setItem('tasksphere_jwt', res.token);
-            localStorage.setItem('chat_username', res.username);
-            localStorage.setItem('chat_role', res.role);
-            localStorage.setItem('chat_avatar', res.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${res.username}`);
-            
-            // BypassOTP local caching details
-            localStorage.setItem('profile_' + res.email.toLowerCase().trim(), JSON.stringify({
-              username: res.username,
-              role: res.role,
-              avatarUrl: res.avatarUrl
-            }));
-
-            // Refresh UI and launch
-            this.applyProfileUI();
-            
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) loginOverlay.classList.add('hidden');
-            this.toggleAdminTab();
-            this.initRealtimeSync();
-
-            // Refresh views
-            this.switchRoute(this.activeRoute);
-          }
-        } catch (err) {
-          console.error('[AUTH-PASSWORD] Log in failed:', err);
-          showError(err.message || 'Incorrect password credentials.');
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Verify Credentials';
-        }
-        return false;
-      };
-    }
-
     // Submit MFA OTP Code Form
     const mfaOtpForm = document.getElementById('mfaOtpSubmitForm');
     if (mfaOtpForm) {
@@ -679,7 +619,6 @@ class TaskSphereApp {
             // Launch Workspace
             this.applyProfileUI();
             
-            const loginOverlay = document.getElementById('loginOverlay');
             if (loginOverlay) loginOverlay.classList.add('hidden');
             this.toggleAdminTab();
             this.initRealtimeSync();
@@ -697,21 +636,6 @@ class TaskSphereApp {
         return false;
       };
     }
-
-    // 4. Back to Email Link
-    changeEmailLink.onclick = (e) => {
-      e.preventDefault();
-      
-      // Restore default branding header
-      document.querySelector('.auth-card__logo').textContent = 'TaskSphere';
-      document.querySelector('.auth-card__logo').style.fontSize = '';
-      document.querySelector('.auth-card__logo').style.letterSpacing = '';
-      subtitle.textContent = 'Verify your identity to access the agile workspace';
-
-      document.getElementById('authOtpStep').classList.add('hidden');
-      document.getElementById('authEmailStep').classList.remove('hidden');
-      document.getElementById('authEmailInput').focus();
-    };
   }
 
   applyProfileUI() {
@@ -977,7 +901,10 @@ class TaskSphereApp {
     console.log(`[APPROVAL-GATE] Gating session for user: ${username} (Role: ${role}). Awaiting admin activation...`);
     
     // Switch auth step card views to blocker
-    document.getElementById('authEmailStep').classList.add('hidden');
+    const loginStep = document.getElementById('authLoginStep');
+    if (loginStep) loginStep.classList.add('hidden');
+    const registerStep = document.getElementById('authRegisterStep');
+    if (registerStep) registerStep.classList.add('hidden');
     document.getElementById('authOtpStep').classList.add('hidden');
     document.getElementById('authProfileStep').classList.add('hidden');
     document.getElementById('authApprovalStep').classList.remove('hidden');

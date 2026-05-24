@@ -44,7 +44,7 @@ public class UserController {
             
             // If we are updating avatarUrl or registering password/mfa settings
             if (user.getAvatarUrl() != null) {
-                String emailVal = user.getEmail() != null ? user.getEmail() : activeUser.getEmail();
+                String emailVal = user.getEmail() != null ? user.getEmail() : activeUser.getExtractedEmail();
                 String pwdHash = user.getPassword() != null ? passwordEncoder.encode(user.getPassword()) : activeUser.getPasswordHash();
                 boolean mfaVal = user.getMfa() != null ? user.getMfa() : activeUser.isMfaEnabled();
                 activeUser.packMetadata(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : user.getAvatarUrl(), emailVal, pwdHash, mfaVal);
@@ -164,7 +164,7 @@ public class UserController {
 
         UserSession user = userOpt.get();
 
-        String email = user.getEmail();
+        String email = user.getExtractedEmail();
         String currentPureAvatar = user.getPureAvatarUrl();
         String passwordHash = user.getPasswordHash();
         boolean mfaEnabled = user.isMfaEnabled();

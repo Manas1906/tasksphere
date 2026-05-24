@@ -279,22 +279,46 @@
     <div class="auth-card">
       <div class="auth-card__header">
         <div class="auth-card__logo">TaskSphere</div>
-        <div class="auth-card__subtitle" id="authSubtitle">Verify your identity to access the agile workspace</div>
+        <div class="auth-card__subtitle" id="authSubtitle">Enter your credentials to access the workspace</div>
         <div id="authErrorMsg" class="auth-error-msg">Please specify a valid email address.</div>
       </div>
 
       <div class="auth-form-container" id="authFormContainer">
-        <!-- STEP 1: Email Request -->
-        <div class="auth-step" id="authEmailStep">
-          <form id="emailSubmitForm" onsubmit="return false;">
+        <!-- STEP 1: Unified Login (Email & Password) -->
+        <div class="auth-step" id="authLoginStep">
+          <form id="loginSubmitForm" onsubmit="return false;">
             <div class="auth-group">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
               <div class="auth-input-wrapper">
-                <input type="email" id="authEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
+                <input type="email" id="loginEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
                 <span class="auth-input-icon">✉</span>
               </div>
             </div>
-            <button type="submit" id="sendOtpBtn" class="auth-btn">Send Verification Code</button>
+            <div class="auth-group" style="margin-top: var(--spacing-md)">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Account Password</label>
+              <div class="auth-input-wrapper">
+                <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter your password..." required autocomplete="current-password">
+                <span class="auth-input-icon">🔒</span>
+              </div>
+            </div>
+            <button type="submit" id="submitLoginBtn" class="auth-btn">Log In</button>
+            <div style="border-top: 1px solid var(--border-color); margin: var(--spacing-md) 0;"></div>
+            <button type="button" id="createAccountBtn" class="auth-btn" style="background: #10b981; border: none;">Create New Account</button>
+          </form>
+        </div>
+
+        <!-- STEP 1B: Register Email (OTP Request) -->
+        <div class="auth-step hidden" id="authRegisterStep">
+          <form id="registerEmailForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
+              <div class="auth-input-wrapper">
+                <input type="email" id="registerEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
+                <span class="auth-input-icon">✉</span>
+              </div>
+            </div>
+            <button type="submit" id="sendRegisterOtpBtn" class="auth-btn">Send Verification Code</button>
+            <a class="auth-switch-link" id="backToLoginLink">← Back to Log In</a>
           </form>
         </div>
 
@@ -309,22 +333,7 @@
               </div>
             </div>
             <button type="submit" id="verifyOtpBtn" class="auth-btn">Verify & Authenticate</button>
-            <a class="auth-switch-link" id="changeEmailLink">← Back to Email Change</a>
-          </form>
-        </div>
-
-        <!-- STEP 1B: Password Authentication -->
-        <div class="auth-step hidden" id="authPasswordStep">
-          <form id="passwordSubmitForm" onsubmit="return false;">
-            <div class="auth-group">
-              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Account Password</label>
-              <div class="auth-input-wrapper">
-                <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter password..." required autocomplete="current-password">
-                <span class="auth-input-icon">🔒</span>
-              </div>
-            </div>
-            <button type="submit" id="submitPasswordBtn" class="auth-btn">Verify Credentials</button>
-            <a class="auth-switch-link" id="resetToEmailLink">← Back to Email</a>
+            <a class="auth-switch-link" id="backToRegisterLink">← Back to Registration</a>
           </form>
         </div>
 
@@ -339,7 +348,7 @@
               </div>
             </div>
             <button type="submit" id="verifyMfaOtpBtn" class="auth-btn">Verify & Launch</button>
-            <a class="auth-switch-link" id="cancelMfaLink">← Back to Password</a>
+            <a class="auth-switch-link" id="cancelMfaLink">← Back to Log In</a>
           </form>
         </div>
 

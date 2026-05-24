@@ -101,7 +101,7 @@ public class AuthController {
 
         // Scan database for registered profile matching this email metadata
         Optional<UserSession> userOpt = userRepository.findAll().stream()
-                .filter(u -> normalizedEmail.equalsIgnoreCase(u.getEmail()))
+                .filter(u -> normalizedEmail.equalsIgnoreCase(u.getExtractedEmail()))
                 .findFirst();
 
         if (userOpt.isEmpty()) {
@@ -148,5 +148,21 @@ public class AuthController {
         response.put("email", normalizedEmail);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        if (email == null || email.trim().isEmpty()) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Email is required.");
+            return ResponseEntity.badRequest().body(err);
+        }
+        String normalizedEmail = email.toLowerCase().trim();
+        boolean exists = userRepository.findAll().stream()
+                .anyMatch(u -> normalizedEmail.equalsIgnoreCase(u.getExtractedEmail()));
+        
+        Map<String, Object> res = new HashMap<>();
+        res.put("registered", exists);
+        return ResponseEntity.ok(res);
     }
 }

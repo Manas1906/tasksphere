@@ -40,7 +40,7 @@ public class UserSession {
     @Transient
     private Boolean mfa;
 
-    public String getEmail() {
+    public String getExtractedEmail() {
         if (avatarUrl == null || !avatarUrl.contains("||email:")) {
             return null;
         }
