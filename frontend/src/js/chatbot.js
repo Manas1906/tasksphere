@@ -110,7 +110,11 @@ export class AIChatbot {
   }
 
   scrollToBottom() {
-    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    setTimeout(() => {
+      if (this.messagesContainer) {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      }
+    }, 50);
   }
 
   async handleSendMessage() {
