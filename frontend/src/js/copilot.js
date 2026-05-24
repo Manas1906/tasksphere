@@ -134,22 +134,46 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
         // ACTUAL GOOGLE GEMINI LIVE GENERATION!
         try {
           console.log('[AI-API] Requesting real-time generation from Gemini 2.5 Flash...');
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: compiledPrompt
-                }]
-              }]
-            })
-          });
+          let response;
+          let retries = 2;
+          let delay = 300;
 
-          if (!response.ok) {
-            throw new Error(`Gemini API Error: ${response.status} ${response.statusText}`);
+          for (let i = 0; i <= retries; i++) {
+            try {
+              response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  contents: [{
+                    parts: [{
+                      text: compiledPrompt
+                    }]
+                  }]
+                })
+              });
+
+              if (response.ok) {
+                break;
+              }
+
+              // Retry on transient throttling or server errors (503, 429, 500)
+              if ((response.status === 503 || response.status === 429 || response.status === 500) && i < retries) {
+                console.warn(`[AI-API-RETRY] Received transient ${response.status} from Gemini. Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+              } else {
+                throw new Error(`Gemini API Error: ${response.status} ${response.statusText}`);
+              }
+            } catch (fetchErr) {
+              if (i === retries) {
+                throw fetchErr;
+              }
+              console.warn(`[AI-API-RETRY] Fetch failed. Retrying in ${delay}ms...`, fetchErr);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2;
+            }
           }
 
           const resData = await response.json();

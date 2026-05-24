@@ -149,22 +149,46 @@ export class AIChatbot {
     if (activeKey) {
       try {
         console.log('[AI-BOT] Querying Google Gemini stable v1 API (gemini-2.5-flash)...');
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are an expert Scrum Master assistant in the TaskSphere Agile tool. Respond concisely (under 3 sentences) to the following request:\n${text}`
-              }]
-            }]
-          })
-        });
+        let response;
+        let retries = 2;
+        let delay = 300;
 
-        if (!response.ok) {
-          throw new Error(`API Status ${response.status}`);
+        for (let i = 0; i <= retries; i++) {
+          try {
+            response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{
+                    text: `You are an expert Scrum Master assistant in the TaskSphere Agile tool. Respond concisely (under 3 sentences) to the following request:\n${text}`
+                  }]
+                }]
+              })
+            });
+
+            if (response.ok) {
+              break;
+            }
+
+            // Retry on transient throttling or server errors (503, 429, 500)
+            if ((response.status === 503 || response.status === 429 || response.status === 500) && i < retries) {
+              console.warn(`[AI-BOT-RETRY] Received transient ${response.status} from Gemini. Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2;
+            } else {
+              throw new Error(`API Status ${response.status}`);
+            }
+          } catch (fetchErr) {
+            if (i === retries) {
+              throw fetchErr;
+            }
+            console.warn(`[AI-BOT-RETRY] Fetch failed. Retrying in ${delay}ms...`, fetchErr);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+          }
         }
 
         const resData = await response.json();
