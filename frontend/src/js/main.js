@@ -43,6 +43,17 @@ class TaskSphereApp {
       console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
       this.applyProfileUI();
       if (loginOverlay) loginOverlay.classList.add('hidden');
+
+      // Seed the profile cache if missing, to ensure future logouts can bypass Step 3 on this browser
+      const email = localStorage.getItem('tasksphere_email');
+      if (email) {
+        localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
+          username: username,
+          role: role,
+          avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+        }));
+      }
+
       this.initRealtimeSync();
     } else {
       console.log('[APP-START] No active session or incomplete profile. Gating workspace behind login overlay.');
