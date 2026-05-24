@@ -66,13 +66,6 @@ class TaskSphereApp {
         }));
       }
 
-      // Populate general failsafe profile cache to handle any browser/email mismatch edge cases
-      localStorage.setItem('profile_registered_user', JSON.stringify({
-        username: username,
-        role: role,
-        avatarUrl: localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
-      }));
-
       this.initRealtimeSync();
     } else {
       console.log('[APP-START] No active session or incomplete profile. Gating workspace behind login overlay.');
@@ -300,19 +293,7 @@ class TaskSphereApp {
             }
           }
 
-          // 3. Failsafe general browser cache (if they have registered any user previously on this browser)
-          if (!isPreviouslyRegistered) {
-            try {
-              const generalCached = localStorage.getItem('profile_registered_user');
-              if (generalCached) {
-                existingProfile = JSON.parse(generalCached);
-                isPreviouslyRegistered = true;
-                console.log('[AUTH-CHECK] Failsafe general profile cache found:', existingProfile);
-              }
-            } catch (generalErr) {
-              console.warn('[AUTH-CHECK] Failed to parse general profile cache:', generalErr);
-            }
-          }
+
 
           if (isPreviouslyRegistered && existingProfile) {
             console.log('[AUTH-LOGIN] Previously registered user recognized. Auto-bypassing Profile Setup.');
@@ -413,13 +394,6 @@ class TaskSphereApp {
                 avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
               }));
             }
-
-            // Also populate general failsafe cache to cover any other browser session logs
-            localStorage.setItem('profile_registered_user', JSON.stringify({
-              username: username,
-              role: role,
-              avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
-            }));
 
             // Call /api/users/login to register active session on backend
             await api.login({
