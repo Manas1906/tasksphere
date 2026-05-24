@@ -154,3 +154,36 @@
 .btn--copilot:hover {
   filter: brightness(1.1);
 }
+
+/* Prompt Lab action row for Seed selection and Generate button */
+.copilot-form-row {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-end;
+  margin-top: var(--spacing-lg);
+}
+
+.copilot-form-row > .form-group {
+  flex: 2;
+  margin-bottom: 0;
+}
+
+.copilot-form-row > .btn {
+  flex: 1;
+  height: 38px;
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .copilot-form-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  .copilot-form-row > .form-group,
+  .copilot-form-row > .btn {
+    flex: none;
+    width: 100%;
+  }
+}

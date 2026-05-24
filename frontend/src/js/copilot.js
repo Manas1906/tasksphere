@@ -42,15 +42,15 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
             </div>
           </div>
 
-          <div class="form-row-2" style="margin-top: var(--spacing-lg); align-items: flex-end; grid-template-columns: 2fr 1fr">
-            <div class="form-group" style="margin-bottom: 0">
+          <div class="copilot-form-row">
+            <div class="form-group">
               <label class="form-label" for="mockTaskSelect">Select Seed Card</label>
               <select id="mockTaskSelect" class="form-select">
                 <option value="">-- Choose active card --</option>
                 <!-- Populated via script -->
               </select>
             </div>
-            <button id="copilotCompileBtn" class="btn btn--submit" style="height: 38px; min-width: 140px">Generate Story</button>
+            <button id="copilotCompileBtn" class="btn btn--submit">Generate Story</button>
           </div>
         </div>
 
@@ -133,8 +133,8 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       if (apiKey) {
         // ACTUAL GOOGLE GEMINI LIVE GENERATION!
         try {
-          console.log('[AI-API] Requesting real-time generation from Gemini 1.5 Flash...');
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          console.log('[AI-API] Requesting real-time generation from Gemini 2.5 Flash...');
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

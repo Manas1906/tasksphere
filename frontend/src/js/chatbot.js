@@ -1,6 +1,6 @@
 /**
  * AIChatbot - Premium Floating AI Copilot Chat Assistant
- * Seamlessly interfaces with Google Gemini API (v1 gemini-1.5-flash) over Port 443
+ * Seamlessly interfaces with Google Gemini API (v1 gemini-2.5-flash) over Port 443
  * Equipped with full offline/degraded mock Agile Coach fallback system.
  */
 export class AIChatbot {
@@ -144,8 +144,8 @@ export class AIChatbot {
 
     if (activeKey) {
       try {
-        console.log('[AI-BOT] Querying Google Gemini stable v1 API...');
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${activeKey}`, {
+        console.log('[AI-BOT] Querying Google Gemini stable v1 API (gemini-2.5-flash)...');
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

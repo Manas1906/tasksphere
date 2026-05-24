@@ -15,7 +15,7 @@
   cursor: pointer;
   z-index: 999;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .chatbot-toggle:hover {
@@ -44,7 +44,7 @@
   flex-direction: column;
   z-index: 1000;
   overflow: hidden;
-  transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1), right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   transform-origin: bottom right;
   transform: scale(0.85);
   opacity: 0;
@@ -203,5 +203,27 @@
   .chatbot-toggle {
     bottom: 16px;
     right: 16px;
+  }
+}
+
+/* Dynamic positioning to prevent overlap with the Operations Chat panel */
+@media (min-width: 1025px) {
+  /* Shift left by the width of the expanded chat column */
+  .app-shell:not(.app-shell--hide-chat) .chatbot-toggle {
+    right: calc(24px + var(--chat-panel-width));
+  }
+  .app-shell:not(.app-shell--hide-chat) .chatbot-window {
+    right: calc(24px + var(--chat-panel-width));
+    transform-origin: bottom right;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Hide the chatbot toggle and window completely on tablet/mobile when the operations chat drawer is open to prevent overlapping controls */
+  .app-shell.app-shell--show-chat .chatbot-toggle,
+  .app-shell.app-shell--show-chat .chatbot-window {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.85) !important;
   }
 }
