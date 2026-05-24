@@ -60,6 +60,11 @@
             </div>
           </div>
           <div class="profile-dropdown__divider"></div>
+          <button class="profile-dropdown__item" id="securitySettingsBtn" style="color: var(--text-primary);">
+            <span style="font-size: 14px; margin-right: 4px;">🔒</span>
+            <span>Security Settings</span>
+          </button>
+          <div class="profile-dropdown__divider"></div>
           <button class="profile-dropdown__item profile-dropdown__item--logout" id="logoutBtn">
             <svg style="width: 16px; height: 16px; fill: var(--accent-rose);" viewBox="0 0 24 24">
               <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
@@ -230,6 +235,41 @@
     </div>
   </div>
 
+  <!-- Security Settings Modal -->
+  <div id="securityModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2 class="modal-header__title">🔒 Workspace Security Settings</h2>
+        <button id="closeSecurityModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form class="enterprise-form" id="securityForm" onsubmit="return false;">
+        <!-- MFA Toggle Row -->
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg)">
+          <div>
+            <label class="form-label" style="margin-bottom: 2px; cursor: pointer; user-select: none;" for="mfaSettingsToggle">Enable Multi-Factor (MFA)</label>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Require 6-digit email OTP codes on every password login.</p>
+          </div>
+          <input type="checkbox" id="mfaSettingsToggle" style="width: 18px; height: 18px; accent-color: var(--accent-cyan); cursor: pointer;">
+        </div>
+
+        <!-- Change Password Segment -->
+        <div class="form-group">
+          <label class="form-label" for="settingsNewPassword">Update Password</label>
+          <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password">
+          <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
+            <div id="settingsPasswordBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease;"></div>
+          </div>
+          <p id="settingsPasswordFeedback" style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Leave blank if you do not want to modify your password.</p>
+        </div>
+
+        <div class="form-group" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
+          <button type="button" id="cancelSecurityBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Close Settings</button>
+          <button type="submit" id="saveSecurityBtn" class="btn btn--submit">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Drawer Backdrops for mobile -->
   <div id="sidebarBackdrop" class="drawer-backdrop"></div>
   <div id="chatBackdrop" class="drawer-backdrop"></div>
@@ -273,6 +313,36 @@
           </form>
         </div>
 
+        <!-- STEP 1B: Password Authentication -->
+        <div class="auth-step hidden" id="authPasswordStep">
+          <form id="passwordSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Account Password</label>
+              <div class="auth-input-wrapper">
+                <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter password..." required autocomplete="current-password">
+                <span class="auth-input-icon">🔒</span>
+              </div>
+            </div>
+            <button type="submit" id="submitPasswordBtn" class="auth-btn">Verify Credentials</button>
+            <a class="auth-switch-link" id="resetToEmailLink">← Back to Email</a>
+          </form>
+        </div>
+
+        <!-- STEP 2B: MFA OTP Verification -->
+        <div class="auth-step hidden" id="authMfaOtpStep">
+          <form id="mfaOtpSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit MFA Security Code</label>
+              <div class="auth-input-wrapper">
+                <input type="text" id="authMfaOtpInput" class="auth-input" placeholder="Enter MFA code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <span class="auth-input-icon">🔑</span>
+              </div>
+            </div>
+            <button type="submit" id="verifyMfaOtpBtn" class="auth-btn">Verify & Launch</button>
+            <a class="auth-switch-link" id="cancelMfaLink">← Back to Password</a>
+          </form>
+        </div>
+
         <!-- STEP 3: Profile Initialization -->
         <div class="auth-step hidden" id="authProfileStep">
           <form id="profileSubmitForm" onsubmit="return false;">
@@ -304,6 +374,28 @@
                 <span class="auth-select-arrow" style="position: absolute; right: var(--spacing-md); color: var(--text-muted); pointer-events: none; font-size: 10px;">▼</span>
               </div>
             </div>
+
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Workspace Password</label>
+              <div class="auth-input-wrapper">
+                <input type="password" id="authPasswordInput" class="auth-input" placeholder="Create secure password..." required autocomplete="new-password">
+                <span class="auth-input-icon">🔒</span>
+              </div>
+              <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
+                <div id="passwordStrengthBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+              </div>
+              <div id="passwordFeedback" style="font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">
+                Must contain min 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special symbol.
+              </div>
+            </div>
+            
+            <div class="auth-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: var(--spacing-md);">
+              <input type="checkbox" id="authMfaToggle" style="width: 14px; height: 14px; accent-color: var(--accent-cyan); cursor: pointer;">
+              <label for="authMfaToggle" style="font-size: 11px; color: var(--text-muted); cursor: pointer; user-select: none;">
+                Enable Multi-Factor Authentication (MFA via OTP)
+              </label>
+            </div>
+
             <button type="submit" id="launchWorkspaceBtn" class="auth-btn auth-btn--launch">Launch Workspace</button>
           </form>
         </div>

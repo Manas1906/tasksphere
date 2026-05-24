@@ -221,8 +221,9 @@ export class ChatController {
     const msgElement = document.createElement('div');
     msgElement.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
     
+    const cleanAvatar = (msg.avatarUrl || '').split('||')[0];
     msgElement.innerHTML = `
-      <img src="${msg.avatarUrl}" class="chat-msg__avatar" alt="${msg.username}">
+      <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
       <div class="chat-msg__content-box">
         <div class="chat-msg__meta">
           <span class="chat-msg__sender">${msg.username}</span>
@@ -301,8 +302,9 @@ export class ChatController {
       };
 
       const statusClass = user.status.toLowerCase();
+      const cleanAvatar = (user.avatarUrl || '').split('||')[0];
       avatarWrap.innerHTML = `
-        <img src="${user.avatarUrl}" class="active-user-avatar" alt="${user.username}">
+        <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
         <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
       `;
       this.activeUsersContainer.appendChild(avatarWrap);

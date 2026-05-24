@@ -27,6 +27,7 @@ class TaskSphereApp {
     this.setupMobileToggles();
     this.setupProfileDropdown();
     this.setupThemeToggle();
+    this.setupSecuritySettings();
     
     // Initialize floating AI Scrum Assistant Chatbot
     try {
@@ -222,11 +223,35 @@ class TaskSphereApp {
       }
 
       sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span class="auth-spinner"></span>Sending...';
+      sendBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
 
       // Perform async fetch safely in the background
       (async () => {
         try {
+          console.log(`[AUTH-CHECK] Checking if user ${email} already has password credentials...`);
+          const users = await api.getUsers() || [];
+          const existingUser = users.find(u => {
+            const parts = (u.avatarUrl || '').split('||');
+            for (const part of parts) {
+              if (part.startsWith('email:')) {
+                return part.substring(6).toLowerCase().trim() === email.toLowerCase().trim();
+              }
+            }
+            return false;
+          });
+
+          if (existingUser) {
+            console.log('[AUTH-CHECK] Profile exists for email. Transitioning to Password Login.');
+            localStorage.setItem('tasksphere_email', email);
+            submittedEmail = email;
+            
+            document.getElementById('authEmailStep').classList.add('hidden');
+            document.getElementById('authPasswordStep').classList.remove('hidden');
+            document.getElementById('loginPasswordInput').value = '';
+            document.getElementById('loginPasswordInput').focus();
+            return;
+          }
+
           console.log(`[AUTH-OTP] Sending dynamic OTP dispatch request for email: ${email}`);
           await api.sendOtp(email);
           
@@ -236,7 +261,7 @@ class TaskSphereApp {
           document.getElementById('authOtpStep').classList.remove('hidden');
           document.getElementById('authOtpInput').focus();
         } catch (err) {
-          console.error('[AUTH-OTP] OTP dispatch failed:', err);
+          console.error('[AUTH-OTP] OTP dispatch/check failed:', err);
           showError(err.message || 'Verification service failed. Please try again.');
         } finally {
           sendBtn.disabled = false;
@@ -407,12 +432,31 @@ class TaskSphereApp {
           try {
             console.log(`[AUTH-PROFILE] Finalizing user profile: ${username} as role: ${role}`);
             
+            const passwordInput = document.getElementById('authPasswordInput');
+            const mfaToggle = document.getElementById('authMfaToggle');
+            const password = passwordInput.value;
+            const mfaEnabled = mfaToggle ? mfaToggle.checked : false;
+
+            // Verify strength before sending
+            const passBar = document.getElementById('passwordStrengthBar');
+            const passFeedback = document.getElementById('passwordFeedback');
+            const isStrong = this.checkPasswordStrength(password, passBar, passFeedback);
+            if (!isStrong) {
+              showError('Please specify a secure password matching all validation rules.');
+              launchBtn.disabled = false;
+              launchBtn.textContent = 'Launch Workspace';
+              return false;
+            }
+
             // Call /api/users/login to register active session on backend
             const activeSession = await api.login({
               username: username,
               role: role,
               avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-              status: 'ONLINE'
+              status: 'ONLINE',
+              email: localStorage.getItem('tasksphere_email'),
+              password: password,
+              mfa: mfaEnabled
             });
 
             if (activeSession && activeSession.status === 'PENDING_APPROVAL') {
@@ -465,6 +509,191 @@ class TaskSphereApp {
           }
         })();
 
+        return false;
+      };
+    }
+
+    // Real-time password strength checker for Step 3
+    const passInput = document.getElementById('authPasswordInput');
+    if (passInput) {
+      passInput.oninput = () => {
+        const passBar = document.getElementById('passwordStrengthBar');
+        const passFeedback = document.getElementById('passwordFeedback');
+        this.checkPasswordStrength(passInput.value, passBar, passFeedback);
+      };
+    }
+
+    // Reset back to Email link from Password Login Step
+    const resetToEmailLink = document.getElementById('resetToEmailLink');
+    if (resetToEmailLink) {
+      resetToEmailLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authPasswordStep').classList.add('hidden');
+        document.getElementById('authEmailStep').classList.remove('hidden');
+        document.getElementById('authEmailInput').focus();
+      };
+    }
+
+    // Cancel MFA back link from MFA Step
+    const cancelMfaLink = document.getElementById('cancelMfaLink');
+    if (cancelMfaLink) {
+      cancelMfaLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authMfaOtpStep').classList.add('hidden');
+        document.getElementById('authPasswordStep').classList.remove('hidden');
+        document.getElementById('loginPasswordInput').focus();
+      };
+    }
+
+    // Submit Password Login Form
+    const passwordForm = document.getElementById('passwordSubmitForm');
+    if (passwordForm) {
+      passwordForm.onsubmit = async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const passwordValInput = document.getElementById('loginPasswordInput');
+        const passwordVal = passwordValInput.value;
+        const emailVal = localStorage.getItem('tasksphere_email') || submittedEmail;
+
+        if (!passwordVal) {
+          showError('Password is required.');
+          return false;
+        }
+
+        const submitBtn = document.getElementById('submitPasswordBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifying...';
+
+        try {
+          console.log('[AUTH-PASSWORD] Sending credential validation check for:', emailVal);
+          const res = await api.request('/auth/password/login', {
+            method: 'POST',
+            body: JSON.stringify({ email: emailVal, password: passwordVal })
+          });
+
+          if (res.mfaRequired) {
+            console.log('[AUTH-PASSWORD] Credential correct. MFA dynamically active.');
+            // Route to MFA verification step
+            document.getElementById('authPasswordStep').classList.add('hidden');
+            document.getElementById('authMfaOtpStep').classList.remove('hidden');
+            document.getElementById('authMfaOtpInput').value = '';
+            document.getElementById('authMfaOtpInput').focus();
+          } else if (res.success && res.token) {
+            console.log('[AUTH-PASSWORD] Credential authorized. Session direct entry.');
+            
+            localStorage.setItem('tasksphere_jwt', res.token);
+            localStorage.setItem('chat_username', res.username);
+            localStorage.setItem('chat_role', res.role);
+            localStorage.setItem('chat_avatar', res.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${res.username}`);
+            
+            // BypassOTP local caching details
+            localStorage.setItem('profile_' + res.email.toLowerCase().trim(), JSON.stringify({
+              username: res.username,
+              role: res.role,
+              avatarUrl: res.avatarUrl
+            }));
+
+            // Refresh UI and launch
+            this.applyProfileUI();
+            
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) loginOverlay.classList.add('hidden');
+            this.toggleAdminTab();
+            this.initRealtimeSync();
+
+            // Refresh views
+            this.switchRoute(this.activeRoute);
+          }
+        } catch (err) {
+          console.error('[AUTH-PASSWORD] Log in failed:', err);
+          showError(err.message || 'Incorrect password credentials.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Verify Credentials';
+        }
+        return false;
+      };
+    }
+
+    // Submit MFA OTP Code Form
+    const mfaOtpForm = document.getElementById('mfaOtpSubmitForm');
+    if (mfaOtpForm) {
+      mfaOtpForm.onsubmit = async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const otpValInput = document.getElementById('authMfaOtpInput');
+        const otpVal = otpValInput.value.trim();
+        const emailVal = localStorage.getItem('tasksphere_email') || submittedEmail;
+
+        if (otpVal.length !== 6 || isNaN(otpVal)) {
+          showError('Verification code must be 6 digits.');
+          return false;
+        }
+
+        const verifyBtn = document.getElementById('verifyMfaOtpBtn');
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = 'Launching...';
+
+        try {
+          console.log('[AUTH-MFA] Sending dynamic MFA validation code:', otpVal);
+          const mfaRes = await api.request('/auth/otp/verify', {
+            method: 'POST',
+            body: JSON.stringify({ email: emailVal, otp: otpVal })
+          });
+
+          if (mfaRes.success && mfaRes.token) {
+            console.log('[AUTH-MFA] Validation valid. Fetching profile metadata details...');
+            
+            // Fetch directory profiles to extract username & role details
+            const users = await api.getUsers() || [];
+            const me = users.find(u => {
+              const parts = (u.avatarUrl || '').split('||');
+              for (const part of parts) {
+                if (part.startsWith('email:')) {
+                  return part.substring(6).toLowerCase().trim() === emailVal.toLowerCase().trim();
+                }
+              }
+              return false;
+            });
+
+            const username = me ? me.username : emailVal.split('@')[0];
+            const role = me ? me.role : 'DEVELOPER';
+            const avatarUrl = me ? (me.avatarUrl || '').split('||')[0] : `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+
+            localStorage.setItem('tasksphere_jwt', mfaRes.token);
+            localStorage.setItem('chat_username', username);
+            localStorage.setItem('chat_role', role);
+            localStorage.setItem('chat_avatar', avatarUrl);
+            
+            // Save local cache bypass details
+            localStorage.setItem('profile_' + emailVal.toLowerCase().trim(), JSON.stringify({
+              username,
+              role,
+              avatarUrl
+            }));
+
+            // Launch Workspace
+            this.applyProfileUI();
+            
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) loginOverlay.classList.add('hidden');
+            this.toggleAdminTab();
+            this.initRealtimeSync();
+
+            // Refresh views
+            this.switchRoute(this.activeRoute);
+          }
+        } catch (err) {
+          console.error('[AUTH-MFA] Code validation failed:', err);
+          showError(err.message || 'Incorrect dynamic security code.');
+        } finally {
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = 'Verify & Launch';
+        }
         return false;
       };
     }
@@ -526,6 +755,15 @@ class TaskSphereApp {
         dropdown.classList.add('hidden');
       }
     });
+
+    const securityBtn = document.getElementById('securitySettingsBtn');
+    if (securityBtn) {
+      securityBtn.onclick = (e) => {
+        e.stopPropagation();
+        dropdown.classList.add('hidden');
+        this.openSecurityModal();
+      };
+    }
 
     // Handle logout click handler
     if (logoutBtn) {
@@ -869,6 +1107,164 @@ class TaskSphereApp {
     }
   }
  
+  checkPasswordStrength(password, barEl, feedbackEl) {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+
+    let width = "0%";
+    let color = "#ef4444";
+    let text = "Weak Password";
+
+    if (score >= 5) {
+      width = "100%";
+      color = "#10b981";
+      text = "Strong Password (Secure)";
+    } else if (score >= 3) {
+      width = "60%";
+      color = "#f59e0b";
+      text = "Medium Password";
+    } else if (password.length > 0) {
+      width = "30%";
+      color = "#ef4444";
+      text = "Weak Password (Min 8 chars, mixed case, number, symbol)";
+    } else {
+      text = "Create secure password...";
+    }
+
+    if (barEl) {
+      barEl.style.width = width;
+      barEl.style.backgroundColor = color;
+    }
+    if (feedbackEl) {
+      feedbackEl.textContent = text;
+      feedbackEl.style.color = color;
+    }
+    return score >= 5;
+  }
+
+  setupSecuritySettings() {
+    const modal = document.getElementById('securityModal');
+    const closeBtn = document.getElementById('closeSecurityModal');
+    const cancelBtn = document.getElementById('cancelSecurityBtn');
+    const form = document.getElementById('securityForm');
+    const newPassInput = document.getElementById('settingsNewPassword');
+
+    if (!modal || !form) return;
+
+    // Close security settings modal
+    const closeModal = () => modal.classList.remove('modal-overlay--active');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+
+    // Strength checker for Settings Password Update
+    if (newPassInput) {
+      newPassInput.oninput = () => {
+        const passBar = document.getElementById('settingsPasswordBar');
+        const passFeedback = document.getElementById('settingsPasswordFeedback');
+        
+        if (newPassInput.value.length === 0) {
+          if (passBar) passBar.style.width = "0%";
+          if (passFeedback) {
+            passFeedback.textContent = "Leave blank if you do not want to modify your password.";
+            passFeedback.style.color = "var(--text-muted)";
+          }
+        } else {
+          this.checkPasswordStrength(newPassInput.value, passBar, passFeedback);
+        }
+      };
+    }
+
+    // Handle security settings submission
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      
+      const mfaToggle = document.getElementById('mfaSettingsToggle');
+      const mfaEnabled = mfaToggle ? mfaToggle.checked : false;
+      const newPassword = newPassInput ? newPassInput.value : '';
+      const username = localStorage.getItem('chat_username');
+
+      // Verify strength of new password if not blank
+      if (newPassword.length > 0) {
+        const passBar = document.getElementById('settingsPasswordBar');
+        const passFeedback = document.getElementById('settingsPasswordFeedback');
+        const isStrong = this.checkPasswordStrength(newPassword, passBar, passFeedback);
+        if (!isStrong) {
+          alert('Please specify a secure password matching all rules.');
+          return false;
+        }
+      }
+
+      const saveBtn = document.getElementById('saveSecurityBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      try {
+        console.log('[SECURITY-SETTINGS-SAVE] Sending updates to backend...');
+        const payload = { username, mfa: mfaEnabled };
+        if (newPassword.length > 0) {
+          payload.password = newPassword;
+        }
+
+        const res = await api.request('/users/profile/security', {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+
+        if (res.success) {
+          alert('Security settings synchronized successfully!');
+          closeModal();
+        }
+      } catch (err) {
+        console.error('[SECURITY-SETTINGS-ERROR] Failed to save:', err);
+        alert(`Failed to save settings: ${err.message || err}`);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Settings';
+      }
+      return false;
+    };
+  }
+
+  async openSecurityModal() {
+    const modal = document.getElementById('securityModal');
+    const mfaToggle = document.getElementById('mfaSettingsToggle');
+    const newPassInput = document.getElementById('settingsNewPassword');
+    const passBar = document.getElementById('settingsPasswordBar');
+    const passFeedback = document.getElementById('settingsPasswordFeedback');
+
+    if (!modal) return;
+
+    // Reset inputs
+    if (newPassInput) newPassInput.value = '';
+    if (passBar) passBar.style.width = "0%";
+    if (passFeedback) {
+      passFeedback.textContent = "Leave blank if you do not want to modify your password.";
+      passFeedback.style.color = "var(--text-muted)";
+    }
+
+    // Set toggle state by fetching database user details
+    const username = localStorage.getItem('chat_username');
+    if (mfaToggle) {
+      mfaToggle.checked = false; // default
+      try {
+        const users = await api.getUsers() || [];
+        const me = users.find(u => u.username === username);
+        if (me) {
+          mfaToggle.checked = me.status === 'PENDING_APPROVAL' ? false : me.avatarUrl.includes('||mfa:true');
+        }
+      } catch (err) {
+        console.warn('[SECURITY-SETTINGS-LOAD] Failed to load user security details:', err);
+      }
+    }
+
+    // Show modal
+    modal.classList.add('modal-overlay--active');
+  }
+
   async switchRoute(route) {
     this.activeRoute = route;
  
