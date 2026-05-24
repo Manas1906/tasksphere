@@ -450,7 +450,7 @@ class TaskSphereApp {
     const email = localStorage.getItem('tasksphere_email') || `${username.toLowerCase()}@tasksphere.com`;
 
     document.getElementById('myUsername').textContent = username;
-    document.getElementById('myRole').textContent = role.replace('_', ' ');
+    document.getElementById('myRole').textContent = role.replace(/_/g, ' ');
     document.getElementById('myAvatar').src = avatar;
 
     // Populate profile dropdown popup elements
@@ -460,7 +460,7 @@ class TaskSphereApp {
     const dEmail = document.getElementById('dropdownEmail');
 
     if (dName) dName.textContent = username;
-    if (dRole) dRole.textContent = role.replace('_', ' ');
+    if (dRole) dRole.textContent = role.replace(/_/g, ' ');
     if (dAvatar) dAvatar.src = avatar;
     if (dEmail) dEmail.textContent = email;
   }
