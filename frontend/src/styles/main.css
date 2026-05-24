@@ -12,6 +12,7 @@
 @import "./components/forms.css";
 @import "./components/copilot.css";
 @import "./components/auth.css";
+@import "./components/chatbot.css";
 
 
 /* Utility classes - Day 6 Figma integration overlay specs */

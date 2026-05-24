@@ -4,6 +4,7 @@ import { DashboardView } from './dashboard';
 import { BoardView } from './board';
 import { ChatController } from './chat';
 import { AICopilot } from './copilot';
+import { AIChatbot } from './chatbot';
 
 /**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
@@ -25,6 +26,13 @@ class TaskSphereApp {
     this.setupMobileToggles();
     this.setupProfileDropdown();
     this.setupThemeToggle();
+    
+    // Initialize floating AI Scrum Assistant Chatbot
+    try {
+      new AIChatbot().init();
+    } catch (chatbotErr) {
+      console.warn('[CHATBOT-ERROR] Failed to start chatbot:', chatbotErr);
+    }
     
     const token = localStorage.getItem('tasksphere_jwt');
     const username = localStorage.getItem('chat_username');
