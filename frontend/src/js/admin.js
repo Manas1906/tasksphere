@@ -86,13 +86,62 @@ export class AdminView {
         const isPending = user.status === 'PENDING_APPROVAL';
         const formattedRole = (user.role || 'DEVELOPER').replace(/_/g, ' ');
         const isAdminRole = user.role === 'PRODUCT_OWNER' || user.role === 'MANAGER';
-        const userAvatar = user.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+        
+        // Parse metadata inside avatarUrl string (email & mfa)
+        const rawAvatar = user.avatarUrl || '';
+        let cleanAvatar = rawAvatar;
+        let email = 'N/A';
+        let mfaEnabled = false;
+        
+        if (rawAvatar.includes('||')) {
+          const parts = rawAvatar.split('||');
+          cleanAvatar = parts[0];
+          parts.forEach(part => {
+            if (part.startsWith('email:')) {
+              email = part.substring(6);
+            } else if (part.startsWith('mfa:')) {
+              mfaEnabled = part.substring(4) === 'true';
+            }
+          });
+        }
+        
+        if (!cleanAvatar) {
+          cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+        }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>
             <div class="admin-user-cell">
-              <img class="admin-user-avatar" src="${userAvatar}" alt="${user.username}">
+              <div class="admin-avatar-container">
+                <img class="admin-user-avatar" src="${cleanAvatar}" alt="${user.username}">
+                <div class="admin-user-details-tooltip">
+                  <div class="tooltip-header">
+                    <img src="${cleanAvatar}" class="tooltip-avatar" alt="${user.username}">
+                    <div class="tooltip-title-wrap">
+                      <h4 class="tooltip-name">${user.username}</h4>
+                      <span class="tooltip-role">${formattedRole}</span>
+                    </div>
+                  </div>
+                  <div class="tooltip-divider"></div>
+                  <div class="tooltip-info-row">
+                    <span class="label">ID:</span>
+                    <span class="value" title="${user.id}">${user.id}</span>
+                  </div>
+                  <div class="tooltip-info-row">
+                    <span class="label">Email:</span>
+                    <span class="value" title="${email}">${email}</span>
+                  </div>
+                  <div class="tooltip-info-row">
+                    <span class="label">MFA:</span>
+                    <span class="value ${mfaEnabled ? 'enabled' : 'disabled'}">${mfaEnabled ? 'Enabled' : 'Disabled'}</span>
+                  </div>
+                  <div class="tooltip-info-row">
+                    <span class="label">Status:</span>
+                    <span class="value status-${user.status.toLowerCase()}">${isPending ? 'Pending' : 'Active'}</span>
+                  </div>
+                </div>
+              </div>
               <div>
                 <div class="admin-user-name">${user.username}</div>
                 <div style="font-size: 11px; color: var(--text-muted)">ID: ${user.id.substring(0, 8)}...</div>
