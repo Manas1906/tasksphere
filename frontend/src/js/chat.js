@@ -192,7 +192,14 @@ export class ChatController {
     // Subscribe to chat stream
     socket.subscribe('/topic/chat', (message) => {
       console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
-      this.historyMessages.push(message);
+      
+      // In-place edit replacement if message ID already exists
+      const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
+      if (existingIdx !== -1) {
+        this.historyMessages[existingIdx] = message;
+      } else {
+        this.historyMessages.push(message);
+      }
       
       // Parse direct message notifications
       const isDm = message.message && message.message.startsWith('[DM:');
@@ -323,7 +330,9 @@ export class ChatController {
 
     // Strip out routing DM tags if printing
     let cleanMessage = msg.message;
+    let hasDmPrefix = false;
     if (cleanMessage && cleanMessage.startsWith('[DM:')) {
+      hasDmPrefix = true;
       const match = cleanMessage.match(/^\[DM:[^\]]+\]\s*(.*)$/);
       if (match) {
         cleanMessage = match[1];
@@ -342,9 +351,90 @@ export class ChatController {
           <span>${time}</span>
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
-        <div class="chat-msg__bubble">${cleanMessage}</div>
+        <div class="chat-msg__bubble-container">
+          <div class="chat-msg__bubble">${cleanMessage}</div>
+          ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message">✏️</button>` : ''}
+        </div>
       </div>
     `;
+
+    // Bind Edit Button click event
+    const editBtn = msgElement.querySelector('.chat-msg__edit-btn');
+    if (editBtn) {
+      editBtn.onclick = () => {
+        const bubbleContainer = msgElement.querySelector('.chat-msg__bubble-container');
+        const originalBubble = msgElement.querySelector('.chat-msg__bubble');
+        
+        // Hide original bubble and edit pencil
+        originalBubble.style.display = 'none';
+        editBtn.style.display = 'none';
+        
+        // Render inline edit form
+        const editContainer = document.createElement('div');
+        editContainer.className = 'chat-msg__edit-form';
+        editContainer.innerHTML = `
+          <input type="text" class="chat-msg__edit-input" value="${cleanMessage}" autocomplete="off">
+          <div class="chat-msg__edit-actions">
+            <button class="chat-msg__action-save">Save</button>
+            <button class="chat-msg__action-cancel">Cancel</button>
+          </div>
+        `;
+        
+        bubbleContainer.appendChild(editContainer);
+        
+        const input = editContainer.querySelector('.chat-msg__edit-input');
+        input.focus();
+        input.select();
+        
+        const cancelEdit = () => {
+          editContainer.remove();
+          originalBubble.style.display = 'block';
+          editBtn.style.display = '';
+        };
+        
+        const saveEdit = async () => {
+          const newText = input.value.trim();
+          if (!newText) return;
+          
+          if (newText === cleanMessage) {
+            cancelEdit();
+            return;
+          }
+          
+          try {
+            // Re-apply original DM prefix if present
+            let finalMessage = newText;
+            if (hasDmPrefix && msg.message) {
+              const dmMatch = msg.message.match(/^(\[DM:[^\]]+\]\s*)(.*)$/);
+              if (dmMatch) {
+                finalMessage = `${dmMatch[1]}${newText}`;
+              }
+            }
+            
+            // Dispatch PUT request
+            await api.updateChatMessage(msg.id, { message: finalMessage });
+            
+            // Remove edit UI—WebSocket listener takes care of updating and redrawing
+            editContainer.remove();
+          } catch (err) {
+            console.error('[CHAT-EDIT-ERROR] Failed to save chat message edit:', err);
+            alert(`Failed to save edit: ${err.message || err}`);
+            cancelEdit();
+          }
+        };
+        
+        editContainer.querySelector('.chat-msg__action-cancel').onclick = cancelEdit;
+        editContainer.querySelector('.chat-msg__action-save').onclick = saveEdit;
+        
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            saveEdit();
+          } else if (e.key === 'Escape') {
+            cancelEdit();
+          }
+        };
+      };
+    }
 
     this.messagesContainer.appendChild(msgElement);
   }

@@ -25,4 +25,13 @@ public class ChatService {
     public void clearHistory() {
         chatMessageRepository.deleteAll();
     }
+
+    public ChatMessage updateMessage(Long id, String newMessageContent) {
+        return chatMessageRepository.findById(id)
+                .map(msg -> {
+                    msg.setMessage(newMessageContent);
+                    return chatMessageRepository.save(msg);
+                })
+                .orElseThrow(() -> new RuntimeException("Message not found with id: " + id));
+    }
 }

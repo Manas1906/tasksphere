@@ -175,6 +175,11 @@ class ApiService {
   checkEmail(email) {
     return this.request(`/auth/check-email?email=${encodeURIComponent(email)}`);
   }
+
+  /* ---- Chat Endpoints ---- */
+  updateChatMessage(id, payload) {
+    return this.request(`/chat-messages/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+  }
 }
 
 export const api = new ApiService();
