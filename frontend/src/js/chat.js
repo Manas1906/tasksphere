@@ -17,6 +17,7 @@ export class ChatController {
     // Direct message tracking states
     this.activeChatPartner = null; // null = Operations Group Chat, otherwise 'username'
     this.historyMessages = [];     // In-memory cache of loaded DB messages
+    this.unreadDms = {};           // Track unread direct message counts
   }
 
   init() {
@@ -173,6 +174,23 @@ export class ChatController {
     socket.subscribe('/topic/chat', (message) => {
       console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
       this.historyMessages.push(message);
+      
+      // Parse direct message notifications
+      const isDm = message.message && message.message.startsWith('[DM:');
+      if (isDm) {
+        const match = message.message.match(/^\[DM:([^\]]+)\]\s*(.*)$/);
+        if (match) {
+          const recipient = match[1];
+          const sender = message.username;
+          
+          if (recipient === this.myUsername && this.activeChatPartner !== sender) {
+            // Increment unread count for this sender and update UI avatars
+            this.unreadDms[sender] = (this.unreadDms[sender] || 0) + 1;
+            this.updateActiveUsersList({ username: '', status: 'ONLINE' });
+          }
+        }
+      }
+      
       this.redrawMessages();
     });
 
@@ -212,6 +230,12 @@ export class ChatController {
 
   switchChatPartner(partner) {
     this.activeChatPartner = partner;
+    
+    // Clear unread count when opening a DM session
+    if (partner) {
+      this.unreadDms[partner] = 0;
+    }
+    
     const backLink = document.getElementById('chatModeBackLink');
     const chatTitle = document.querySelector('.chat-panel-header__title');
     
@@ -372,9 +396,16 @@ export class ChatController {
 
       const statusClass = user.status.toLowerCase();
       const cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      
+      const unreadCount = this.unreadDms[user.username] || 0;
+      const badgeHtml = unreadCount > 0 
+        ? `<span class="active-user-unread-badge">${unreadCount}</span>` 
+        : '';
+        
       avatarWrap.innerHTML = `
         <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
         <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
+        ${badgeHtml}
       `;
       this.activeUsersContainer.appendChild(avatarWrap);
     });
