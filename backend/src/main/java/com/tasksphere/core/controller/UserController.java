@@ -2,6 +2,7 @@ package com.tasksphere.core.controller;
 
 import com.tasksphere.core.model.UserSession;
 import com.tasksphere.core.repository.UserSessionRepository;
+import com.tasksphere.core.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +23,9 @@ public class UserController {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping
     public ResponseEntity<List<UserSession>> getAllUsers() {
@@ -108,6 +112,17 @@ public class UserController {
         user.setStatus("ONLINE");
         user.setLastActiveTime(Instant.now());
         UserSession saved = userRepository.save(user);
+
+        // Dispatch beautiful welcome onboarding newsletter asynchronously
+        String userEmail = user.getExtractedEmail();
+        if (userEmail != null && !userEmail.trim().isEmpty()) {
+            try {
+                emailService.sendWelcomeEmail(userEmail, user.getUsername(), user.getRole());
+            } catch (Exception ex) {
+                System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+            }
+        }
+
         return ResponseEntity.ok(saved);
     }
 
