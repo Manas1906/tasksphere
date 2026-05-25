@@ -1088,6 +1088,72 @@ class TaskSphereApp {
     if (closeBtn) closeBtn.onclick = closeModal;
     if (cancelBtn) cancelBtn.onclick = closeModal;
 
+    let customAvatarDataUrl = null;
+    const fileInput = document.getElementById('avatarFileInput');
+    const avatarPreview = document.getElementById('settingsAvatarPreview');
+    const avatarLoader = document.getElementById('settingsAvatarLoader');
+    const resetAvatarBtn = document.getElementById('resetAvatarBtn');
+
+    if (fileInput) {
+      fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file.');
+          return;
+        }
+
+        if (avatarLoader) avatarLoader.classList.remove('hidden');
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Resize and crop to perfect 150x150 square
+            const size = 150;
+            canvas.width = size;
+            canvas.height = size;
+
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+            // Compress to WebP Base64 at 70% quality
+            const compressedDataUrl = canvas.toDataURL('image/webp', 0.7);
+            const approxSizeKBytes = Math.round((compressedDataUrl.length * 0.75) / 1024);
+            console.log(`[AVATAR-COMPRESSION] Compressed size: ${approxSizeKBytes} KB`);
+
+            if (approxSizeKBytes > 25) {
+              // Compress further at 50% quality if still above 25KB
+              customAvatarDataUrl = canvas.toDataURL('image/webp', 0.5);
+            } else {
+              customAvatarDataUrl = compressedDataUrl;
+            }
+
+            if (avatarPreview) avatarPreview.src = customAvatarDataUrl;
+            if (avatarLoader) avatarLoader.classList.add('hidden');
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    if (resetAvatarBtn) {
+      resetAvatarBtn.onclick = () => {
+        const username = localStorage.getItem('chat_username');
+        customAvatarDataUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+        if (avatarPreview) avatarPreview.src = customAvatarDataUrl;
+        if (fileInput) fileInput.value = '';
+      };
+    }
+
     // Strength checker for Settings Password Update
     if (newPassInput) {
       newPassInput.oninput = () => {
@@ -1136,6 +1202,9 @@ class TaskSphereApp {
         if (newPassword.length > 0) {
           payload.password = newPassword;
         }
+        if (customAvatarDataUrl) {
+          payload.avatar = customAvatarDataUrl;
+        }
 
         const res = await api.request('/users/profile/security', {
           method: 'PATCH',
@@ -1143,7 +1212,23 @@ class TaskSphereApp {
         });
 
         if (res.success) {
+          if (customAvatarDataUrl) {
+            localStorage.setItem('chat_avatar', customAvatarDataUrl);
+            
+            // Sync cache profile details
+            const email = localStorage.getItem('tasksphere_email');
+            if (email) {
+              const cached = JSON.parse(localStorage.getItem('profile_' + email.toLowerCase().trim()) || '{}');
+              cached.avatarUrl = customAvatarDataUrl;
+              localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify(cached));
+            }
+          }
           alert('Security settings synchronized successfully!');
+          this.applyProfileUI();
+          
+          if (this.currentView && typeof this.currentView.render === 'function') {
+            this.currentView.render();
+          }
           closeModal();
         }
       } catch (err) {
@@ -1172,6 +1257,13 @@ class TaskSphereApp {
     if (passFeedback) {
       passFeedback.textContent = "Leave blank if you do not want to modify your password.";
       passFeedback.style.color = "var(--text-muted)";
+    }
+
+    const fileInput = document.getElementById('avatarFileInput');
+    const avatarPreview = document.getElementById('settingsAvatarPreview');
+    if (fileInput) fileInput.value = '';
+    if (avatarPreview) {
+      avatarPreview.src = localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${localStorage.getItem('chat_username') || 'Admin'}`;
     }
 
     // Set toggle state by fetching database user details

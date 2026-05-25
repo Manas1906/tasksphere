@@ -246,6 +246,23 @@
         <button id="closeSecurityModal" class="modal-close-btn">&times;</button>
       </div>
       <form class="enterprise-form" id="securityForm" onsubmit="return false;">
+        <!-- Profile Picture Segment -->
+        <div class="form-group" style="display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01);">
+          <label class="form-label" style="text-align: center; margin-bottom: 4px;">👤 Profile Picture</label>
+          <div style="position: relative; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent-cyan); box-shadow: 0 0 15px rgba(0, 240, 255, 0.25); background: var(--bg-primary);">
+            <img id="settingsAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar Preview">
+            <div id="settingsAvatarLoader" class="hidden" style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent-cyan); font-weight: 600;">Compressing...</div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <label for="avatarFileInput" class="btn btn--outline" style="padding: 4px 10px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 4px; margin: 0;">
+              <span>Upload Photo</span>
+              <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+            </label>
+            <button type="button" id="resetAvatarBtn" class="btn btn--outline" style="padding: 4px 10px; font-size: 11px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: transparent; cursor: pointer;">Reset Default</button>
+          </div>
+          <p style="font-size: 9px; color: var(--text-muted); text-align: center; margin: 4px 0 0 0;">Supports PNG, JPG, or WebP. Client-side WebP compression applied.</p>
+        </div>
+
         <!-- MFA Toggle Row -->
         <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg)">
           <div>

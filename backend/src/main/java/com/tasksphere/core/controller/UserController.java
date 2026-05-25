@@ -184,6 +184,11 @@ public class UserController {
         String passwordHash = user.getPasswordHash();
         boolean mfaEnabled = user.isMfaEnabled();
 
+        // 0. Update custom avatar if supplied
+        if (payload.containsKey("avatar")) {
+            currentPureAvatar = (String) payload.get("avatar");
+        }
+
         // 1. Toggle MFA if supplied
         if (payload.containsKey("mfa")) {
             mfaEnabled = (Boolean) payload.get("mfa");
