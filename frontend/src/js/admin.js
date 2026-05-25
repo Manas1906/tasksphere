@@ -220,6 +220,41 @@ export class AdminView {
         };
       });
 
+      // Bind smart hover tooltip alignment (prevent top boundary clipping)
+      tbody.querySelectorAll('.admin-avatar-container').forEach(container => {
+        const tooltip = container.querySelector('.admin-user-details-tooltip');
+        if (!tooltip) return;
+
+        container.onmouseenter = () => {
+          const rect = container.getBoundingClientRect();
+          const tooltipHeight = 310; // Comfortable estimated height of the tooltip
+          
+          // Check if space above inside the table container is too small
+          const tableContainer = document.querySelector('.admin-table-container');
+          let hasSpaceAbove = true;
+          
+          if (tableContainer) {
+            const tableRect = tableContainer.getBoundingClientRect();
+            // Available space above is the distance from top of avatar to top of table container
+            const spaceAbove = rect.top - tableRect.top;
+            if (spaceAbove < tooltipHeight) {
+              hasSpaceAbove = false;
+            }
+          } else {
+            // Fallback to checking against the top of the viewport
+            if (rect.top < tooltipHeight) {
+              hasSpaceAbove = false;
+            }
+          }
+
+          if (!hasSpaceAbove) {
+            tooltip.classList.add('tooltip--bottom');
+          } else {
+            tooltip.classList.remove('tooltip--bottom');
+          }
+        };
+      });
+
     } catch (err) {
       console.error('[ADMIN] Failed to load directory:', err);
       tbody.innerHTML = `

@@ -340,6 +340,24 @@
   transform: translateY(0) scale(1);
 }
 
+/* Bottom positioned tooltip styling for top row avatars to prevent viewport clipping */
+.admin-user-details-tooltip.tooltip--bottom {
+  bottom: auto;
+  top: 130%;
+  transform: translateY(-10px) scale(0.95);
+}
+
+.admin-user-details-tooltip.tooltip--bottom::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent #da0f90 transparent; /* blends seamlessly with hot pink/purple top banner edge */
+}
+
+.admin-avatar-container:hover .admin-user-details-tooltip.tooltip--bottom {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 /* Tooltip Cover Banner */
 .tooltip-banner {
   height: 65px;
