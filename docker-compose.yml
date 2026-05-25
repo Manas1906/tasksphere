@@ -13,8 +13,8 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - JWT_SECRET_KEY=default_development_secret_key_minimum_256_bits_for_signature_validation_purposes_only_1234567890
       # Mailersend API credentials (HTTPS Port 443 API gateway)
-      - MAILERSEND_API_KEY=
-      - MAILERSEND_SENDER=
+      - MAILERSEND_API_KEY=mlsn.c448de8012d74e2330e0a02d135d9a706dd957db0c288c4e89956761d4e5f125
+      - MAILERSEND_SENDER=onboarding@test-vz9dlemyz664kj50.mlsender.net
     restart: always
 
   # ⚡ Vite Static Application & Nginx Gateway/Reverse-Proxy
