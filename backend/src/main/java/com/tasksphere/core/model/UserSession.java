@@ -22,7 +22,7 @@ public class UserSession {
 
     private String role; // e.g. PRODUCT_OWNER, DEVELOPER, DESIGNER, STAKEHOLDER
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
     private String status; // ONLINE, AWAY, DND, OFFLINE
