@@ -279,9 +279,72 @@
 
   <!-- Authentication Glassmorphism Overlay Modal -->
   <div id="loginOverlay" class="auth-overlay hidden">
+    <!-- Background neon floating blobs -->
     <div class="auth-blob auth-blob--purple"></div>
     <div class="auth-blob auth-blob--cyan"></div>
-    <div class="auth-card">
+    <div class="auth-blob auth-blob--emerald"></div>
+    
+    <div class="auth-container">
+      <!-- Left side: Showcase Panel (Enterprise Branding & Features) -->
+      <div class="auth-showcase">
+        <div class="auth-showcase__content">
+          <div class="auth-showcase__badge">Enterprise Platform</div>
+          <h1 class="auth-showcase__title">The Agile Workspace of the Future</h1>
+          <p class="auth-showcase__desc">Streamline sprint management, accelerate task execution, and coordinate with real-time AI assistance—all within a single, secure environment.</p>
+          
+          <!-- Modern feature rows with icons -->
+          <div class="auth-features">
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">⚡</span>
+              <div class="auth-feature-text">
+                <h4>Interactive Scrum Boards</h4>
+                <p>Track burndowns, drag cards, and collaborate instantly.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">🤖</span>
+              <div class="auth-feature-text">
+                <h4>AI-Driven Insights</h4>
+                <p>Scrum Copilots automate standups and review sprint performance.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">🔒</span>
+              <div class="auth-feature-text">
+                <h4>Enterprise-Grade Security</h4>
+                <p>Advanced MFA options and real-time administrator gating.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Interactive mini metrics mockup -->
+          <div class="auth-mockup-card">
+            <div class="auth-mockup-header">
+              <span class="auth-mockup-dot red"></span>
+              <span class="auth-mockup-dot yellow"></span>
+              <span class="auth-mockup-dot green"></span>
+              <span class="auth-mockup-title">TaskSphere Operations Panel</span>
+            </div>
+            <div class="auth-mockup-body">
+              <div class="auth-mockup-stat">
+                <span class="label">Sprint burndown</span>
+                <span class="value text-cyan">94% Done</span>
+              </div>
+              <div class="auth-mockup-progress">
+                <div class="auth-mockup-progress-fill" style="width: 94%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; color: var(--text-muted);">
+                <span>Velocity: 48 pts</span>
+                <span>Active sessions: 12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right side: Form Column containing the login card -->
+      <div class="auth-form-column">
+        <div class="auth-card">
       <div class="auth-card__header">
         <div class="auth-card__logo">TaskSphere</div>
         <div class="auth-card__subtitle" id="authSubtitle">Enter your credentials to access the workspace</div>
@@ -436,6 +499,8 @@
       </div>
     </div>
   </div>
+</div>
+</div>
 
   <!-- Bootstrapping Frontend Script -->
   <script type="module" src="/src/js/main.js"></script>
