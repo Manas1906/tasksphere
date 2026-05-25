@@ -218,7 +218,12 @@
         
         <!-- Checklist builder - Day 2 forms & lists -->
         <div class="form-group">
-          <label class="form-label">Deliverable Checklist</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xs); width: 100%;">
+            <label class="form-label" style="margin-bottom: 0;">Deliverable Checklist</label>
+            <button type="button" id="aiSubtaskBtn" class="btn btn--outline btn--ai-glow">
+              <span>✨</span> <span id="aiSubtaskBtnText">Auto-Generate Subtasks</span>
+            </button>
+          </div>
           <div class="form-checklist-builder">
             <div class="checklist-builder-input-row">
               <input type="text" id="checklistBuilderInput" class="form-input" style="flex: 1; padding: 6px 12px; font-size: 13px" placeholder="Add checklist task..." autocomplete="off">

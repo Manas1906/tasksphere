@@ -308,30 +308,34 @@ export class BoardView {
       checklistContainer.innerHTML = '';
       activeChecklist.forEach((item, idx) => {
         const row = document.createElement('div');
-        row.className = 'checklist-builder-item';
+        row.className = 'checklist-builder-item checklist-builder-item--active';
+        row.setAttribute('draggable', 'true');
+        row.setAttribute('data-idx', idx);
         row.innerHTML = `
-          <label class="form-checkbox-row" style="margin: 0">
+          <label class="form-checkbox-row" style="margin: 0; display: flex; align-items: center; gap: 8px; width: 100%;">
             <input type="checkbox" ${item.completed ? 'checked' : ''} data-item-idx="${idx}">
             <span class="form-checkbox-custom"></span>
-            <span style="font-size: 13px; ${item.completed ? 'text-decoration: line-through; color: var(--text-muted)' : ''}">${item.content}</span>
+            <span style="font-size: 13px; flex: 1; ${item.completed ? 'text-decoration: line-through; color: var(--text-muted)' : ''}">${item.content}</span>
           </label>
-          <button type="button" class="checklist-builder-item__delete" data-item-idx="${idx}">&times;</button>
+          <button type="button" class="checklist-builder-item__delete" data-item-idx="${idx}" style="background: none; border: none; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
         `;
         
-        // Checklist status change event
         row.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
           activeChecklist[idx].completed = e.target.checked;
           renderChecklistUI();
         });
 
-        // Delete item event
         row.querySelector('.checklist-builder-item__delete').addEventListener('click', () => {
-          activeChecklist.splice(idx, 1);
-          renderChecklistUI();
+          row.classList.add('checklist-builder-item--deleted');
+          setTimeout(() => {
+            activeChecklist.splice(idx, 1);
+            renderChecklistUI();
+          }, 380);
         });
 
         checklistContainer.appendChild(row);
       });
+      makeBoardChecklistDragSortable(checklistContainer, activeChecklist, renderChecklistUI);
     };
 
     renderChecklistUI();
@@ -349,8 +353,80 @@ export class BoardView {
       renderChecklistUI();
     };
 
-    addChecklistBtn.onclick = handleAddChecklist;
-    checklistInput.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddChecklist(); } };
+    if (addChecklistBtn) addChecklistBtn.onclick = handleAddChecklist;
+    if (checklistInput) {
+      checklistInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleAddChecklist();
+        }
+      };
+    }
+
+    // AI Subtask Generator Wiring (Inspector context)
+    const aiBtn = document.getElementById('aiSubtaskBtn');
+    const aiBtnText = document.getElementById('aiSubtaskBtnText');
+
+    if (aiBtn) {
+      aiBtn.onclick = async () => {
+        const title = form.querySelector('#ticketTitle').value.trim();
+        const description = form.querySelector('#ticketDescription').value.trim();
+
+        if (!description) {
+          alert('Please enter a description for the Scrum ticket first so the AI can analyze deliverables!');
+          return;
+        }
+
+        aiBtn.classList.add('btn--ai-loading');
+        if (aiBtnText) aiBtnText.textContent = 'Generating...';
+
+        try {
+          const subtasks = await queryBoardGeminiForSubtasks(title, description);
+          if (subtasks && subtasks.length > 0) {
+            // Keep existing checklist items and append new ones sequentially
+            let currentItemIdx = 0;
+            const typeNextSubtask = () => {
+              if (currentItemIdx >= subtasks.length) {
+                aiBtn.classList.remove('btn--ai-loading');
+                if (aiBtnText) aiBtnText.textContent = 'Auto-Generate Subtasks';
+                return;
+              }
+
+              const taskText = subtasks[currentItemIdx];
+              activeChecklist.push({ content: '', completed: false });
+              const newIdx = activeChecklist.length - 1;
+              renderChecklistUI();
+
+              const rows = checklistContainer.querySelectorAll('.checklist-builder-item');
+              const targetRow = rows[rows.length - 1];
+              const textSpan = targetRow.querySelector('label span:last-of-type');
+
+              let charIdx = 0;
+              const typeInterval = setInterval(() => {
+                if (charIdx >= taskText.length) {
+                  clearInterval(typeInterval);
+                  activeChecklist[newIdx].content = taskText;
+                  currentItemIdx++;
+                  setTimeout(typeNextSubtask, 120);
+                  return;
+                }
+                textSpan.textContent += taskText[charIdx];
+                charIdx++;
+              }, 12);
+            };
+
+            typeNextSubtask();
+          } else {
+            throw new Error('Empty subtask list.');
+          }
+        } catch (err) {
+          console.error('[AI-SUBTASK-FAILURE]', err);
+          aiBtn.classList.remove('btn--ai-loading');
+          if (aiBtnText) aiBtnText.textContent = 'Auto-Generate Subtasks';
+          alert('Failed to generate AI subtasks. Falling back to manual adding.');
+        }
+      };
+    }
 
     // Toggle Modal active class
     modal.classList.add('modal-overlay--active');
@@ -396,3 +472,129 @@ export class BoardView {
     };
   }
 }
+
+// ========================================================
+// Phase 7: AI Copilot & Dynamic Checklist Helper Functions
+// ========================================================
+async function queryBoardGeminiForSubtasks(title, description) {
+  const activeKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (activeKey) {
+    try {
+      console.log('[AI-SUBTASK-BOARD] Contacting Google Gemini stable v1 API (gemini-2.5-flash)...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are an expert Agile Scrum master. Analyze this Scrum ticket:\nTitle: "${title}"\nDescription: "${description}"\nGenerate a list of 3 to 5 clear, highly actionable, technical developer subtasks. Return ONLY a valid JSON array of strings representing the subtasks, e.g. ["Create DB migration", "Implement REST endpoint", "Write unit tests"]. Do not return any markdown formatting, no explanation, no backticks, just raw JSON.`
+            }]
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        let rawText = resData.candidates[0].content.parts[0].text.trim();
+        if (rawText.startsWith('```')) {
+          rawText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+        }
+        return JSON.parse(rawText);
+      } else {
+        throw new Error(`HTTP Error ${response.status}`);
+      }
+    } catch (err) {
+      console.warn('[AI-SUBTASK-BOARD] Gemini API failed, falling back to local simulated coach...', err);
+      return getBoardLocalSubtaskFallback(title, description);
+    }
+  } else {
+    // Local fallback with natural delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return getBoardLocalSubtaskFallback(title, description);
+  }
+}
+
+function getBoardLocalSubtaskFallback(title, description) {
+  const t = (title + ' ' + description).toLowerCase();
+  if (t.includes('auth') || t.includes('login') || t.includes('password') || t.includes('security')) {
+    return [
+      "Configure database security schemas and credentials validation",
+      "Implement secure password strength checker controls",
+      "Deploy multi-factor authentication (MFA via OTP) email triggers",
+      "Write unit tests verifying login persistence sessions"
+    ];
+  }
+  if (t.includes('database') || t.includes('db') || t.includes('sql') || t.includes('table')) {
+    return [
+      "Write Liquibase/Flyway database schema migration scripts",
+      "Optimize repository connection pools and index parameters",
+      "Implement atomic transaction service wrapper logic",
+      "Verify query response latency under load exceptions"
+    ];
+  }
+  if (t.includes('dock') || t.includes('compose') || t.includes('contain') || t.includes('devops')) {
+    return [
+      "Optimize multi-stage Docker build files for deployment compression",
+      "Configure network reverse proxy proxying rules in Nginx gateway",
+      "Set container memory heap controls and GC logging",
+      "Verify microservices build coordination under Docker Compose"
+    ];
+  }
+  if (t.includes('chart') || t.includes('dashboard') || t.includes('svg') || t.includes('analyt')) {
+    return [
+      "Configure SVG viewport dynamic scaling calculations",
+      "Aggregate database sprint story point outstanding arrays",
+      "Bind absolute-positioned glassmorphic hover event listeners",
+      "Verify pixel-perfect UI scaling across mobile browsers"
+    ];
+  }
+  return [
+    "Design high-fidelity UI layout wireframes in Figma Inspect Mode",
+    "Implement core service backend controller REST endpoints",
+    "Bind real-time WebSocket topic dispatch sync alerts",
+    "Execute end-to-end user acceptance flow testing parameters"
+  ];
+}
+
+function makeBoardChecklistDragSortable(container, listArray, renderCallback) {
+  const rows = container.querySelectorAll('.checklist-builder-item');
+  let draggedIdx = null;
+
+  rows.forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      draggedIdx = parseInt(row.getAttribute('data-idx'));
+      row.classList.add('checklist-builder-item--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      row.classList.add('checklist-builder-item--drag-over');
+    });
+
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('checklist-builder-item--drag-over');
+    });
+
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('checklist-builder-item--drag-over');
+      const targetIdx = parseInt(row.getAttribute('data-idx'));
+
+      if (draggedIdx !== null && draggedIdx !== targetIdx) {
+        const temp = listArray[draggedIdx];
+        listArray.splice(draggedIdx, 1);
+        listArray.splice(targetIdx, 0, temp);
+        renderCallback();
+      }
+    });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('checklist-builder-item--dragging');
+      draggedIdx = null;
+    });
+  });
+}
+
