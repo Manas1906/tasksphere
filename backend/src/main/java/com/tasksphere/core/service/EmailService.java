@@ -20,11 +20,11 @@ import java.util.Map;
 @Service
 public class EmailService {
 
-    @Value("${mailersend.api.key:}")
-    private String mailersendApiKey;
+    @Value("${maileroo.api.key:}")
+    private String mailerooApiKey;
 
-    @Value("${mailersend.sender:}")
-    private String mailersendSender;
+    @Value("${maileroo.sender:}")
+    private String mailerooSender;
 
     /**
      * Dispatch multi-factor security code (OTP) asynchronously.
@@ -35,13 +35,13 @@ public class EmailService {
         String htmlMessage = getOtpTemplate(otp);
 
         System.out.println("\n=======================================================");
-        System.out.println("[MAILERSEND-SIMULATOR] INCOMING OTP DELIVER SERVICE ACTION");
+        System.out.println("[MAILEROO-SIMULATOR] INCOMING OTP DELIVER SERVICE ACTION");
         System.out.println("Deliver OTP to: " + cleanEmail);
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
 
-        if (mailersendApiKey == null || mailersendApiKey.trim().isEmpty() || mailersendSender == null || mailersendSender.trim().isEmpty()) {
-            System.out.println("[MAILERSEND-WARN] Mailersend API credentials are not configured. Fallback Simulator output above.");
+        if (mailerooApiKey == null || mailerooApiKey.trim().isEmpty() || mailerooSender == null || mailerooSender.trim().isEmpty()) {
+            System.out.println("[MAILEROO-WARN] Maileroo API credentials are not configured. Fallback Simulator output above.");
             return;
         }
 
@@ -49,11 +49,10 @@ public class EmailService {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + mailersendApiKey.trim());
-            headers.set("X-Requested-With", "XMLHttpRequest");
+            headers.set("X-API-Key", mailerooApiKey.trim());
 
             Map<String, Object> fromMap = new HashMap<>();
-            fromMap.put("email", mailersendSender.trim());
+            fromMap.put("email", mailerooSender.trim());
             fromMap.put("name", "TaskSphere");
 
             Map<String, Object> toMap = new HashMap<>();
@@ -70,11 +69,11 @@ public class EmailService {
             payload.put("html", htmlMessage);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity("https://api.mailersend.com/v1/email", entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity("https://smtp.maileroo.com/api/v2/emails", entity, String.class);
             
-            System.out.println("[MAILERSEND-SUCCESS] Real-time mail dispatched via Mailersend API. Response: " + response.getBody());
+            System.out.println("[MAILEROO-SUCCESS] Real-time mail dispatched via Maileroo API. Response: " + response.getBody());
         } catch (Exception ex) {
-            System.err.println("[MAILERSEND-FAILURE] Mailersend API failed: " + ex.getMessage());
+            System.err.println("[MAILEROO-FAILURE] Maileroo API failed: " + ex.getMessage());
         }
     }
 
@@ -87,14 +86,14 @@ public class EmailService {
         String htmlMessage = getWelcomeTemplate(username, role);
 
         System.out.println("\n=======================================================");
-        System.out.println("[MAILERSEND-SIMULATOR] INCOMING WELCOME NEWSLETTER SERVICE ACTION");
+        System.out.println("[MAILEROO-SIMULATOR] INCOMING WELCOME NEWSLETTER SERVICE ACTION");
         System.out.println("Deliver Welcome Email to: " + cleanEmail);
         System.out.println("USERNAME: " + username);
         System.out.println("ROLE: " + role);
         System.out.println("=======================================================\n");
 
-        if (mailersendApiKey == null || mailersendApiKey.trim().isEmpty() || mailersendSender == null || mailersendSender.trim().isEmpty()) {
-            System.out.println("[MAILERSEND-WARN] Mailersend API credentials are not configured. Fallback Welcome simulation succeeded.");
+        if (mailerooApiKey == null || mailerooApiKey.trim().isEmpty() || mailerooSender == null || mailerooSender.trim().isEmpty()) {
+            System.out.println("[MAILEROO-WARN] Maileroo API credentials are not configured. Fallback Welcome simulation succeeded.");
             return;
         }
 
@@ -102,11 +101,10 @@ public class EmailService {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + mailersendApiKey.trim());
-            headers.set("X-Requested-With", "XMLHttpRequest");
+            headers.set("X-API-Key", mailerooApiKey.trim());
 
             Map<String, Object> fromMap = new HashMap<>();
-            fromMap.put("email", mailersendSender.trim());
+            fromMap.put("email", mailerooSender.trim());
             fromMap.put("name", "TaskSphere");
 
             Map<String, Object> toMap = new HashMap<>();
@@ -123,11 +121,11 @@ public class EmailService {
             payload.put("html", htmlMessage);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity("https://api.mailersend.com/v1/email", entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity("https://smtp.maileroo.com/api/v2/emails", entity, String.class);
             
-            System.out.println("[MAILERSEND-SUCCESS] Welcome email dispatched via Mailersend. Response: " + response.getBody());
+            System.out.println("[MAILEROO-SUCCESS] Welcome email dispatched via Maileroo. Response: " + response.getBody());
         } catch (Exception ex) {
-            System.err.println("[MAILERSEND-FAILURE] Mailersend Welcome API failed: " + ex.getMessage());
+            System.err.println("[MAILEROO-FAILURE] Maileroo Welcome API failed: " + ex.getMessage());
         }
     }
 
