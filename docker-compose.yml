@@ -18,6 +18,8 @@ services:
       - RESEND_API_KEY=
       - MAILJET_API_KEY=
       - MAILJET_SECRET_KEY=
+      - MAILERSEND_API_KEY=
+      - MAILERSEND_SENDER=
     restart: always
 
   # ⚡ Vite Static Application & Nginx Gateway/Reverse-Proxy

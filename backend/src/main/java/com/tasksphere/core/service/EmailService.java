@@ -34,6 +34,12 @@ public class EmailService {
     @Value("${mailjet.secret.key:}")
     private String mailjetSecretKey;
 
+    @Value("${mailersend.api.key:}")
+    private String mailersendApiKey;
+
+    @Value("${mailersend.sender:}")
+    private String mailersendSender;
+
     @Async
     public void sendOtpEmail(String toEmail, String otp) {
         String cleanEmail = toEmail.toLowerCase().trim();
@@ -44,6 +50,44 @@ public class EmailService {
         System.out.println("Deliver OTP to: " + cleanEmail);
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
+
+        // Try Mailersend API if API keys are supplied (HTTPS port 443 is never blocked by cloud firewalls)
+        if (mailersendApiKey != null && !mailersendApiKey.trim().isEmpty() && mailersendSender != null && !mailersendSender.trim().isEmpty()) {
+            System.out.println("[MAILERSEND-START] Attempting real-time email delivery via Mailersend API...");
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", "Bearer " + mailersendApiKey.trim());
+                headers.set("X-Requested-With", "XMLHttpRequest");
+
+                Map<String, Object> fromMap = new HashMap<>();
+                fromMap.put("email", mailersendSender.trim());
+                fromMap.put("name", "TaskSphere");
+
+                Map<String, Object> toMap = new HashMap<>();
+                toMap.put("email", cleanEmail);
+                toMap.put("name", "Developer");
+
+                java.util.List<Map<String, Object>> toList = new java.util.ArrayList<>();
+                toList.add(toMap);
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("from", fromMap);
+                payload.put("to", toList);
+                payload.put("subject", "TaskSphere Security - Your 6-Digit Verification Code: " + otp);
+                payload.put("html", htmlMessage);
+
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity("https://api.mailersend.com/v1/email", entity, String.class);
+                
+                System.out.println("[MAILERSEND-SUCCESS] Real-time mail dispatched via Mailersend API. Response: " + response.getBody());
+                return; // Successfully sent!
+            } catch (Exception ex) {
+                System.err.println("[MAILERSEND-FAILURE] Mailersend API failed: " + ex.getMessage());
+                System.out.println("[MAILERSEND-INFO] Falling back to next channel...");
+            }
+        }
 
         // Try Mailjet API if API keys are supplied (HTTPS port 443 is never blocked by cloud firewalls)
         if (mailjetApiKey != null && !mailjetApiKey.trim().isEmpty() && mailjetSecretKey != null && !mailjetSecretKey.trim().isEmpty()) {
@@ -173,6 +217,43 @@ public class EmailService {
         System.out.println("USERNAME: " + username);
         System.out.println("ROLE: " + role);
         System.out.println("=======================================================\n");
+
+        // Try Mailersend API if API keys are supplied
+        if (mailersendApiKey != null && !mailersendApiKey.trim().isEmpty() && mailersendSender != null && !mailersendSender.trim().isEmpty()) {
+            System.out.println("[MAILERSEND-START] Attempting welcome email delivery via Mailersend API...");
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", "Bearer " + mailersendApiKey.trim());
+                headers.set("X-Requested-With", "XMLHttpRequest");
+
+                Map<String, Object> fromMap = new HashMap<>();
+                fromMap.put("email", mailersendSender.trim());
+                fromMap.put("name", "TaskSphere");
+
+                Map<String, Object> toMap = new HashMap<>();
+                toMap.put("email", cleanEmail);
+                toMap.put("name", username);
+
+                java.util.List<Map<String, Object>> toList = new java.util.ArrayList<>();
+                toList.add(toMap);
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("from", fromMap);
+                payload.put("to", toList);
+                payload.put("subject", "Welcome to TaskSphere, " + username + "! Your workspace is active.");
+                payload.put("html", htmlMessage);
+
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity("https://api.mailersend.com/v1/email", entity, String.class);
+                
+                System.out.println("[MAILERSEND-SUCCESS] Welcome email dispatched via Mailersend. Response: " + response.getBody());
+                return; // Successfully sent!
+            } catch (Exception ex) {
+                System.err.println("[MAILERSEND-FAILURE] Mailersend Welcome API failed: " + ex.getMessage());
+            }
+        }
 
         // Try Mailjet API if API keys are supplied
         if (mailjetApiKey != null && !mailjetApiKey.trim().isEmpty() && mailjetSecretKey != null && !mailjetSecretKey.trim().isEmpty()) {
