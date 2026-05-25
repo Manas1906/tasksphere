@@ -307,8 +307,8 @@
 .admin-user-details-tooltip {
   position: absolute;
   bottom: 130%;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px) scale(0.95);
+  left: -10px; /* Offset slightly to the left to center the avatar nicely */
+  transform: translateY(10px) scale(0.95);
   background: #0d1123; /* 100% solid background to block underlying table row bleeding */
   background: linear-gradient(135deg, #121832 0%, #080b19 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -328,7 +328,7 @@
   content: '';
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: 26px; /* Align arrow precisely over the avatar center (16px avatar radius + 10px offset) */
   transform: translateX(-50%);
   border-width: 6px;
   border-style: solid;
@@ -337,7 +337,7 @@
 
 .admin-avatar-container:hover .admin-user-details-tooltip {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(0) scale(1);
 }
 
 /* Tooltip Cover Banner */
