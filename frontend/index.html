@@ -278,7 +278,9 @@
   <div id="chatBackdrop" class="drawer-backdrop"></div>
 
   <!-- Authentication Glassmorphism Overlay Modal -->
-  <div id="loginOverlay" class="auth-overlay hidden">
+  <div id="loginOverlay" class="auth-overlay hidden" style="position: relative; overflow: hidden;">
+    <div class="auth-blob auth-blob--purple"></div>
+    <div class="auth-blob auth-blob--cyan"></div>
     <div class="auth-card">
       <div class="auth-card__header">
         <div class="auth-card__logo">TaskSphere</div>
@@ -307,7 +309,7 @@
             </div>
             <button type="submit" id="submitLoginBtn" class="auth-btn">Log In</button>
             <div style="border-top: 1px solid var(--border-color); margin: var(--spacing-md) 0;"></div>
-            <button type="button" id="createAccountBtn" class="auth-btn" style="background: #10b981; border: none;">Create New Account</button>
+            <button type="button" id="createAccountBtn" class="auth-btn auth-btn--register">Create New Account</button>
           </form>
         </div>
 
