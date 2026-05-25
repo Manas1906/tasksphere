@@ -28,6 +28,7 @@ class TaskSphereApp {
     this.setupProfileDropdown();
     this.setupThemeToggle();
     this.setupSecuritySettings();
+    this.setupPasswordToggles();
     
     // Initialize floating AI Scrum Assistant Chatbot
     try {
@@ -1206,6 +1207,28 @@ class TaskSphereApp {
     }
  
     await this.currentView.render();
+  }
+
+  setupPasswordToggles() {
+    const bindToggle = (toggleId, inputId) => {
+      const toggleBtn = document.getElementById(toggleId);
+      const inputEl = document.getElementById(inputId);
+      if (toggleBtn && inputEl) {
+        toggleBtn.onclick = () => {
+          if (inputEl.type === 'password') {
+            inputEl.type = 'text';
+            toggleBtn.textContent = '🙈';
+          } else {
+            inputEl.type = 'password';
+            toggleBtn.textContent = '👁️';
+          }
+        };
+      }
+    };
+
+    bindToggle('toggleLoginPassword', 'loginPasswordInput');
+    bindToggle('toggleRegPassword', 'authPasswordInput');
+    bindToggle('toggleSettingsPassword', 'settingsNewPassword');
   }
 }
 

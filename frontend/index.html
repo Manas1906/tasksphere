@@ -255,7 +255,10 @@
         <!-- Change Password Segment -->
         <div class="form-group">
           <label class="form-label" for="settingsNewPassword">Update Password</label>
-          <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password">
+          <div style="position: relative;">
+            <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password" style="padding-right: 40px;">
+            <span class="password-toggle-btn" id="toggleSettingsPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+          </div>
           <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
             <div id="settingsPasswordBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease;"></div>
           </div>
@@ -296,9 +299,10 @@
             </div>
             <div class="auth-group" style="margin-top: var(--spacing-md)">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Account Password</label>
-              <div class="auth-input-wrapper">
-                <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter your password..." required autocomplete="current-password">
+              <div class="auth-input-wrapper" style="position: relative;">
+                <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter your password..." required autocomplete="current-password" style="padding-right: 40px;">
                 <span class="auth-input-icon">🔒</span>
+                <span class="password-toggle-btn" id="toggleLoginPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
               </div>
             </div>
             <button type="submit" id="submitLoginBtn" class="auth-btn">Log In</button>
@@ -386,9 +390,10 @@
 
             <div class="auth-group">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Workspace Password</label>
-              <div class="auth-input-wrapper">
-                <input type="password" id="authPasswordInput" class="auth-input" placeholder="Create secure password..." required autocomplete="new-password">
+              <div class="auth-input-wrapper" style="position: relative;">
+                <input type="password" id="authPasswordInput" class="auth-input" placeholder="Create secure password..." required autocomplete="new-password" style="padding-right: 40px;">
                 <span class="auth-input-icon">🔒</span>
+                <span class="password-toggle-btn" id="toggleRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
               </div>
               <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
                 <div id="passwordStrengthBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
