@@ -12,12 +12,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - JWT_SECRET_KEY=default_development_secret_key_minimum_256_bits_for_signature_validation_purposes_only_1234567890
-      # SMTP & Email API credentials can be injected here or in local environment files
-      - SMTP_USERNAME=acharyamanas1906@gmail.com
-      - SMTP_PASSWORD=
-      - RESEND_API_KEY=
-      - MAILJET_API_KEY=
-      - MAILJET_SECRET_KEY=
+      # Mailersend API credentials (HTTPS Port 443 API gateway)
       - MAILERSEND_API_KEY=
       - MAILERSEND_SENDER=
     restart: always
