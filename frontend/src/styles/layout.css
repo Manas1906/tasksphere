@@ -424,6 +424,74 @@
   background: var(--accent-purple);
 }
 
+/* ==========================================
+   Day 10-11: SVG Burndown Chart Analytics & Floating Glassmorphic Tooltip
+   ========================================== */
+.svg-chart__tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  z-index: 1000;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  color: var(--text-primary);
+  min-width: 150px;
+}
+
+.svg-chart__tooltip.hidden {
+  opacity: 0;
+  transform: scale(0.95) translateY(5px);
+  pointer-events: none;
+  display: none !important;
+}
+
+.svg-chart__point {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), r 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), stroke-width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+
+.svg-chart__point:hover {
+  r: 7px !important;
+  stroke: var(--accent-purple) !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 8px var(--accent-cyan));
+}
+
+/* Premium bouncy entry drawing animations for lines */
+.svg-chart__line {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: drawPath 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.svg-chart__area {
+  animation: fadeInArea 3.5s ease-out forwards;
+}
+
+@keyframes drawPath {
+  from {
+    stroke-dashoffset: 1200;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeInArea {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
+
 /* Animations */
 @keyframes toastSlideIn {
   from {

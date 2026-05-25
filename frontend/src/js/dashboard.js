@@ -172,60 +172,234 @@ export class DashboardView {
     const chartContainer = document.getElementById('svgChartContainer');
     if (!chartContainer) return;
 
-    // Define mock timeline data representing task increments over a sprint week
-    const statuses = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-    const dataPoints = [3, 6, 8, 12, 16, 20]; // Mock sprint curve points
+    // 1. Calculate active metrics using Array operations
+    const totalPoints = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
 
-    // Constructing a beautiful interactive line chart using SVG paths
+    // 2. Establish dynamic 10-day sprint cycle dates
+    const dueDates = tasks.map(t => t.dueDate).filter(Boolean).sort();
+    let startDate = new Date();
+    
+    if (dueDates.length > 0) {
+      const earliest = new Date(dueDates[0]);
+      startDate = new Date(earliest);
+      startDate.setDate(earliest.getDate() - 3); // 3 days buffer
+    } else {
+      startDate.setDate(startDate.getDate() - 4); // fallback 4 days in past
+    }
+
+    const days = [];
+    for (let i = 0; i < 10; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+
+    // 3. Compute coordinates mapping functions
+    const xMin = 50;
+    const xMax = 460;
+    const yMin = 30;
+    const yMax = 180;
+
+    const getX = (index) => xMin + (index * (xMax - xMin)) / 9;
+    const getY = (points) => {
+      if (totalPoints === 0) return yMax;
+      return yMax - (points * (yMax - yMin)) / totalPoints;
+    };
+
+    // 4. Generate data points for Ideal and Actual curves
+    const idealPoints = [];
+    const actualPoints = [];
+    let idealPathD = "";
+    let actualPathD = "";
+    let areaPathD = `M ${getX(0)} ${yMax} `;
+
+    for (let i = 0; i < 10; i++) {
+      const x = getX(i);
+      
+      // Ideal line calculation
+      const ideal = Math.max(0, totalPoints * (1 - i / 9));
+      const yIdeal = getY(ideal);
+      idealPoints.push({ x, y: yIdeal, val: Math.round(ideal * 10) / 10 });
+      if (i === 0) {
+        idealPathD += `M ${x} ${yIdeal} `;
+      } else {
+        idealPathD += `L ${x} ${yIdeal} `;
+      }
+
+      // Actual line calculation: outstanding points left on day i
+      const dayDateStr = days[i];
+      // Completed tasks on or before this day
+      const completedBeforeOrOn = tasks.filter(t => t.status === 'DONE' && t.dueDate && t.dueDate <= dayDateStr);
+      const completedNoDate = tasks.filter(t => t.status === 'DONE' && !t.dueDate);
+      
+      // Let's assume un-dated completed tasks are burned down starting from Day 4 (mid-sprint)
+      let bonusBurndown = 0;
+      if (i >= 4) {
+        const noDatePoints = completedNoDate.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+        // Distribute them over the remaining days
+        bonusBurndown = (noDatePoints * (i - 3)) / 6;
+        if (bonusBurndown > noDatePoints) bonusBurndown = noDatePoints;
+      }
+
+      const completedPoints = completedBeforeOrOn.reduce((sum, t) => sum + (t.storyPoints || 0), 0) + bonusBurndown;
+      const actual = Math.max(0, totalPoints - completedPoints);
+      
+      // For future days (relative to today), we cap the actual curve at the current outstanding points
+      const todayStr = new Date().toISOString().split('T')[0];
+      let displayActual = actual;
+      if (dayDateStr > todayStr && i > 0) {
+        // If it's a future day, show the trend carrying over
+        displayActual = actualPoints[i-1].val;
+      }
+
+      const yActual = getY(displayActual);
+      actualPoints.push({ x, y: yActual, val: Math.round(displayActual * 10) / 10, rawVal: displayActual });
+
+      if (i === 0) {
+        actualPathD += `M ${x} ${yActual} `;
+        areaPathD += `L ${x} ${yActual} `;
+      } else {
+        // Create smooth Bezier curve connection
+        const prevX = actualPoints[i-1].x;
+        const prevY = actualPoints[i-1].y;
+        const cpX1 = prevX + (x - prevX) / 2;
+        const cpY1 = prevY;
+        const cpX2 = prevX + (x - prevX) / 2;
+        const cpY2 = yActual;
+        
+        actualPathD += `C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${x} ${yActual} `;
+        areaPathD += `C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${x} ${yActual} `;
+      }
+    }
+    areaPathD += `L ${getX(9)} ${yMax} Z`;
+
+    // 5. Build Grid ticks
+    let gridLinesHtml = "";
+    const tickCount = 4;
+    for (let i = 0; i <= tickCount; i++) {
+      const yVal = yMax - (i * (yMax - yMin)) / tickCount;
+      const pointVal = Math.round((i * totalPoints) / tickCount);
+      gridLinesHtml += `
+        <line class="svg-chart__grid-line" x1="${xMin}" y1="${yVal}" x2="${xMax}" y2="${yVal}" />
+        <text class="svg-chart__label" x="${xMin - 12}" y="${yVal + 4}" text-anchor="end">${pointVal}</text>
+      `;
+    }
+
+    // 6. Draw actual nodes
+    let nodesHtml = "";
+    actualPoints.forEach((pt, i) => {
+      const idealPt = idealPoints[i];
+      const dateLabel = new Date(days[i]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      nodesHtml += `
+        <circle class="svg-chart__point" 
+                cx="${pt.x}" 
+                cy="${pt.y}" 
+                r="4.5" 
+                data-day="${i + 1}" 
+                data-date="${dateLabel}" 
+                data-actual="${pt.val}" 
+                data-ideal="${idealPt.val}" />
+      `;
+    });
+
+    // 7. Draw bottom date labels
+    let labelsHtml = "";
+    days.forEach((day, i) => {
+      if (i % 2 === 0 || i === 9) { // render every second label for clean styling
+        const dateObj = new Date(day);
+        const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        labelsHtml += `<text class="svg-chart__label" x="${getX(i)}" y="${yMax + 18}" text-anchor="middle">${label}</text>`;
+      }
+    });
+
+    // 8. Render full interactive SVG canvas
     chartContainer.innerHTML = `
-      <svg class="svg-chart" viewBox="0 0 500 220">
+      <svg class="svg-chart" viewBox="0 0 500 220" style="overflow: visible;">
         <defs>
           <linearGradient id="chart-gradient" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stop-color="var(--accent-cyan)" />
             <stop offset="100%" stop-color="var(--accent-purple)" />
           </linearGradient>
           <linearGradient id="area-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--accent-cyan)" stop-opacity="0.4" />
+            <stop offset="0%" stop-color="var(--accent-cyan)" stop-opacity="0.2" />
             <stop offset="100%" stop-color="var(--bg-primary)" stop-opacity="0" />
           </linearGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
         </defs>
         
-        <!-- Y-Axis Grid Lines -->
-        <line class="svg-chart__grid-line" x1="40" y1="30" x2="480" y2="30" />
-        <line class="svg-chart__grid-line" x1="40" y1="80" x2="480" y2="80" />
-        <line class="svg-chart__grid-line" x1="40" y1="130" x2="480" y2="130" />
-        <line class="svg-chart__grid-line" x1="40" y1="180" x2="480" y2="180" />
+        <!-- Y-Axis Grid Lines & Ticks -->
+        ${gridLinesHtml}
         
         <!-- Axes -->
-        <line class="svg-chart__axis" x1="40" y1="180" x2="480" y2="180" />
-        <line class="svg-chart__axis" x1="40" y1="20" x2="40" y2="180" />
+        <line class="svg-chart__axis" x1="${xMin}" y1="${yMax}" x2="${xMax}" y2="${yMax}" />
+        <line class="svg-chart__axis" x1="${xMin}" y1="${yMin}" x2="${xMin}" y2="${yMax}" />
 
-        <!-- Line Chart Path -->
-        <path class="svg-chart__area" d="M 40 180 L 100 150 L 180 120 L 260 100 L 340 70 L 420 50 L 420 180 Z" />
-        <path class="svg-chart__line" d="M 40 180 Q 70 165, 100 150 T 180 120 T 260 100 T 340 70 T 420 50" />
+        <!-- Area shading underneath actual burndown -->
+        <path class="svg-chart__area" d="${areaPathD}" fill="url(#area-gradient)" />
 
-        <!-- Chart Nodes -->
-        <circle class="svg-chart__point" cx="40" cy="180" r="4.5" />
-        <circle class="svg-chart__point" cx="100" cy="150" r="4.5" />
-        <circle class="svg-chart__point" cx="180" cy="120" r="4.5" />
-        <circle class="svg-chart__point" cx="260" cy="100" r="4.5" />
-        <circle class="svg-chart__point" cx="340" cy="70" r="4.5" />
-        <circle class="svg-chart__point" cx="420" cy="50" r="4.5" />
+        <!-- Ideal Burndown Path (Dashed guide line) -->
+        <path class="svg-chart__line--ideal" d="${idealPathD}" fill="none" stroke="var(--text-muted)" stroke-dasharray="4,4" stroke-width="1.5" style="opacity: 0.4;" />
 
-        <!-- Labels -->
-        <text class="svg-chart__label" x="40" y="200">Day 1</text>
-        <text class="svg-chart__label" x="100" y="200">Day 3</text>
-        <text class="svg-chart__label" x="180" y="200">Day 6</text>
-        <text class="svg-chart__label" x="260" y="200">Day 9</text>
-        <text class="svg-chart__label" x="340" y="200">Day 12</text>
-        <text class="svg-chart__label" x="420" y="200">Day 15</text>
+        <!-- Actual Burndown Path (Neon gradient polyline) -->
+        <path class="svg-chart__line" d="${actualPathD}" fill="none" stroke="url(#chart-gradient)" stroke-width="3" filter="url(#glow)" />
 
-        <text class="svg-chart__label" x="20" y="184">0</text>
-        <text class="svg-chart__label" x="20" y="134">10</text>
-        <text class="svg-chart__label" x="20" y="84">20</text>
-        <text class="svg-chart__label" x="20" y="34">30</text>
+        <!-- Interactive Point Checkpoints -->
+        ${nodesHtml}
+
+        <!-- Bottom Date Labels -->
+        ${labelsHtml}
       </svg>
+      
+      <!-- Floating Glassmorphic Tooltip Card -->
+      <div id="chartTooltip" class="svg-chart__tooltip hidden"></div>
     `;
+
+    // 9. Bind dynamic hover events for the tooltips
+    const points = chartContainer.querySelectorAll('.svg-chart__point');
+    const tooltip = chartContainer.querySelector('#chartTooltip');
+
+    points.forEach(point => {
+      point.onmouseenter = () => {
+        const day = point.getAttribute('data-day');
+        const date = point.getAttribute('data-date');
+        const actual = point.getAttribute('data-actual');
+        const ideal = point.getAttribute('data-ideal');
+
+        if (tooltip) {
+          tooltip.innerHTML = `
+            <div style="font-weight: 800; font-size: 10px; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; margin-bottom: 4px;">Day ${day} (${date})</div>
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 10px;">
+              <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <span style="color: var(--text-muted);">Actual Backlog:</span>
+                <strong style="color: var(--text-primary); font-family: 'Fira Code', monospace;">${actual} SP</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <span style="color: var(--text-muted);">Ideal Goal:</span>
+                <strong style="color: var(--text-muted); font-family: 'Fira Code', monospace;">${ideal} SP</strong>
+              </div>
+            </div>
+          `;
+          tooltip.classList.remove('hidden');
+        }
+      };
+
+      point.onmousemove = (e) => {
+        if (tooltip) {
+          const rect = chartContainer.getBoundingClientRect();
+          const x = e.clientX - rect.left + 12;
+          const y = e.clientY - rect.top - 60;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+        }
+      };
+
+      point.onmouseleave = () => {
+        if (tooltip) tooltip.classList.add('hidden');
+      };
+    });
   }
 
   renderCircularGauge(percentage) {
