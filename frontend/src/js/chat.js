@@ -11,13 +11,19 @@ export class ChatController {
     this.sendBtn = document.getElementById('chatSendBtn');
     this.activeUsersContainer = document.getElementById('activeUsersList');
     this.userCountSpan = document.getElementById('activeUserCount');
-    this.myUsername = localStorage.getItem('chat_username') || 'CTO Guest';
-    this.myAvatar = localStorage.getItem('chat_avatar') || 'https://api.dicebear.com/7.x/bottts/svg?seed=Admin';
     
     // Direct message tracking states
     this.activeChatPartner = null; // null = Operations Group Chat, otherwise 'username'
     this.historyMessages = [];     // In-memory cache of loaded DB messages
     this.unreadDms = {};           // Track unread direct message counts
+  }
+
+  get myUsername() {
+    return localStorage.getItem('chat_username') || 'CTO Guest';
+  }
+
+  get myAvatar() {
+    return localStorage.getItem('chat_avatar') || 'https://api.dicebear.com/7.x/bottts/svg?seed=Admin';
   }
 
   init() {
@@ -144,6 +150,19 @@ export class ChatController {
     if (backLink) {
       backLink.onclick = () => {
         this.switchChatPartner(null);
+      };
+    }
+
+    // Bind chat panel header click to switch back to Teams Chat
+    const chatHeader = document.querySelector('.chat-panel-header');
+    if (chatHeader) {
+      chatHeader.style.cursor = 'pointer';
+      chatHeader.title = 'Switch back to Operations Group Chat';
+      chatHeader.onclick = (e) => {
+        // Prevent triggering return if clicking on clear history button or mobile close cross
+        if (e.target.id !== 'clearChatHistoryBtn' && !e.target.classList.contains('mobile-nav-close')) {
+          this.switchChatPartner(null);
+        }
       };
     }
   }
@@ -390,7 +409,11 @@ export class ChatController {
 
       avatarWrap.onclick = () => {
         if (user.username !== this.myUsername) {
-          this.switchChatPartner(user.username);
+          if (this.activeChatPartner === user.username) {
+            this.switchChatPartner(null);
+          } else {
+            this.switchChatPartner(user.username);
+          }
         }
       };
 

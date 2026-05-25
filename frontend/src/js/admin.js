@@ -7,7 +7,10 @@ import { api } from './api';
 export class AdminView {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
-    this.myUsername = localStorage.getItem('chat_username') || 'admin';
+  }
+
+  get myUsername() {
+    return localStorage.getItem('chat_username') || 'admin';
   }
 
   async render() {
@@ -116,29 +119,49 @@ export class AdminView {
               <div class="admin-avatar-container">
                 <img class="admin-user-avatar" src="${cleanAvatar}" alt="${user.username}">
                 <div class="admin-user-details-tooltip">
-                  <div class="tooltip-header">
+                  <div class="tooltip-banner"></div>
+                  <div class="tooltip-avatar-wrapper">
                     <img src="${cleanAvatar}" class="tooltip-avatar" alt="${user.username}">
-                    <div class="tooltip-title-wrap">
-                      <h4 class="tooltip-name">${user.username}</h4>
-                      <span class="tooltip-role">${formattedRole}</span>
+                  </div>
+                  <div class="tooltip-body">
+                    <h4 class="tooltip-name">${user.username}</h4>
+                    <span class="tooltip-role">${formattedRole}</span>
+                    
+                    <div class="tooltip-divider"></div>
+                    
+                    <div class="tooltip-info-section">
+                      <div class="tooltip-info-item">
+                        <span class="info-icon">📧</span>
+                        <div class="info-content">
+                          <span class="info-label">Email Address</span>
+                          <span class="info-value" title="${email}">${email}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="tooltip-info-item">
+                        <span class="info-icon">🔑</span>
+                        <div class="info-content">
+                          <span class="info-label">Security Credentials</span>
+                          <span class="info-value ${mfaEnabled ? 'enabled' : 'disabled'}">MFA: ${mfaEnabled ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                      </div>
+
+                      <div class="tooltip-info-item">
+                        <span class="info-icon">⚡</span>
+                        <div class="info-content">
+                          <span class="info-label">Account Status</span>
+                          <span class="info-value status-${user.status.toLowerCase()}">${isPending ? 'Pending Approval' : 'Approved / Active'}</span>
+                        </div>
+                      </div>
+
+                      <div class="tooltip-info-item">
+                        <span class="info-icon">🆔</span>
+                        <div class="info-content">
+                          <span class="info-label">Session ID</span>
+                          <span class="info-value tooltip-uuid" title="${user.id}">${user.id}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div class="tooltip-divider"></div>
-                  <div class="tooltip-info-row">
-                    <span class="label">ID:</span>
-                    <span class="value" title="${user.id}">${user.id}</span>
-                  </div>
-                  <div class="tooltip-info-row">
-                    <span class="label">Email:</span>
-                    <span class="value" title="${email}">${email}</span>
-                  </div>
-                  <div class="tooltip-info-row">
-                    <span class="label">MFA:</span>
-                    <span class="value ${mfaEnabled ? 'enabled' : 'disabled'}">${mfaEnabled ? 'Enabled' : 'Disabled'}</span>
-                  </div>
-                  <div class="tooltip-info-row">
-                    <span class="label">Status:</span>
-                    <span class="value status-${user.status.toLowerCase()}">${isPending ? 'Pending' : 'Active'}</span>
                   </div>
                 </div>
               </div>
