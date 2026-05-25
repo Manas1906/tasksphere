@@ -768,13 +768,29 @@ class TaskSphereApp {
             this.currentView.syncExternalMove(payload);
           } else {
             // Update local memory
-            const idx = this.currentView.tasks.findIndex(t => t.id === payload.taskId);
-            if (idx !== -1) {
-              console.log(`[APP-SYNC-BOARD] Syncing card status update locally for Task ID ${payload.taskId}`);
-              this.currentView.tasks[idx].status = payload.toStatus;
+            if (this.currentView && this.currentView.tasks) {
+              const idx = this.currentView.tasks.findIndex(t => t.id === payload.taskId);
+              if (idx !== -1) {
+                console.log(`[APP-SYNC-BOARD] Syncing card status update locally for Task ID ${payload.taskId}`);
+                this.currentView.tasks[idx].status = payload.toStatus;
+              }
             }
           }
         });
+
+        // Subscribe to secure private user queues for assignment alerts
+        const username = localStorage.getItem('chat_username');
+        if (username) {
+          console.log(`[APP-SYNC] Subscribing to secure private alert stream for: ${username}`);
+          socket.subscribe('/user/queue/notifications', (alert) => {
+            console.log('[APP-SYNC-ALERT] Intercepted real-time notification queue alert payload:', alert);
+            this.showNotificationToast(
+              alert.type === 'ASSIGNMENT' ? 'Task Assigned' : alert.type === 'UNASSIGNMENT' ? 'Task Unassigned' : 'Task Updated', 
+              alert.message, 
+              alert.type
+            );
+          });
+        }
 
         // Initialize Chat WebSocket subscriptions and presence sync
         this.chatController.subscribeChannels();
@@ -1299,6 +1315,117 @@ class TaskSphereApp {
     }
  
     await this.currentView.render();
+  }
+
+  playNotificationSound() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      // Node 1 - Base tone (C5 - 523.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      
+      // Node 2 - Delayed chime tone (G5 - 783.99 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.3);
+      
+      osc2.start(ctx.currentTime + 0.1);
+      osc2.stop(ctx.currentTime + 0.4);
+    } catch (e) {
+      console.warn('[AUDIO-CHIME-ERROR] Browser AudioContext blocked or unsupported:', e);
+    }
+  }
+
+  showNotificationToast(title, message, type = 'ASSIGNMENT') {
+    const stack = document.getElementById('toastNotificationStack');
+    if (!stack) return;
+
+    // Create Toast Card
+    const toast = document.createElement('div');
+    toast.className = `toast-card toast-card--${type.toLowerCase()}`;
+    
+    // Choose icon depending on type
+    let icon = '🔔';
+    if (type === 'ASSIGNMENT') icon = '⚡';
+    else if (type === 'UNASSIGNMENT') icon = '🚫';
+    else if (type === 'UPDATE') icon = '✏️';
+
+    toast.innerHTML = `
+      <div class="toast-header">
+        <div class="toast-badge-group">
+          <span class="toast-icon">${icon}</span>
+          <span class="toast-title">${title}</span>
+        </div>
+        <button class="toast-close-btn">&times;</button>
+      </div>
+      <div class="toast-message">${message}</div>
+      <div class="toast-progress-container">
+        <div class="toast-progress-bar"></div>
+      </div>
+    `;
+
+    // Append to stack
+    stack.appendChild(toast);
+
+    // Play retro-cybernetic synth chime
+    this.playNotificationSound();
+
+    // Auto dismiss setup
+    let dismissTimeout;
+    const triggerDismiss = () => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(50px) scale(0.95)';
+      setTimeout(() => {
+        if (toast.parentNode === stack) {
+          stack.removeChild(toast);
+        }
+      }, 300);
+    };
+
+    dismissTimeout = setTimeout(triggerDismiss, 5000);
+
+    // Pause on hover
+    const progressBar = toast.querySelector('.toast-progress-bar');
+    toast.onmouseenter = () => {
+      clearTimeout(dismissTimeout);
+      if (progressBar) progressBar.style.animationPlayState = 'paused';
+    };
+
+    toast.onmouseleave = () => {
+      // Re-trigger remaining time estimation or simple reset
+      dismissTimeout = setTimeout(triggerDismiss, 2000); // give 2s buffer when leaving
+      if (progressBar) progressBar.style.animationPlayState = 'running';
+    };
+
+    // Close button click
+    const closeBtn = toast.querySelector('.toast-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        clearTimeout(dismissTimeout);
+        triggerDismiss();
+      };
+    }
   }
 
   setupPasswordToggles() {
