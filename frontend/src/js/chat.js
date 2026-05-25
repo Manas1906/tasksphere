@@ -23,6 +23,47 @@ export class ChatController {
     console.log('[CHAT-INIT] Initializing ChatController...');
     this.bindEvents();
     this.loadChatHistory();
+    this.loadUserDirectory();
+  }
+
+  async loadUserDirectory() {
+    try {
+      console.log('[CHAT-DIRECTORY] Loading workspace member directory from database...');
+      const users = await api.getUsers() || [];
+      
+      // Filter out pending users and current user
+      const approvedTeammates = users.filter(u => u.status !== 'PENDING_APPROVAL' && u.username !== this.myUsername);
+      
+      // Map database users to activeMember structure
+      let cachedMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+      
+      const mappedMembers = approvedTeammates.map(dbUser => {
+        const existing = cachedMembers.find(m => m.username === dbUser.username);
+        
+        // Extract clean avatar URL
+        let cleanAvatar = dbUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${dbUser.username}`;
+        if (cleanAvatar.includes('||')) {
+          cleanAvatar = cleanAvatar.split('||')[0];
+        }
+        
+        return {
+          id: dbUser.id,
+          username: dbUser.username,
+          avatarUrl: cleanAvatar,
+          role: dbUser.role || 'DEVELOPER',
+          status: existing ? existing.status : 'OFFLINE',
+          lastActive: existing ? existing.lastActive : 0
+        };
+      });
+      
+      localStorage.setItem('cache_users', JSON.stringify(mappedMembers));
+      this.drawAvatars(mappedMembers);
+    } catch (err) {
+      console.warn('[CHAT-DIRECTORY-ERROR] Failed to load database user directory:', err);
+      // Fallback to drawing whatever is in localStorage
+      let cachedMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+      this.drawAvatars(cachedMembers);
+    }
   }
 
   bindEvents() {
@@ -68,6 +109,34 @@ export class ChatController {
     this.input.onkeydown = (e) => {
       if (e.key === 'Enter') handleSend();
     };
+
+    // Role-based visibility and click handler for clearing chat history (Admin/Product Owner Only)
+    const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
+    if (clearHistoryBtn) {
+      const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+      if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
+        clearHistoryBtn.style.display = 'block';
+        clearHistoryBtn.onclick = async () => {
+          const confirmClear = confirm("⚠️ Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
+          if (!confirmClear) return;
+          
+          try {
+            console.log('[CHAT-CLEAR] Sending DELETE request to clear chat history...');
+            await api.request('/chat-messages', { method: 'DELETE' });
+            
+            // Wipe local memory and update the UI
+            this.historyMessages = [];
+            this.redrawMessages();
+            alert('Chat history cleared successfully!');
+          } catch (err) {
+            console.error('[CHAT-CLEAR-ERROR] Failed to clear chat history:', err);
+            alert(`Failed to clear chat history: ${err.message || err}`);
+          }
+        };
+      } else {
+        clearHistoryBtn.style.display = 'none';
+      }
+    }
 
     // Bind DM Back Button switches
     const backLink = document.getElementById('chatModeBackLink');

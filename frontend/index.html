@@ -126,7 +126,10 @@
               <span id="activeUserCount">1 active session</span>
             </div>
           </div>
-          <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="clearChatHistoryBtn" style="display: none; background: none; border: none; color: var(--accent-rose); font-size: 11px; font-weight: 600; cursor: pointer; opacity: 0.65; transition: opacity var(--transition-fast);" title="Clear Chat History (Admin Only)">🗑️ Clear</button>
+            <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
+          </div>
         </div>
 
         <!-- Dynamic mode switcher back-link for DM chats -->

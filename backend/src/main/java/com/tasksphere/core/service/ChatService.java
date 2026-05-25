@@ -21,4 +21,8 @@ public class ChatService {
     public ChatMessage saveMessage(ChatMessage message) {
         return chatMessageRepository.save(message);
     }
+
+    public void clearHistory() {
+        chatMessageRepository.deleteAll();
+    }
 }
