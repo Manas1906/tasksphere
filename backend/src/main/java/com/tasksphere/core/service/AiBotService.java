@@ -305,26 +305,49 @@ public class AiBotService {
     }
 
     /**
-     * Makes standard POST connection to Gemini API.
+     * Makes resilient POST connection to Gemini API with exponential backoff retries.
      */
     private String callGeminiApi(String jsonPayload) throws Exception {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
         
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                .build();
+        int retries = 3;
+        long delayMs = 300;
         
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("Gemini API returned status " + response.statusCode() + ": " + response.body());
+        for (int i = 0; i <= retries; i++) {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                        .build();
+                
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                
+                int status = response.statusCode();
+                if (status == 200) {
+                    return response.body();
+                }
+                
+                // Retry only on transient errors (503 Service Unavailable, 429 Rate Limit, 500 Internal Server Error)
+                if ((status == 503 || status == 429 || status == 500) && i < retries) {
+                    System.out.println("[AI-BOT-RETRY] Received transient status " + status + " from Gemini. Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                    Thread.sleep(delayMs);
+                    delayMs *= 2; // exponential backoff
+                } else {
+                    throw new RuntimeException("Gemini API returned status " + status + ": " + response.body());
+                }
+            } catch (Exception e) {
+                if (i == retries) {
+                    throw e;
+                }
+                System.out.println("[AI-BOT-RETRY-ERROR] Failed connection/request to Gemini: " + e.getMessage() + ". Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                Thread.sleep(delayMs);
+                delayMs *= 2;
+            }
         }
-        
-        return response.body();
+        throw new RuntimeException("Failed to contact Google Gemini API after " + retries + " attempts.");
     }
+
 
     /**
      * Builds Jackson ObjectNode representing the Gemini content generation request with full Tools declarations.
