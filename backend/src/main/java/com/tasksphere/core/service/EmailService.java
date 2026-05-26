@@ -9,22 +9,47 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * EmailService - Asynchronous production email dispatching.
- * Uses Mailersend REST API exclusively for zero-port block, zero-spam delivery.
- * Features a simulator fallback mode if Mailersend credentials are not configured.
+ * Bypasses Render SMTP port blocks completely via Google REST APIs over HTTPS (Port 443).
+ * Supports:
+ * - Method 2: Official Google Gmail REST API (up to 500 emails/day, zero cost, secure OAuth2)
+ * - Method 1: Google Apps Script Web App Proxy (fallback, up to 100 emails/day)
+ * - Simulator: local/console logging fallback when no remote credentials are configured.
  */
 @Service
 public class EmailService {
 
-    @Value("${maileroo.api.key:}")
-    private String mailerooApiKey;
+    @Value("${google.script.url:}")
+    private String googleScriptUrl;
 
-    @Value("${maileroo.sender:}")
-    private String mailerooSender;
+    @Value("${google.oauth.client.id:}")
+    private String oauthClientId;
+
+    @Value("${google.oauth.client.secret:}")
+    private String oauthClientSecret;
+
+    @Value("${google.oauth.refresh.token:}")
+    private String oauthRefreshToken;
+
+    @Value("${google.oauth.email:}")
+    private String oauthEmail;
+
+    /**
+     * Check if the official Gmail REST API (Method 2) credentials are fully populated.
+     */
+    private boolean isOauthConfigured() {
+        return oauthClientId != null && !oauthClientId.trim().isEmpty() && !oauthClientId.contains("${") &&
+               oauthClientSecret != null && !oauthClientSecret.trim().isEmpty() && !oauthClientSecret.contains("${") &&
+               oauthRefreshToken != null && !oauthRefreshToken.trim().isEmpty() && !oauthRefreshToken.contains("${") &&
+               oauthEmail != null && !oauthEmail.trim().isEmpty() && !oauthEmail.contains("${");
+    }
 
     /**
      * Dispatch multi-factor security code (OTP) asynchronously.
@@ -33,47 +58,29 @@ public class EmailService {
     public void sendOtpEmail(String toEmail, String otp) {
         String cleanEmail = toEmail.toLowerCase().trim();
         String htmlMessage = getOtpTemplate(otp);
+        String subject = "TaskSphere Security - Your 6-Digit Verification Code: " + otp;
 
         System.out.println("\n=======================================================");
-        System.out.println("[MAILEROO-SIMULATOR] INCOMING OTP DELIVER SERVICE ACTION");
+        System.out.println("[EMAIL-SERVICE] INCOMING OTP DELIVER SERVICE ACTION");
         System.out.println("Deliver OTP to: " + cleanEmail);
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
 
-        if (mailerooApiKey == null || mailerooApiKey.trim().isEmpty() || mailerooSender == null || mailerooSender.trim().isEmpty()) {
-            System.out.println("[MAILEROO-WARN] Maileroo API credentials are not configured. Fallback Simulator output above.");
-            return;
+        // Route 1: Try Gmail REST API (Method 2)
+        if (isOauthConfigured()) {
+            boolean success = sendViaGmailRestApi(cleanEmail, subject, htmlMessage);
+            if (success) {
+                return;
+            }
+            System.out.println("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
         }
 
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-API-Key", mailerooApiKey.trim());
-
-            Map<String, Object> fromMap = new HashMap<>();
-            fromMap.put("email", mailerooSender.trim());
-            fromMap.put("name", "TaskSphere");
-
-            Map<String, Object> toMap = new HashMap<>();
-            toMap.put("email", cleanEmail);
-            toMap.put("name", "Developer");
-
-            java.util.List<Map<String, Object>> toList = new java.util.ArrayList<>();
-            toList.add(toMap);
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("from", fromMap);
-            payload.put("to", toList);
-            payload.put("subject", "TaskSphere Security - Your 6-Digit Verification Code: " + otp);
-            payload.put("html", htmlMessage);
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity("https://smtp.maileroo.com/api/v2/emails", entity, String.class);
-            
-            System.out.println("[MAILEROO-SUCCESS] Real-time mail dispatched via Maileroo API. Response: " + response.getBody());
-        } catch (Exception ex) {
-            System.err.println("[MAILEROO-FAILURE] Maileroo API failed: " + ex.getMessage());
+        // Route 2: Try Google Apps Script Proxy (Method 1)
+        if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
+            sendViaGoogleScript(cleanEmail, subject, htmlMessage);
+        } else {
+            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Simulator output printed above.");
+            System.out.println("[EMAIL-TIP] To receive real emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
         }
     }
 
@@ -84,50 +91,140 @@ public class EmailService {
     public void sendWelcomeEmail(String toEmail, String username, String role) {
         String cleanEmail = toEmail.toLowerCase().trim();
         String htmlMessage = getWelcomeTemplate(username, role);
+        String subject = "Welcome to TaskSphere, " + username + "! Your workspace is active.";
 
         System.out.println("\n=======================================================");
-        System.out.println("[MAILEROO-SIMULATOR] INCOMING WELCOME NEWSLETTER SERVICE ACTION");
+        System.out.println("[EMAIL-SERVICE] INCOMING WELCOME NEWSLETTER SERVICE ACTION");
         System.out.println("Deliver Welcome Email to: " + cleanEmail);
         System.out.println("USERNAME: " + username);
         System.out.println("ROLE: " + role);
         System.out.println("=======================================================\n");
 
-        if (mailerooApiKey == null || mailerooApiKey.trim().isEmpty() || mailerooSender == null || mailerooSender.trim().isEmpty()) {
-            System.out.println("[MAILEROO-WARN] Maileroo API credentials are not configured. Fallback Welcome simulation succeeded.");
-            return;
+        // Route 1: Try Gmail REST API (Method 2)
+        if (isOauthConfigured()) {
+            boolean success = sendViaGmailRestApi(cleanEmail, subject, htmlMessage);
+            if (success) {
+                return;
+            }
+            System.out.println("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
         }
 
+        // Route 2: Try Google Apps Script Proxy (Method 1)
+        if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
+            sendViaGoogleScript(cleanEmail, subject, htmlMessage);
+        } else {
+            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Welcome simulation succeeded.");
+            System.out.println("[EMAIL-TIP] To receive real welcome emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
+        }
+    }
+
+    /**
+     * Dispatch email via Google Apps Script HTTPS Web App Proxy (Method 1)
+     */
+    private void sendViaGoogleScript(String toEmail, String subject, String htmlContent) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-API-Key", mailerooApiKey.trim());
-
-            Map<String, Object> fromMap = new HashMap<>();
-            fromMap.put("email", mailerooSender.trim());
-            fromMap.put("name", "TaskSphere");
-
-            Map<String, Object> toMap = new HashMap<>();
-            toMap.put("email", cleanEmail);
-            toMap.put("name", username);
-
-            java.util.List<Map<String, Object>> toList = new java.util.ArrayList<>();
-            toList.add(toMap);
 
             Map<String, Object> payload = new HashMap<>();
-            payload.put("from", fromMap);
-            payload.put("to", toList);
-            payload.put("subject", "Welcome to TaskSphere, " + username + "! Your workspace is active.");
-            payload.put("html", htmlMessage);
+            payload.put("to", toEmail);
+            payload.put("subject", subject);
+            payload.put("htmlBody", htmlContent);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity("https://smtp.maileroo.com/api/v2/emails", entity, String.class);
-            
-            System.out.println("[MAILEROO-SUCCESS] Welcome email dispatched via Maileroo. Response: " + response.getBody());
+            ResponseEntity<String> response = restTemplate.postForEntity(googleScriptUrl.trim(), entity, String.class);
+            System.out.println("[GMAIL-PROXY-SUCCESS] Email dispatched via Google Apps Script. Response: " + response.getBody());
         } catch (Exception ex) {
-            System.err.println("[MAILEROO-FAILURE] Maileroo Welcome API failed: " + ex.getMessage());
+            System.err.println("[GMAIL-PROXY-FAILURE] Google Apps Script REST call failed: " + ex.getMessage());
         }
     }
+
+    /**
+     * Dispatch email via Google Gmail REST API (Method 2)
+     */
+    private boolean sendViaGmailRestApi(String toEmail, String subject, String htmlContent) {
+        try {
+            // 1. Exchange OAuth2 Refresh Token for a fresh Access Token
+            String accessToken = getGmailAccessToken();
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                System.err.println("[GMAIL-REST-FAILURE] Failed to retrieve a valid OAuth2 Access Token.");
+                return false;
+            }
+
+            // 2. Construct RFC 822 MIME-formatted email message
+            String mimeMessage = 
+                "From: TaskSphere <" + oauthEmail.trim() + ">\r\n" +
+                "To: " + toEmail.trim() + "\r\n" +
+                "Subject: " + subject.trim() + "\r\n" +
+                "MIME-Version: 1.0\r\n" +
+                "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+                htmlContent;
+
+            // 3. Base64url-encode MIME message natively using Java's Base64
+            byte[] rawBytes = mimeMessage.getBytes(StandardCharsets.UTF_8);
+            String rawEncoded = Base64.getUrlEncoder().withoutPadding().encodeToString(rawBytes);
+
+            // 4. POST the payload to Google's Gmail REST endpoint
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+
+            Map<String, String> payload = new HashMap<>();
+            payload.put("raw", rawEncoded);
+
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(payload, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send", 
+                entity, 
+                Map.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                System.out.println("[GMAIL-REST-SUCCESS] Email dispatched successfully via Gmail REST API. Message ID: " 
+                    + response.getBody().get("id"));
+                return true;
+            } else {
+                System.err.println("[GMAIL-REST-FAILURE] Google API responded with code: " + response.getStatusCode());
+                return false;
+            }
+        } catch (Exception ex) {
+            System.err.println("[GMAIL-REST-FAILURE] Gmail REST API execution failed: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Exchange Google OAuth2 Refresh Token for a fresh Access Token
+     */
+    private String getGmailAccessToken() {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            String body = "client_id=" + URLEncoder.encode(oauthClientId.trim(), StandardCharsets.UTF_8.name()) +
+                          "&client_secret=" + URLEncoder.encode(oauthClientSecret.trim(), StandardCharsets.UTF_8.name()) +
+                          "&refresh_token=" + URLEncoder.encode(oauthRefreshToken.trim(), StandardCharsets.UTF_8.name()) +
+                          "&grant_type=refresh_token";
+
+            HttpEntity<String> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://oauth2.googleapis.com/token", 
+                request, 
+                Map.class
+            );
+
+            if (response.getBody() != null && response.getBody().containsKey("access_token")) {
+                return (String) response.getBody().get("access_token");
+            }
+        } catch (Exception ex) {
+            System.err.println("[OAUTH-TOKEN-FAILURE] Failed to exchange refresh token for access token: " + ex.getMessage());
+        }
+        return null;
+    }
+
 
     private String getOtpTemplate(String otp) {
         return "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; background: #0b0f19; padding: 40px; color: #f3f4f6; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #1f2937;\">"

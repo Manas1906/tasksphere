@@ -76,6 +76,10 @@ public class AiBotService {
                 }
             }
 
+            // Robust Fast-fail check for empty, unconfigured, or default placeholder keys
+            if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.contains("${GEMINI_API_KEY}")) {
+                throw new IllegalArgumentException("Google Gemini API Key is missing or unconfigured.");
+            }
 
             // Step 1: Call Gemini with Tool Use configuration
             String jsonPayload = buildGeminiPayload(cleanText, userWhoTalked);
@@ -136,6 +140,9 @@ public class AiBotService {
             boolean isQuotaOrKeyError = e.getMessage() != null && (
                     e.getMessage().contains("403") || 
                     e.getMessage().contains("429") || 
+                    e.getMessage().contains("400") ||
+                    e.getMessage().toLowerCase().contains("missing") ||
+                    e.getMessage().toLowerCase().contains("unconfigured") ||
                     e.getMessage().toLowerCase().contains("leaked") || 
                     e.getMessage().toLowerCase().contains("quota") ||
                     e.getMessage().toLowerCase().contains("resource_exhausted") ||
@@ -145,9 +152,9 @@ public class AiBotService {
             try {
                 String recoveryReply;
                 if (isQuotaOrKeyError) {
-                    recoveryReply = "🤖 *[Offline Recovery Mode: Gemini Key Leaked/Exhausted]*\n\n" + 
+                    recoveryReply = "🤖 *[Offline Recovery Mode: Gemini Key Leaked/Exhausted/Unconfigured]*\n\n" + 
                                     getLocalAgileReply(cleanText) + 
-                                    "\n\n*(Scrum Master Tip: Your Google Gemini API Key was reported as leaked/revoked by Google or your free-tier daily quota was exhausted. Please generate a new key in Google AI Studio and configure it in Render env variables as `GEMINI_API_KEY`.)*";
+                                    "\n\n*(Scrum Master Tip: Your Google Gemini API Key was reported as leaked/revoked, unconfigured, or your daily free-tier quota was exhausted. Please verify that your active GEMINI_API_KEY environment variable contains a valid key from Google AI Studio.)*";
                 } else {
                     recoveryReply = "⚠️ **[Scrum AI Agent Error]**: " + e.getMessage() + 
                                       "\n\n*Local Recovery*: The task database has remained intact. Please retry in a few moments.";

@@ -269,6 +269,9 @@ public class SprintSimulationService {
      * Highly resilient API REST caller with retries and exponential backoff.
      */
     private String callGeminiApiWithRetry(String jsonPayload) throws Exception {
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.contains("${GEMINI_API_KEY}")) {
+            throw new IllegalArgumentException("Google Gemini API Key is missing or unconfigured.");
+        }
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
         
         int retries = 3;
