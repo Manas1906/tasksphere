@@ -30,3 +30,7 @@
 *.log
 .DS_Store
 Thumbs.db
+
+# --- Local Properties for backend (sensitive configs) ---
+**/application-local.properties
+
