@@ -115,8 +115,36 @@ class TaskSphereApp {
       }
     }
     
+    // Register Service Worker for background Web Push alerts (Phase 13)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('[SW-REGISTER] Service Worker successfully registered with scope:', registration.scope);
+          })
+          .catch(err => {
+            console.error('[SW-REGISTER-ERROR] Service Worker registration failed:', err);
+          });
+      });
+    }
+
     // Default load dashboard
     this.switchRoute('DASHBOARD');
+  }
+
+  urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
 
   setupMobileToggles() {
@@ -1330,6 +1358,84 @@ class TaskSphereApp {
       };
     }
 
+    // Wire Web Push Notification toggle checkbox (Phase 13)
+    const pushToggle = document.getElementById('pushSettingsToggle');
+    if (pushToggle) {
+      pushToggle.onchange = async () => {
+        const username = localStorage.getItem('chat_username');
+        if (!username) {
+          alert('Session required to alter notifications.');
+          pushToggle.checked = false;
+          return;
+        }
+
+        if (pushToggle.checked) {
+          // Subscribing
+          if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Desktop push notifications are not supported in your browser.');
+            pushToggle.checked = false;
+            return;
+          }
+
+          try {
+            console.log('[WEBPUSH-SUBSCRIBE] Requesting user permission...');
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+              alert('Notification permission was denied. Please update your browser permissions.');
+              pushToggle.checked = false;
+              return;
+            }
+
+            console.log('[WEBPUSH-SUBSCRIBE] Retrieving VAPID public key from backend...');
+            const keyRes = await api.getVapidPublicKey();
+            const vapidPublicKey = keyRes.publicKey;
+
+            if (!vapidPublicKey) {
+              throw new Error('VAPID Public Key not found in backend response.');
+            }
+
+            console.log('[WEBPUSH-SUBSCRIBE] Awaiting service worker ready...');
+            const registration = await navigator.serviceWorker.ready;
+            
+            console.log('[WEBPUSH-SUBSCRIBE] Registering browser push subscription...');
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
+            });
+
+            console.log('[WEBPUSH-SUBSCRIBE] Registering subscription object in backend...');
+            await api.subscribePush(username, subscription);
+            console.log('[WEBPUSH-SUBSCRIBE] Push subscription fully active.');
+            alert('Desktop push notifications successfully enabled!');
+          } catch (err) {
+            console.error('[WEBPUSH-SUBSCRIBE-ERROR] Failed to enable Web Push:', err);
+            alert(`Failed to enable push notifications: ${err.message || err}`);
+            pushToggle.checked = false;
+          }
+        } else {
+          // Unsubscribing
+          try {
+            console.log('[WEBPUSH-UNSUBSCRIBE] Awaiting service worker ready...');
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            
+            if (subscription) {
+              await subscription.unsubscribe();
+              console.log('[WEBPUSH-UNSUBSCRIBE] Revoked browser push subscription.');
+            }
+
+            await api.unsubscribePush(username);
+            console.log('[WEBPUSH-UNSUBSCRIBE] Cleared push subscription in backend.');
+            alert('Desktop push notifications disabled.');
+          } catch (err) {
+            console.error('[WEBPUSH-UNSUBSCRIBE-ERROR] Failed to disable Web Push:', err);
+            alert(`Failed to disable push notifications: ${err.message || err}`);
+            pushToggle.checked = true; // reset checkbox
+          }
+        }
+      };
+    }
+
     // Handle security settings submission
     form.onsubmit = async (e) => {
       e.preventDefault();
@@ -1436,6 +1542,21 @@ class TaskSphereApp {
         }
       } catch (err) {
         console.warn('[SECURITY-SETTINGS-LOAD] Failed to load user security details:', err);
+      }
+    }
+
+    // Set Desktop Push Notifications toggle state by checking active browser registration (Phase 13)
+    const pushToggle = document.getElementById('pushSettingsToggle');
+    if (pushToggle) {
+      pushToggle.checked = false; // default
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.pushManager.getSubscription().then(subscription => {
+            pushToggle.checked = (subscription !== null);
+          }).catch(err => {
+            console.warn('[WEBPUSH-CHECK-ERROR] Failed to query subscription:', err);
+          });
+        });
       }
     }
 

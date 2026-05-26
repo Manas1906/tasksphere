@@ -33,6 +33,9 @@ public class RealtimeController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Autowired
+    private com.tasksphere.core.service.WebPushService webPushService;
+
     /**
      * Receives a chat message from a user, saves it, and broadcasts it to all listeners.
      */
@@ -54,6 +57,19 @@ public class RealtimeController {
                 
                 if (isDm || isMention) {
                     aiBotService.processAiRequest(saved.getUsername(), saved.getAvatarUrl(), msgText, isDm);
+                }
+
+                // Also check if this is a general private DM to another real user
+                if (msgText.startsWith("[DM:")) {
+                    int endIdx = msgText.indexOf("]");
+                    if (endIdx > 4) {
+                        String recipient = msgText.substring(4, endIdx).trim();
+                        if (!recipient.equalsIgnoreCase(saved.getUsername()) && !"Agile_AI_Bot".equalsIgnoreCase(recipient)) {
+                            String cleanMsg = msgText.substring(endIdx + 1).trim();
+                            String pushTitle = "💬 Direct Message from " + saved.getUsername();
+                            webPushService.sendNotification(recipient, pushTitle, cleanMsg, "/");
+                        }
+                    }
                 }
             }
         }

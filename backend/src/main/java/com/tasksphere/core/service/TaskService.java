@@ -24,6 +24,9 @@ public class TaskService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Autowired
+    private WebPushService webPushService;
+
     public List<Task> getAllTasks() {
         return taskRepository.findAll();
     }
@@ -136,8 +139,23 @@ public class TaskService {
 
             messagingTemplate.convertAndSendToUser(username, "/queue/notifications", alert);
             System.out.println("[WS-ALERT] Successfully dispatched STOMP " + type + " alert to " + username);
+
+            // Trigger background Web Push notification via Phase 13
+            String pushTitle = "⚡ Task Update";
+            if ("ASSIGNMENT".equals(type)) {
+                pushTitle = "📋 New Task Assigned";
+            } else if ("UNASSIGNMENT".equals(type)) {
+                pushTitle = "👤 Task Unassigned";
+            }
+
+            String pushBody = message;
+            if ("ASSIGNMENT".equals(type) && task.getStoryPoints() > 0) {
+                pushBody += " (" + task.getStoryPoints() + " SP)";
+            }
+
+            webPushService.sendNotification(username, pushTitle, pushBody, "/");
         } catch (Exception e) {
-            System.err.println("[WS-ALERT-ERROR] Failed to dispatch STOMP alert to " + username + ": " + e.getMessage());
+            System.err.println("[WS-ALERT-ERROR] Failed to dispatch alert/push to " + username + ": " + e.getMessage());
         }
     }
 }

@@ -185,6 +185,19 @@ class ApiService {
   runSprintSimulation() {
     return this.request('/sprint-simulation/run', { method: 'POST' });
   }
+
+  /* ---- Web Push background notifications (Phase 13) ---- */
+  getVapidPublicKey() { 
+    return this.request('/web-push/public-key'); 
+  }
+
+  subscribePush(username, sub) { 
+    return this.request(`/web-push/subscribe?username=${encodeURIComponent(username)}`, { method: 'POST', body: JSON.stringify(sub) }); 
+  }
+
+  unsubscribePush(username) { 
+    return this.request(`/web-push/unsubscribe?username=${encodeURIComponent(username)}`, { method: 'POST' }); 
+  }
 }
 
 

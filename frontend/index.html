@@ -302,12 +302,21 @@
         </div>
 
         <!-- MFA Toggle Row -->
-        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg)">
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-md)">
           <div>
             <label class="form-label" style="margin-bottom: 2px; cursor: pointer; user-select: none;" for="mfaSettingsToggle">Enable Multi-Factor (MFA)</label>
             <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Require 6-digit email OTP codes on every password login.</p>
           </div>
           <input type="checkbox" id="mfaSettingsToggle" style="width: 18px; height: 18px; accent-color: var(--accent-cyan); cursor: pointer;">
+        </div>
+
+        <!-- Push Notification Toggle Row -->
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg)">
+          <div>
+            <label class="form-label" style="margin-bottom: 2px; cursor: pointer; user-select: none;" for="pushSettingsToggle">Desktop Push Notifications</label>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Receive real-time background alerts when TaskSphere is closed.</p>
+          </div>
+          <input type="checkbox" id="pushSettingsToggle" style="width: 18px; height: 18px; accent-color: var(--accent-cyan); cursor: pointer;">
         </div>
 
         <!-- Change Password Segment -->
