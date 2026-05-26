@@ -352,3 +352,202 @@
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
 }
+
+/* =======================================================
+   Phase 8: Nested Reply Threads & Springy Emoji Reactions
+   ======================================================= */
+
+/* Thread replies drawer absolute slide-in */
+.thread-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20;
+}
+
+.thread-drawer.visible {
+  transform: translateX(0);
+}
+
+.thread-parent-container {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.015);
+  box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.thread-parent-container .chat-msg {
+  max-width: 100% !important;
+  animation: none !important;
+}
+
+.thread-parent-container .chat-msg__edit-btn,
+.thread-parent-container .chat-msg__reply-btn,
+.thread-parent-container .chat-msg__quick-reactions,
+.thread-parent-container .chat-msg__reactions-capsules,
+.thread-parent-container .chat-msg__threads-trigger {
+  display: none !important; /* Hide reaction/edit/reply options inside parent container */
+}
+
+/* Hover Quick reactions bar and Reply triggers */
+.chat-msg__bubble-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  position: relative;
+}
+
+.chat-msg__action-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.chat-msg__bubble-container:hover .chat-msg__action-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-msg__reply-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.chat-msg__reply-btn:hover {
+  color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.1);
+  transform: scale(1.1);
+}
+
+/* Springy quick emojis reaction menu */
+.chat-msg__quick-reactions {
+  position: absolute;
+  top: -30px;
+  right: 0;
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 20px;
+  padding: 3px 8px;
+  display: flex;
+  gap: 6px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), var(--cyan-glow);
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(5px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-msg--self .chat-msg__quick-reactions {
+  right: auto;
+  left: 0;
+}
+
+.chat-msg__bubble-container:hover .chat-msg__quick-reactions {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.chat-msg__reaction-emoji {
+  cursor: pointer;
+  font-size: 14px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
+}
+
+.chat-msg__reaction-emoji:hover {
+  transform: scale(1.35) translateY(-3px);
+  filter: drop-shadow(0 0 4px var(--accent-cyan));
+}
+
+/* Bouncy capsule buttons displaying emoji counters below bubbles */
+.chat-msg__reactions-capsules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+  margin-left: 2px;
+}
+
+.chat-msg--self .chat-msg__reactions-capsules {
+  justify-content: flex-end;
+  margin-right: 2px;
+}
+
+.chat-msg__reaction-capsule {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  transition: all var(--transition-fast) ease-out;
+}
+
+.chat-msg__reaction-capsule:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.05);
+  color: var(--accent-cyan);
+  transform: scale(1.03);
+}
+
+.chat-msg__reaction-capsule--active {
+  border-color: var(--accent-cyan) !important;
+  background: rgba(0, 240, 255, 0.1) !important;
+  color: var(--accent-cyan) !important;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+}
+
+/* Nested replies indicator text triggers */
+.chat-msg__threads-trigger {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-purple);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  transition: color var(--transition-fast);
+  user-select: none;
+}
+
+.chat-msg__threads-trigger:hover {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+}
+
+.chat-msg--self .chat-msg__threads-trigger {
+  justify-content: flex-end;
+}
+

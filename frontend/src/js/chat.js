@@ -16,6 +16,9 @@ export class ChatController {
     this.activeChatPartner = null; // null = Operations Group Chat, otherwise 'username'
     this.historyMessages = [];     // In-memory cache of loaded DB messages
     this.unreadDms = {};           // Track unread direct message counts
+    
+    // Thread replies tracking states - Phase 8
+    this.activeThreadMsg = null;   // msg object actively open in thread drawer
   }
 
   get myUsername() {
@@ -165,6 +168,35 @@ export class ChatController {
         }
       };
     }
+
+    // Bind Close Thread Drawer - Phase 8
+    const closeThreadBtn = document.getElementById('closeThreadBtn');
+    if (closeThreadBtn) {
+      closeThreadBtn.onclick = () => {
+        const drawer = document.getElementById('threadDrawer');
+        if (drawer) {
+          drawer.classList.remove('visible');
+          drawer.classList.add('hidden');
+        }
+        this.activeThreadMsg = null;
+      };
+    }
+
+    // Bind Send Thread Reply - Phase 8
+    const sendReplyBtn = document.getElementById('threadReplySendBtn');
+    const replyInput = document.getElementById('threadReplyInput');
+    
+    if (sendReplyBtn) {
+      sendReplyBtn.onclick = () => this.handleSendThreadReply();
+    }
+    
+    if (replyInput) {
+      replyInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          this.handleSendThreadReply();
+        }
+      };
+    }
   }
 
   async loadChatHistory() {
@@ -197,6 +229,12 @@ export class ChatController {
       const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
       if (existingIdx !== -1) {
         this.historyMessages[existingIdx] = message;
+        
+        // Dynamically update active thread replies view if the open thread message is modified
+        if (this.activeThreadMsg && this.activeThreadMsg.id === message.id) {
+          this.activeThreadMsg = message;
+          this.drawThreadReplies();
+        }
       } else {
         this.historyMessages.push(message);
       }
@@ -324,56 +362,175 @@ export class ChatController {
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
   }
 
+  parseMessageMeta(rawMessage) {
+    if (!rawMessage) return { text: '', meta: { reactions: {}, replies: [] } };
+    
+    let dmPrefix = '';
+    let cleanMessage = rawMessage;
+    if (rawMessage.startsWith('[DM:')) {
+      const match = rawMessage.match(/^(\[DM:[^\]]+\]\s*)(.*)$/);
+      if (match) {
+        dmPrefix = match[1];
+        cleanMessage = match[2];
+      }
+    }
+    
+    const parts = cleanMessage.split('||meta:');
+    const textPart = parts[0];
+    let metaPart = { reactions: {}, replies: [] };
+    
+    if (parts.length > 1) {
+      try {
+        metaPart = JSON.parse(parts[1]);
+      } catch (err) {
+        console.warn('[CHAT-META-PARSE] Failed to parse message metadata JSON:', err);
+      }
+    }
+    
+    if (!metaPart.reactions) metaPart.reactions = {};
+    if (!metaPart.replies) metaPart.replies = [];
+    
+    return {
+      dmPrefix: dmPrefix,
+      text: textPart,
+      meta: metaPart
+    };
+  }
+
+  serializeMessageMeta(dmPrefix, text, meta) {
+    return `${dmPrefix}${text}||meta:${JSON.stringify(meta)}`;
+  }
+
   renderSingleMessage(msg) {
     const isSelf = msg.username === this.myUsername;
     const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
 
-    // Strip out routing DM tags if printing
-    let cleanMessage = msg.message;
-    let hasDmPrefix = false;
-    if (cleanMessage && cleanMessage.startsWith('[DM:')) {
-      hasDmPrefix = true;
-      const match = cleanMessage.match(/^\[DM:[^\]]+\]\s*(.*)$/);
-      if (match) {
-        cleanMessage = match[1];
-      }
-    }
+    const parsed = this.parseMessageMeta(msg.message);
+    const textMsg = parsed.text;
+    const meta = parsed.meta;
 
     const msgElement = document.createElement('div');
     msgElement.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
+    msgElement.setAttribute('data-msg-id', msg.id);
     
     const cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+
+    // Build Reactions capsules UI
+    let reactionsHtml = '';
+    const activeReactions = Object.entries(meta.reactions).filter(([emoji, users]) => users && users.length > 0);
+    if (activeReactions.length > 0) {
+      reactionsHtml = `<div class="chat-msg__reactions-capsules">`;
+      activeReactions.forEach(([emoji, users]) => {
+        const hasReacted = users.includes(this.myUsername);
+        reactionsHtml += `
+          <span class="chat-msg__reaction-capsule ${hasReacted ? 'chat-msg__reaction-capsule--active' : ''}" data-emoji="${emoji}">
+            <span>${emoji}</span>
+            <span>${users.length}</span>
+          </span>
+        `;
+      });
+      reactionsHtml += `</div>`;
+    }
+
+    // Build Thread trigger indicator
+    let threadsHtml = '';
+    if (meta.replies && meta.replies.length > 0) {
+      const count = meta.replies.length;
+      threadsHtml = `
+        <div class="chat-msg__threads-trigger">
+          <span>🧵</span>
+          <span>${count} ${count > 1 ? 'replies' : 'reply'}</span>
+        </div>
+      `;
+    }
+
     msgElement.innerHTML = `
       <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
-      <div class="chat-msg__content-box">
+      <div class="chat-msg__content-box" style="width: 100%;">
         <div class="chat-msg__meta">
           <span class="chat-msg__sender">${msg.username}</span>
           <span>${time}</span>
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble">${cleanMessage}</div>
-          ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message">✏️</button>` : ''}
+          <div class="chat-msg__bubble">${textMsg}</div>
+          
+          <!-- Hover Action items row -->
+          <div class="chat-msg__action-bar">
+            ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message" style="position: static; opacity: 1; margin-right: 4px;">✏️</button>` : ''}
+            ${msg.id ? `<button class="chat-msg__reply-btn" title="Reply in thread">🧵</button>` : ''}
+          </div>
+
+          <!-- Hover springy emojis picker menu -->
+          ${msg.id ? `
+            <div class="chat-msg__quick-reactions">
+              <span class="chat-msg__reaction-emoji" data-emoji="👍">👍</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="❤️">❤️</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="🔥">🔥</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="😂">😂</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="😮">😮</span>
+            </div>
+          ` : ''}
         </div>
+        ${reactionsHtml}
+        ${threadsHtml}
       </div>
     `;
+
+    // 1. Bind Quick reactions picker clicks
+    msgElement.querySelectorAll('.chat-msg__reaction-emoji').forEach(emojiEl => {
+      emojiEl.onclick = (e) => {
+        e.stopPropagation();
+        const emoji = emojiEl.getAttribute('data-emoji');
+        this.toggleMessageReaction(msg, emoji);
+      };
+    });
+
+    // 2. Bind existing reactions capsules clicks
+    msgElement.querySelectorAll('.chat-msg__reaction-capsule').forEach(capsule => {
+      capsule.onclick = (e) => {
+        e.stopPropagation();
+        const emoji = capsule.getAttribute('data-emoji');
+        this.toggleMessageReaction(msg, emoji);
+      };
+    });
+
+    // 3. Bind Reply Thread clicks
+    const replyBtn = msgElement.querySelector('.chat-msg__reply-btn');
+    if (replyBtn) {
+      replyBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.openThreadDrawer(msg);
+      };
+    }
+
+    const threadTrigger = msgElement.querySelector('.chat-msg__threads-trigger');
+    if (threadTrigger) {
+      threadTrigger.onclick = (e) => {
+        e.stopPropagation();
+        this.openThreadDrawer(msg);
+      };
+    }
 
     // Bind Edit Button click event
     const editBtn = msgElement.querySelector('.chat-msg__edit-btn');
     if (editBtn) {
-      editBtn.onclick = () => {
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
         const bubbleContainer = msgElement.querySelector('.chat-msg__bubble-container');
         const originalBubble = msgElement.querySelector('.chat-msg__bubble');
+        const actionBar = msgElement.querySelector('.chat-msg__action-bar');
         
         // Hide original bubble and edit pencil
         originalBubble.style.display = 'none';
         editBtn.style.display = 'none';
+        if (actionBar) actionBar.style.display = 'none';
         
         // Render inline edit form
         const editContainer = document.createElement('div');
         editContainer.className = 'chat-msg__edit-form';
         editContainer.innerHTML = `
-          <input type="text" class="chat-msg__edit-input" value="${cleanMessage}" autocomplete="off">
+          <input type="text" class="chat-msg__edit-input" value="${textMsg}" autocomplete="off">
           <div class="chat-msg__edit-actions">
             <button class="chat-msg__action-save">Save</button>
             <button class="chat-msg__action-cancel">Cancel</button>
@@ -390,31 +547,24 @@ export class ChatController {
           editContainer.remove();
           originalBubble.style.display = 'block';
           editBtn.style.display = '';
+          if (actionBar) actionBar.style.display = '';
         };
         
         const saveEdit = async () => {
           const newText = input.value.trim();
           if (!newText) return;
           
-          if (newText === cleanMessage) {
+          if (newText === textMsg) {
             cancelEdit();
             return;
           }
           
           try {
-            // Re-apply original DM prefix if present
-            let finalMessage = newText;
-            if (hasDmPrefix && msg.message) {
-              const dmMatch = msg.message.match(/^(\[DM:[^\]]+\]\s*)(.*)$/);
-              if (dmMatch) {
-                finalMessage = `${dmMatch[1]}${newText}`;
-              }
-            }
+            // Re-apply original packed metadata & DM prefix
+            const finalMessage = this.serializeMessageMeta(parsed.dmPrefix, newText, meta);
             
             // Dispatch PUT request
             await api.updateChatMessage(msg.id, { message: finalMessage });
-            
-            // Remove edit UI—WebSocket listener takes care of updating and redrawing
             editContainer.remove();
           } catch (err) {
             console.error('[CHAT-EDIT-ERROR] Failed to save chat message edit:', err);
@@ -437,6 +587,141 @@ export class ChatController {
     }
 
     this.messagesContainer.appendChild(msgElement);
+  }
+
+  async toggleMessageReaction(msg, emoji) {
+    const parsed = this.parseMessageMeta(msg.message);
+    const meta = parsed.meta;
+    
+    if (!meta.reactions[emoji]) {
+      meta.reactions[emoji] = [];
+    }
+    
+    const userList = meta.reactions[emoji];
+    const idx = userList.indexOf(this.myUsername);
+    if (idx !== -1) {
+      userList.splice(idx, 1);
+    } else {
+      userList.push(this.myUsername);
+    }
+    
+    const finalMessage = this.serializeMessageMeta(parsed.dmPrefix, parsed.text, meta);
+    
+    try {
+      await api.updateChatMessage(msg.id, { message: finalMessage });
+    } catch (err) {
+      console.error('[CHAT-REACTION-ERROR] Failed to toggle reaction:', err);
+    }
+  }
+
+  openThreadDrawer(msg) {
+    this.activeThreadMsg = msg;
+    
+    const drawer = document.getElementById('threadDrawer');
+    const parentContainer = document.getElementById('threadParentMessage');
+    const repliesList = document.getElementById('threadRepliesList');
+    const replyInput = document.getElementById('threadReplyInput');
+    
+    if (!drawer || !parentContainer || !repliesList) return;
+    
+    if (replyInput) replyInput.value = '';
+    
+    drawer.classList.remove('hidden');
+    drawer.classList.add('visible');
+    
+    parentContainer.innerHTML = '';
+    const parentMsgEl = document.createElement('div');
+    parentMsgEl.className = 'chat-msg';
+    const cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+    const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+    const parsed = this.parseMessageMeta(msg.message);
+    
+    parentMsgEl.innerHTML = `
+      <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
+      <div class="chat-msg__content-box" style="width: 100%;">
+        <div class="chat-msg__meta">
+          <span class="chat-msg__sender">${msg.username}</span>
+          <span>${time}</span>
+        </div>
+        <div class="chat-msg__bubble">${parsed.text}</div>
+      </div>
+    `;
+    parentContainer.appendChild(parentMsgEl);
+    
+    this.drawThreadReplies();
+    if (replyInput) replyInput.focus();
+  }
+
+  drawThreadReplies() {
+    const repliesList = document.getElementById('threadRepliesList');
+    if (!repliesList || !this.activeThreadMsg) return;
+    
+    repliesList.innerHTML = '';
+    const parsed = this.parseMessageMeta(this.activeThreadMsg.message);
+    const replies = parsed.meta.replies || [];
+    
+    if (replies.length === 0) {
+      repliesList.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); font-size: 11px; font-style: italic; margin-top: 20px; width: 100%;">
+          No replies yet. Start the conversation!
+        </div>
+      `;
+      return;
+    }
+    
+    replies.forEach(reply => {
+      const isSelf = reply.username === this.myUsername;
+      const time = reply.timestamp ? new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+      const cleanAvatar = (reply.avatarUrl || '').split('||')[0];
+      
+      const replyEl = document.createElement('div');
+      replyEl.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
+      replyEl.style.maxWidth = '100%';
+      replyEl.innerHTML = `
+        <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${reply.username}">
+        <div class="chat-msg__content-box">
+          <div class="chat-msg__meta">
+            <span class="chat-msg__sender">${reply.username}</span>
+            <span>${time}</span>
+          </div>
+          <div class="chat-msg__bubble">${reply.message}</div>
+        </div>
+      `;
+      repliesList.appendChild(replyEl);
+    });
+    
+    repliesList.scrollTop = repliesList.scrollHeight;
+  }
+
+  async handleSendThreadReply() {
+    const replyInput = document.getElementById('threadReplyInput');
+    if (!replyInput || !this.activeThreadMsg) return;
+    
+    const text = replyInput.value.trim();
+    if (!text) return;
+    
+    replyInput.value = '';
+    
+    const parsed = this.parseMessageMeta(this.activeThreadMsg.message);
+    const meta = parsed.meta;
+    
+    const newReply = {
+      username: this.myUsername,
+      avatarUrl: this.myAvatar,
+      message: text,
+      timestamp: new Date().toISOString()
+    };
+    
+    meta.replies.push(newReply);
+    
+    const finalMessage = this.serializeMessageMeta(parsed.dmPrefix, parsed.text, meta);
+    
+    try {
+      await api.updateChatMessage(this.activeThreadMsg.id, { message: finalMessage });
+    } catch (err) {
+      console.error('[CHAT-THREAD-REPLY-ERROR] Failed to send reply:', err);
+      alert('Failed to send reply. Please try again.');
+    }
   }
 
   updateActiveUsersList(presence) {

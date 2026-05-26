@@ -165,7 +165,40 @@
           </button>
         </div>
       </div>
+
+      <!-- Floating Thread Replies Drawer - Phase 8 -->
+      <div class="thread-drawer hidden" id="threadDrawer">
+        <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: var(--spacing-md) var(--spacing-lg);">
+          <h3 class="chat-panel-header__title" style="color: var(--accent-purple); margin: 0; font-size: var(--font-size-sm); display: flex; align-items: center; gap: var(--spacing-xs)">
+            <span>🧵</span> Thread Replies
+          </h3>
+          <button id="closeThreadBtn" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+        </div>
+        
+        <!-- Parent original message capsule -->
+        <div class="thread-parent-container" id="threadParentMessage">
+          <!-- Injected dynamically -->
+        </div>
+        
+        <!-- Replies scroll thread -->
+        <div class="chat-messages-container" id="threadRepliesList">
+          <!-- Replies bubbles injected dynamically -->
+        </div>
+        
+        <!-- Thread reply input form -->
+        <div class="chat-input-area" style="border-top: 1px solid var(--border-color);">
+          <div class="chat-input-wrapper">
+            <input type="text" id="threadReplyInput" placeholder="Reply to thread..." class="chat-input" autocomplete="off">
+          </div>
+          <button id="threadReplySendBtn" class="chat-send-btn" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));" title="Send Reply">
+            <svg style="width: 14px; height: 14px; fill: var(--bg-primary)" viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </aside>
+
 
   </div>
 
