@@ -1,0 +1,85 @@
+/* =======================================================
+   Phase 9: Collaborative Live Cursor Sync Styling Rules
+   ======================================================= */
+
+.collaborative-cursor-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999; /* Below modals, above board cards */
+}
+
+/* Remote Cursor Container with smooth translation */
+.remote-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+  transform: translate(0, 0) scale(0.9);
+  transition: left 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              top 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.25s ease-out,
+              transform 0.25s ease-out;
+}
+
+.remote-cursor.visible {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+/* SVG Arrow tip custom styled pointer */
+.remote-cursor__pointer {
+  width: 18px;
+  height: 18px;
+  fill: var(--cursor-color, var(--accent-cyan));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 3px var(--cursor-color, var(--accent-cyan)));
+  transform: rotate(-10deg);
+}
+
+/* Glassmorphic role-colored username label */
+.remote-cursor__label {
+  margin-top: 2px;
+  margin-left: 10px;
+  background: rgba(10, 15, 25, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--cursor-color, var(--accent-cyan));
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #ffffff;
+  text-shadow: 0 0 2px var(--cursor-color, var(--accent-cyan));
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Role-based custom theme color parameters */
+.remote-cursor--product_owner {
+  --cursor-color: #ff0080;
+}
+
+.remote-cursor--manager {
+  --cursor-color: #8b54f6;
+}
+
+.remote-cursor--developer {
+  --cursor-color: #00f0ff;
+}
+
+.remote-cursor--qa {
+  --cursor-color: #f59e0b;
+}
+
+.remote-cursor--devops {
+  --cursor-color: #10b981;
+}

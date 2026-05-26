@@ -6,6 +6,7 @@ import { ChatController } from './chat';
 import { AICopilot } from './copilot';
 import { AIChatbot } from './chatbot';
 import { AdminView } from './admin';
+import { CursorSyncController } from './cursors';
 
 /**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
@@ -15,6 +16,7 @@ class TaskSphereApp {
   constructor() {
     this.currentView = null;
     this.chatController = null;
+    this.cursorSyncController = null;
     this.activeRoute = 'DASHBOARD'; // DASHBOARD, BOARD, AI_LAB
   }
 
@@ -757,6 +759,10 @@ class TaskSphereApp {
     this.chatController = new ChatController();
     this.chatController.init();
 
+    // Instantiate and initialize collaborative cursors controller
+    this.cursorSyncController = new CursorSyncController();
+    this.cursorSyncController.init();
+
     // Connect socket
     socket.connect(
       () => {
@@ -795,6 +801,9 @@ class TaskSphereApp {
         // Initialize Chat WebSocket subscriptions and presence sync
         this.chatController.subscribeChannels();
         this.chatController.syncMyPresence();
+
+        // Initialize Cursor WebSocket channel subscription
+        this.cursorSyncController.subscribeChannel();
       },
       (err) => {
         console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
@@ -1436,6 +1445,11 @@ class TaskSphereApp {
 
   async switchRoute(route) {
     this.activeRoute = route;
+ 
+    // Clear collaborative cursor representations on dynamic route switches
+    if (this.cursorSyncController) {
+      this.cursorSyncController.clearAllCursors();
+    }
  
     if (route === 'DASHBOARD') {
       this.currentView = new DashboardView('mainContainer');

@@ -57,6 +57,15 @@ public class RealtimeController {
         return presenceUpdate;
     }
 
+    /**
+     * Receives throttled cursor coordinates and broadcasts them over the collaborative sync channel.
+     */
+    @MessageMapping("/cursors.move")
+    @SendTo("/topic/cursors")
+    public Map<String, Object> syncCursor(Map<String, Object> cursorUpdate) {
+        return cursorUpdate;
+    }
+
     @Data
     public static class TaskMovePayload {
         private Long taskId;
