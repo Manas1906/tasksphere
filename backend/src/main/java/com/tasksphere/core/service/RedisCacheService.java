@@ -21,6 +21,15 @@ public class RedisCacheService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.data.redis.host:localhost}")
+    private String redisHost;
+
+    @org.springframework.beans.factory.annotation.Value("${spring.data.redis.port:6379}")
+    private String redisPort;
+
+    @org.springframework.beans.factory.annotation.Value("${spring.data.redis.ssl.enabled:false}")
+    private boolean redisSslEnabled;
+
     private boolean isRedisOffline = false;
 
     // Thread-safe in-memory fallback cache containers
@@ -29,11 +38,14 @@ public class RedisCacheService {
 
     @PostConstruct
     public void testConnection() {
+        System.out.println("[REDIS-DIAGNOSTIC] Connecting to Redis at host=" + redisHost + ", port=" + redisPort + ", ssl=" + redisSslEnabled);
+
         if (redisTemplate == null) {
             System.out.println("[REDIS-CACHE-WARNING] StringRedisTemplate not initialized. Running in Offline Caching Fallback mode.");
             isRedisOffline = true;
             return;
         }
+
 
         try {
             // Test connection factory connectivity
