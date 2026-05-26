@@ -61,12 +61,12 @@ public class AiBotService {
     public void processAiRequest(String userWhoTalked, String userAvatar, String textMessage, boolean isDm) {
         System.out.println("[AI-BOT] Processing request asynchronously from " + userWhoTalked + ": " + textMessage);
         
+        String cleanText = textMessage;
         try {
             // Give the frontend a nice subtle visual hint that the bot is thinking/working
             // We can do this by sending a temporary user presence typing event or message if desired.
             
             // Clean the user message for processing: strip the @Agile_AI_Bot tag if public
-            String cleanText = textMessage;
             if (!isDm) {
                 cleanText = textMessage.replaceAll("(?i)@Agile_AI_Bot", "").trim();
             } else {
@@ -75,6 +75,7 @@ public class AiBotService {
                     cleanText = cleanText.substring(cleanText.indexOf("]") + 1).trim();
                 }
             }
+
 
             // Step 1: Call Gemini with Tool Use configuration
             String jsonPayload = buildGeminiPayload(cleanText, userWhoTalked);
@@ -131,16 +132,33 @@ public class AiBotService {
             System.err.println("[AI-BOT-ERROR] Encountered exception while orchestrating AI response: " + e.getMessage());
             e.printStackTrace();
             
-            // Send graceful error message back to user so the UI is never hanging
+            // Check if it is a credential, quota, or rate limit error
+            boolean isQuotaOrKeyError = e.getMessage() != null && (
+                    e.getMessage().contains("403") || 
+                    e.getMessage().contains("429") || 
+                    e.getMessage().toLowerCase().contains("leaked") || 
+                    e.getMessage().toLowerCase().contains("quota") ||
+                    e.getMessage().toLowerCase().contains("resource_exhausted") ||
+                    e.getMessage().toLowerCase().contains("permission_denied")
+            );
+            
             try {
-                String errorMsg = "⚠️ **[Scrum AI Agent Error]**: " + e.getMessage() + 
-                                  "\n\n*Local Recovery*: The task database has remained intact. Please retry in a few moments.";
+                String recoveryReply;
+                if (isQuotaOrKeyError) {
+                    recoveryReply = "🤖 *[Offline Recovery Mode: Gemini Key Leaked/Exhausted]*\n\n" + 
+                                    getLocalAgileReply(cleanText) + 
+                                    "\n\n*(Scrum Master Tip: Your Google Gemini API Key was reported as leaked/revoked by Google or your free-tier daily quota was exhausted. Please generate a new key in Google AI Studio and configure it in Render env variables as `GEMINI_API_KEY`.)*";
+                } else {
+                    recoveryReply = "⚠️ **[Scrum AI Agent Error]**: " + e.getMessage() + 
+                                      "\n\n*Local Recovery*: The task database has remained intact. Please retry in a few moments.";
+                }
+                
                 String replyPrefix = isDm ? "[DM:" + userWhoTalked + "] " : "";
                 
                 ChatMessage errBotMessage = ChatMessage.builder()
                         .username("Agile_AI_Bot")
                         .avatarUrl("https://api.dicebear.com/7.x/bottts/svg?seed=AgileAiBot")
-                        .message(replyPrefix + errorMsg)
+                        .message(replyPrefix + recoveryReply)
                         .timestamp(Instant.now())
                         .build();
                 
@@ -152,6 +170,7 @@ public class AiBotService {
             }
         }
     }
+
 
     /**
      * Executes database operations corresponding to requested Gemini tools.
@@ -438,4 +457,49 @@ public class AiBotService {
 
         return mapper.writeValueAsString(root);
     }
+
+    /**
+     * Resilient fallback method returning rich Scrum advice and live task breakdowns offline.
+     */
+    private String getLocalAgileReply(String query) {
+        String q = query != null ? query.toLowerCase() : "";
+        
+        if (q.contains("list") || q.contains("task") || q.contains("ticket") || q.contains("show")) {
+            try {
+                List<Task> tasks = taskService.getAllTasks();
+                if (tasks.isEmpty()) {
+                    return "I've checked our active sprint board and it is currently empty! All columns are clean. Let me know if you would like me to outline a standard Scrum template for a new feature.";
+                }
+                
+                StringBuilder sb = new StringBuilder("Here is a summary of our active Kanban sprint deliverables (Offline Mode):\n\n");
+                for (Task t : tasks) {
+                    String assignee = t.getAssignee() != null ? t.getAssignee().getUsername() : "Unassigned";
+                    sb.append(String.format("• **Task #%d**: `%s` (Status: *%s*, Assignee: *%s*, Story Points: **%d**)\n",
+                            t.getId(), t.getTitle(), t.getStatus(), assignee, t.getStoryPoints()));
+                }
+                return sb.toString();
+            } catch (Exception ex) {
+                return "I tried to fetch our active sprint board, but encountered an error. Please verify your local task database configuration!";
+            }
+        }
+        
+        if (q.contains("create") || q.contains("add") || q.contains("new")) {
+            return "To create a task in Offline Recovery Mode, please use the Kanban board directly by clicking the **+ Add Task** button at the top of the columns. Once your new Google Gemini API key is configured, you can use active commands like: `@Agile_AI_Bot create task...` to build cards instantly!";
+        }
+        
+        if (q.contains("move") || q.contains("status") || q.contains("kanban")) {
+            return "In Offline Recovery Mode, you can move cards across columns by dragging and dropping them directly on the board. This updates all collaborative clients instantly over WebSockets!";
+        }
+        
+        if (q.contains("points") || q.contains("estimation") || q.contains("fibonacci")) {
+            return "Fibonacci story points (1, 2, 3, 5, 8, 13) represent relative complexity and uncertainty rather than absolute hours. Use planning poker sessions with your team to align velocity estimates!";
+        }
+        
+        if (q.contains("hello") || q.contains("hi") || q.contains("hey")) {
+            return "Hello! I am your Agile Scrum Assistant. Even though our live Gemini model is currently in offline recovery mode, I can still help you with Scrum guidelines or list active tasks. Ask me anything about sprint velocity, estimations, or task listings!";
+        }
+        
+        return "That is an excellent Scrum question! To maintain high velocity, ensure that ticket dependencies are resolved early in the grooming phase, and that you follow clean, clear definition-of-done criteria.";
+    }
 }
+
