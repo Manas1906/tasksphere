@@ -308,10 +308,11 @@ public class AiBotService {
      * Makes standard POST connection to Gemini API.
      */
     private String callGeminiApi(String jsonPayload) throws Exception {
-        String url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
