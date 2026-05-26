@@ -180,6 +180,12 @@ class ApiService {
   updateChatMessage(id, payload) {
     return this.request(`/chat-messages/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
+
+  /* ---- Predictive Sprint Simulation (Phase 12) ---- */
+  runSprintSimulation() {
+    return this.request('/sprint-simulation/run', { method: 'POST' });
+  }
 }
+
 
 export const api = new ApiService();

@@ -74,6 +74,25 @@ export class DashboardView {
           </table>
         </div>
       </div>
+
+      <!-- Predictive Sprint Simulation & Forecast Panel (Phase 12) -->
+      <div class="chart-card" style="margin-top: var(--spacing-lg)">
+        <div class="chart-card__title" style="display: flex; align-items: center; gap: 8px;">
+          <span>🔮</span> Predictive AI Sprint Simulation & Forecast
+        </div>
+        <p style="color: var(--text-muted); font-size: var(--font-size-xs); margin-bottom: var(--spacing-md)">
+          Execute a 1,000-path mathematical Monte Carlo simulation coupled with real-time Google Gemini analysis to model team capacity and rebalance workloads.
+        </p>
+        
+        <div id="simulationPanelContent" style="display: flex; flex-direction: column; gap: var(--spacing-md); width: 100%">
+          <!-- Initial state: Big call-to-action button -->
+          <div style="display: flex; justify-content: center; align-items: center; padding: var(--spacing-xl) 0">
+            <button id="runSimulationBtn" class="auth-btn" style="background: linear-gradient(135deg, #8b54f6 0%, #ff0080 100%); border: none; padding: 12px 30px; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.3); border-radius: var(--border-radius-md); transition: transform 0.2s, box-shadow 0.2s;">
+              <span>🔮</span> Run Sprint Simulation
+            </button>
+          </div>
+        </div>
+      </div>
     `;
 
     this.bindEvents();
@@ -89,7 +108,196 @@ export class DashboardView {
         await this.loadAndProcessData();
       });
     });
+
+    const runSimBtn = this.container.querySelector('#runSimulationBtn');
+    if (runSimBtn) {
+      runSimBtn.addEventListener('click', () => this.handleRunSimulation());
+    }
   }
+
+  async handleRunSimulation() {
+    const panelContent = this.container.querySelector('#simulationPanelContent');
+    if (!panelContent) return;
+
+    // 1. Renders dynamic cyber-loader stages
+    const stages = [
+      "Initializing Monte Carlo calculus clusters...",
+      "Simulating 1,000 randomized velocity sprint paths...",
+      "Evaluating workload resource constraints...",
+      "Submitting telemetry metrics to Gemini AI Advisor...",
+      "Compiling predictive Scrum timeline report..."
+    ];
+
+    let currentStage = 0;
+    panelContent.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--spacing-xl) 0; gap: var(--spacing-md);">
+        <div class="chatbot-bubble--loading" style="display: flex; gap: 6px; padding: var(--spacing-md); background: rgba(139, 84, 246, 0.1); border-radius: var(--border-radius-md); border: 1px dashed var(--accent-purple);">
+          <span class="typing-dot" style="background: var(--accent-purple)"></span>
+          <span class="typing-dot" style="background: var(--accent-cyan)"></span>
+          <span class="typing-dot" style="background: var(--accent-rose)"></span>
+        </div>
+        <div id="simulationStageText" style="font-size: var(--font-size-sm); color: var(--accent-purple); font-weight: bold; height: 20px; transition: opacity 0.2s;">
+          ${stages[0]}
+        </div>
+      </div>
+    `;
+
+    const stageInterval = setInterval(() => {
+      currentStage = (currentStage + 1) % stages.length;
+      const stageTextEl = this.container.querySelector('#simulationStageText');
+      if (stageTextEl) {
+        stageTextEl.style.opacity = '0';
+        setTimeout(() => {
+          stageTextEl.textContent = stages[currentStage];
+          stageTextEl.style.opacity = '1';
+        }, 200);
+      }
+    }, 1500);
+
+    try {
+      // 2. Fetch calculations from backend
+      const result = await api.runSprintSimulation();
+      clearInterval(stageInterval);
+
+      // 3. Render success probability outcomes
+      const likelihood = result.completionLikelihood;
+      const riskTier = result.riskTier || 'LOW';
+      
+      const riskColor = riskTier === 'HIGH' ? 'var(--accent-rose)' : (riskTier === 'MEDIUM' ? 'var(--accent-amber)' : 'var(--accent-cyan)');
+      const shadowColor = riskTier === 'HIGH' ? 'rgba(255, 0, 85, 0.3)' : (riskTier === 'MEDIUM' ? 'rgba(255, 204, 0, 0.3)' : 'rgba(0, 255, 204, 0.3)');
+
+      // Map bottlenecks list
+      let bottleneckListHtml = "";
+      if (result.bottlenecks && result.bottlenecks.length > 0) {
+        bottleneckListHtml = result.bottlenecks.map(b => {
+          let cleanText = b.replace(/\*\*/g, '');
+          let emoji = "🚨";
+          if (cleanText.includes("Unassigned")) emoji = "⚠️";
+          if (cleanText.includes("Resource")) emoji = "👤";
+          return `
+            <div style="font-size: 11px; padding: var(--spacing-xs); background: rgba(255,255,255,0.02); border-radius: var(--border-radius-sm); border-left: 2px solid var(--border-color); display: flex; gap: 6px; align-items: flex-start; line-height: 1.4;">
+              <span style="font-size: 13px;">${emoji}</span>
+              <span style="color: var(--text-muted);">${cleanText}</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        bottleneckListHtml = `
+          <div style="font-size: 11px; color: var(--text-muted); font-style: italic; text-align: center; padding: var(--spacing-md);">
+            ✅ No critical SLA exceptions or resource bottlenecks detected.
+          </div>
+        `;
+      }
+
+      // Map AI recommendations list
+      let recommendationsListHtml = "";
+      if (result.recommendations && result.recommendations.length > 0) {
+        recommendationsListHtml = result.recommendations.map((rec, i) => {
+          return `
+            <div style="display: flex; gap: 8px; align-items: flex-start; line-height: 1.4;">
+              <span style="display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(139, 84, 246, 0.1); color: var(--accent-purple); font-size: 10px; font-weight: bold; flex-shrink: 0;">${i + 1}</span>
+              <span style="font-size: 11px; color: var(--text-main); font-weight: 500;">${rec}</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        recommendationsListHtml = `
+          <div style="font-size: 11px; color: var(--text-muted); font-style: italic; padding: var(--spacing-sm);">
+            No recommendations generated. Backlog looks fully optimized!
+          </div>
+        `;
+      }
+
+      panelContent.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md); width: 100%; margin-top: var(--spacing-sm)">
+          
+          <!-- Column 1: Semicircular Gauge -->
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 220px; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: var(--spacing-sm); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Completion Likelihood</div>
+            <div class="simulation-gauge-container" style="position: relative; width: 160px; height: 100px;">
+              <svg viewBox="0 0 100 55" style="width: 100%; height: 100%">
+                <defs>
+                  <linearGradient id="gauge-risk-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="var(--accent-rose)" />
+                    <stop offset="50%" stop-color="var(--accent-amber)" />
+                    <stop offset="100%" stop-color="var(--accent-cyan)" />
+                  </linearGradient>
+                </defs>
+                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-linecap="round" />
+                <path id="gaugePath" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#gauge-risk-grad)" stroke-width="8" stroke-linecap="round" 
+                      stroke-dasharray="126" stroke-dashoffset="126" style="transition: stroke-dashoffset 1.5s cubic-bezier(0.22, 1, 0.36, 1);" />
+              </svg>
+              <div style="position: absolute; bottom: 8px; width: 100%; text-align: center;">
+                <div style="font-size: 26px; font-weight: 800; font-family: 'Fira Code', monospace; color: var(--text-primary); text-shadow: 0 0 10px ${shadowColor};">${likelihood}%</div>
+                <div style="font-size: 10px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; color: ${riskColor};">${riskTier} RISK</div>
+              </div>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); text-align: center; margin-top: var(--spacing-xs)">
+              Simulated across ${result.daysRemaining} remaining sprint days
+            </div>
+          </div>
+
+          <!-- Column 2: Bottlenecks List -->
+          <div style="flex: 1.2; display: flex; flex-direction: column; min-width: 250px; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: var(--spacing-sm); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Critical Path & Blockages</div>
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-height: 140px; overflow-y: auto; padding-right: 4px;">
+              ${bottleneckListHtml}
+            </div>
+          </div>
+
+          <!-- Column 3: AI Recommendations -->
+          <div style="flex: 1.5; display: flex; flex-direction: column; min-width: 280px; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-purple); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <div style="font-size: 10px; color: var(--accent-purple); margin-bottom: var(--spacing-sm); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;">
+              🔮 AI Sprint Advisor
+            </div>
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+              ${recommendationsListHtml}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action Bar to rerun -->
+        <div style="display: flex; justify-content: flex-end; width: 100%; margin-top: var(--spacing-sm);">
+          <button id="runSimulationBtn" class="auth-btn" style="background: rgba(139, 84, 246, 0.1); border: 1px solid var(--accent-purple); padding: 8px 18px; color: var(--accent-purple); font-size: var(--font-size-xs); font-weight: bold; cursor: pointer; border-radius: var(--border-radius-sm); transition: background 0.2s;">
+            <span>🔮</span> Rerun Simulation
+          </button>
+        </div>
+      `;
+
+      // Trigger the SVG gauge dashoffset transition trigger on next frame
+      setTimeout(() => {
+        const fillArc = panelContent.querySelector('#gaugePath');
+        if (fillArc) {
+          fillArc.style.strokeDashoffset = 126 - (126 * likelihood / 100);
+        }
+      }, 50);
+
+      // Re-bind the click event on the newly injected Rerun button
+      const newSimBtn = panelContent.querySelector('#runSimulationBtn');
+      if (newSimBtn) {
+        newSimBtn.addEventListener('click', () => this.handleRunSimulation());
+      }
+
+    } catch (err) {
+      clearInterval(stageInterval);
+      console.error('[SPRINT-SIMULATOR-ERROR] Failed to run sprint simulation:', err);
+      panelContent.innerHTML = `
+        <div style="text-align: center; padding: var(--spacing-lg) 0; border: 1px dashed var(--accent-rose); border-radius: var(--border-radius-md); background: rgba(255, 0, 85, 0.05);">
+          <div style="color: var(--accent-rose); font-weight: bold; font-size: var(--font-size-sm); margin-bottom: var(--spacing-xs);">⚠️ Predictive Simulation Run Failed</div>
+          <p style="color: var(--text-muted); font-size: var(--font-size-xs); margin-bottom: var(--spacing-md);">${err.message}</p>
+          <button id="runSimulationBtn" class="auth-btn" style="background: var(--bg-secondary); border: 1px solid var(--accent-rose); color: var(--accent-rose); padding: 8px 16px; border-radius: var(--border-radius-sm); font-weight: bold; cursor: pointer;">
+            Retry Simulation
+          </button>
+        </div>
+      `;
+      const retryBtn = panelContent.querySelector('#runSimulationBtn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', () => this.handleRunSimulation());
+      }
+    }
+  }
+
 
   async loadAndProcessData() {
     // Renders visual skeleton loaders
