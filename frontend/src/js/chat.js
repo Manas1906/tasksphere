@@ -44,12 +44,8 @@ export class ChatController {
       // Filter out pending users and current user
       const approvedTeammates = users.filter(u => u.status !== 'PENDING_APPROVAL' && u.username !== this.myUsername);
       
-      // Map database users to activeMember structure
-      let cachedMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
-      
+      // Map database users directly using their database status (zero cache dependency!)
       const mappedMembers = approvedTeammates.map(dbUser => {
-        const existing = cachedMembers.find(m => m.username === dbUser.username);
-        
         // Extract clean avatar URL
         let cleanAvatar = dbUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${dbUser.username}`;
         if (cleanAvatar.includes('||')) {
@@ -61,8 +57,8 @@ export class ChatController {
           username: dbUser.username,
           avatarUrl: cleanAvatar,
           role: dbUser.role || 'DEVELOPER',
-          status: existing ? existing.status : 'OFFLINE',
-          lastActive: existing ? existing.lastActive : 0
+          status: dbUser.status || 'OFFLINE',
+          lastActive: dbUser.lastActiveTime ? new Date(dbUser.lastActiveTime).getTime() : 0
         };
       });
       
@@ -728,18 +724,38 @@ export class ChatController {
     // Collect active members and cache details locally
     let activeMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
     
-    // Invalidate/Remove account from list immediately if they went offline, got pending state, or were revoked
-    if (presence.username && (presence.status === 'OFFLINE' || presence.status === 'PENDING_APPROVAL' || presence.action === 'REJECTED')) {
-      activeMembers = activeMembers.filter(m => m.username !== presence.username);
-      localStorage.setItem('cache_users', JSON.stringify(activeMembers));
-      
-      // If we were chatting with this partner and they disappeared, return to group room
-      if (this.activeChatPartner === presence.username) {
-        this.switchChatPartner(null);
-      } else {
-        this.drawAvatars(activeMembers);
+    // Invalidate/Remove account from list immediately if they got pending state or were revoked
+    if (presence.username) {
+      if (presence.status === 'PENDING_APPROVAL' || presence.action === 'REJECTED') {
+        activeMembers = activeMembers.filter(m => m.username !== presence.username);
+        localStorage.setItem('cache_users', JSON.stringify(activeMembers));
+        
+        // If we were chatting with this partner and they disappeared, return to group room
+        if (this.activeChatPartner === presence.username) {
+          this.switchChatPartner(null);
+        } else {
+          this.drawAvatars(activeMembers);
+        }
+        return;
       }
-      return;
+      
+      if (presence.status === 'OFFLINE') {
+        // Mark user as OFFLINE but retain them in the cache directory (so they are available in ticket assignee list, etc.)
+        const existingIdx = activeMembers.findIndex(m => m.username === presence.username);
+        if (existingIdx !== -1) {
+          activeMembers[existingIdx].status = 'OFFLINE';
+          activeMembers[existingIdx].lastActive = Date.now();
+        }
+        localStorage.setItem('cache_users', JSON.stringify(activeMembers));
+        
+        // If we were chatting with this partner and they went offline, return to group room
+        if (this.activeChatPartner === presence.username) {
+          this.switchChatPartner(null);
+        } else {
+          this.drawAvatars(activeMembers);
+        }
+        return;
+      }
     }
 
     // Register active user in cache
@@ -768,7 +784,10 @@ export class ChatController {
   drawAvatars(activeMembers) {
     this.activeUsersContainer.innerHTML = '';
     
-    activeMembers.forEach(user => {
+    // Horizontal active bar should only draw members that are actively online/away/dnd
+    const onlineMembers = activeMembers.filter(user => user.status && user.status !== 'OFFLINE');
+    
+    onlineMembers.forEach(user => {
       const avatarWrap = document.createElement('div');
       avatarWrap.className = 'active-user-avatar-wrap';
       avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g, ' ')}) - ${user.status}`;
@@ -808,6 +827,6 @@ export class ChatController {
       this.activeUsersContainer.appendChild(avatarWrap);
     });
 
-    this.userCountSpan.textContent = `${activeMembers.length} active session${activeMembers.length > 1 ? 's' : ''}`;
+    this.userCountSpan.textContent = `${onlineMembers.length} active session${onlineMembers.length > 1 ? 's' : ''}`;
   }
 }
