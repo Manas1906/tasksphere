@@ -443,7 +443,7 @@
 /* Springy quick emojis reaction menu */
 .chat-msg__quick-reactions {
   position: absolute;
-  top: -30px;
+  top: -28px;
   right: 0;
   background: rgba(10, 15, 30, 0.95);
   backdrop-filter: blur(8px);
@@ -459,6 +459,18 @@
   transform: translateY(5px) scale(0.95);
   pointer-events: none;
   transition: opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Invisible pseudo-element bridge to prevent hover loss between bubble and reaction menu */
+.chat-msg__quick-reactions::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -15px;
+  height: 20px;
+  background: transparent;
+  z-index: -1;
 }
 
 .chat-msg--self .chat-msg__quick-reactions {
