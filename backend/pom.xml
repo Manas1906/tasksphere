@@ -81,6 +81,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis Cache (Phase 10) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- Spring Boot Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

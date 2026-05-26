@@ -2,12 +2,10 @@ package com.tasksphere.core.controller;
 
 import com.tasksphere.core.model.ChatMessage;
 import com.tasksphere.core.service.ChatService;
+import com.tasksphere.core.service.RedisCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,35 +17,61 @@ public class ChatController {
     private ChatService chatService;
 
     @Autowired
+    private RedisCacheService redisCacheService;
+
+    @Autowired
     private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Retrieve the recent 50 chat messages from the database.
+     * Retrieve the recent 50 chat messages from the cache or database.
      */
     @GetMapping
     public ResponseEntity<List<ChatMessage>> getRecentChatHistory() {
-        return ResponseEntity.ok(chatService.getRecentMessages());
+        // Try reading from high-speed cache first
+        List<ChatMessage> cached = redisCacheService.getCachedChatHistory();
+        if (cached != null) {
+            System.out.println("[CHAT-CACHE-HIT] Served recent chat history directly from Redis Cache.");
+            return ResponseEntity.ok(cached);
+        }
+
+        System.out.println("[CHAT-CACHE-MISS] Cold history cache. Accessing database context...");
+        List<ChatMessage> messages = chatService.getRecentMessages();
+        
+        // Populate cache for subsequent hits
+        if (messages != null) {
+            // Invalidate first to ensure we write clean list
+            redisCacheService.invalidateChatHistory();
+            for (ChatMessage msg : messages) {
+                redisCacheService.cacheChatMessage(msg);
+            }
+        }
+
+        return ResponseEntity.ok(messages);
     }
 
     /**
-     * Delete all chat messages from the database history.
+     * Delete all chat messages from the database history and invalidate cache.
      */
     @DeleteMapping
     public ResponseEntity<Void> clearChatHistory() {
         chatService.clearHistory();
+        redisCacheService.invalidateChatHistory();
         return ResponseEntity.noContent().build();
     }
 
     /**
-     * Edit a chat message in the database and broadcast the update over WebSocket.
+     * Edit a chat message in the database, invalidate cache, and broadcast update over WebSocket.
      */
-    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<ChatMessage> editChatMessage(
-            @org.springframework.web.bind.annotation.PathVariable Long id,
-            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> payload) {
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> payload) {
         
         String newText = payload.get("message");
         ChatMessage updated = chatService.updateMessage(id, newText);
+        
+        // Invalidate message history cache to guarantee data consistency
+        redisCacheService.invalidateChatHistory();
         
         // Broadcast the updated message to all live WebSocket listeners
         messagingTemplate.convertAndSend("/topic/chat", updated);

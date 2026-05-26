@@ -4,6 +4,7 @@ import com.tasksphere.core.model.ChatMessage;
 import com.tasksphere.core.model.Task;
 import com.tasksphere.core.service.ChatService;
 import com.tasksphere.core.service.TaskService;
+import com.tasksphere.core.service.RedisCacheService;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -24,6 +25,9 @@ public class RealtimeController {
     private TaskService taskService;
 
     @Autowired
+    private RedisCacheService redisCacheService;
+
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -33,7 +37,12 @@ public class RealtimeController {
     @SendTo("/topic/chat")
     public ChatMessage sendMessage(ChatMessage message) {
         message.setTimestamp(Instant.now());
-        return chatService.saveMessage(message);
+        ChatMessage saved = chatService.saveMessage(message);
+        
+        // Cache the newly saved message in Redis capped list
+        redisCacheService.cacheChatMessage(saved);
+        
+        return saved;
     }
 
     /**
@@ -54,6 +63,13 @@ public class RealtimeController {
     @SendTo("/topic/users")
     public Map<String, Object> syncUserPresence(Map<String, Object> presenceUpdate) {
         presenceUpdate.put("syncedAt", Instant.now());
+        
+        // Synchronize in-memory/Redis TTL presence registration
+        String username = (String) presenceUpdate.get("username");
+        if (username != null) {
+            redisCacheService.cachePresence(username);
+        }
+        
         return presenceUpdate;
     }
 
