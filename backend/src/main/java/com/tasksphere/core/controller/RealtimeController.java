@@ -28,6 +28,9 @@ public class RealtimeController {
     private RedisCacheService redisCacheService;
 
     @Autowired
+    private com.tasksphere.core.service.AiBotService aiBotService;
+
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -42,8 +45,22 @@ public class RealtimeController {
         // Cache the newly saved message in Redis capped list
         redisCacheService.cacheChatMessage(saved);
         
+        // Intercept triggers for Agile_AI_Bot
+        if (!"Agile_AI_Bot".equalsIgnoreCase(saved.getUsername())) {
+            String msgText = saved.getMessage();
+            if (msgText != null) {
+                boolean isDm = msgText.startsWith("[DM:Agile_AI_Bot]");
+                boolean isMention = msgText.toLowerCase().contains("@agile_ai_bot");
+                
+                if (isDm || isMention) {
+                    aiBotService.processAiRequest(saved.getUsername(), saved.getAvatarUrl(), msgText, isDm);
+                }
+            }
+        }
+        
         return saved;
     }
+
 
     /**
      * Receives task updates (like card column changes) and broadcasts it to synched boards.

@@ -19,7 +19,7 @@ public class TaskSphereApplication {
     }
 
     @Bean
-    public CommandLineRunner databaseInitializer(JdbcTemplate jdbcTemplate) {
+    public CommandLineRunner databaseInitializer(JdbcTemplate jdbcTemplate, com.tasksphere.core.repository.UserSessionRepository userSessionRepository) {
         return args -> {
             try {
                 String dbName = jdbcTemplate.getDataSource().getConnection().getMetaData().getDatabaseProductName();
@@ -37,8 +37,34 @@ public class TaskSphereApplication {
             } catch (Exception e) {
                 System.err.println("[DB-INIT-WARNING] Did not execute database column alter: " + e.getMessage());
             }
+
+            try {
+                if (userSessionRepository.findByUsername("Agile_AI_Bot").isEmpty()) {
+                    System.out.println("[DB-INIT] Registering virtual teammate Agile_AI_Bot in database...");
+                    com.tasksphere.core.model.UserSession bot = com.tasksphere.core.model.UserSession.builder()
+                            .id("agile-ai-bot-uuid-static-1111")
+                            .username("Agile_AI_Bot")
+                            .role("AI_ASSISTANT")
+                            .status("ONLINE")
+                            .lastActiveTime(java.time.Instant.now())
+                            .build();
+                    bot.packMetadata("https://api.dicebear.com/7.x/bottts/svg?seed=AgileAiBot", "ai-bot@tasksphere.com", null, false);
+                    userSessionRepository.save(bot);
+                    System.out.println("[DB-INIT] Agile_AI_Bot successfully registered!");
+                } else {
+                    // Update active status to ONLINE just in case
+                    userSessionRepository.findByUsername("Agile_AI_Bot").ifPresent(bot -> {
+                        bot.setStatus("ONLINE");
+                        bot.setLastActiveTime(java.time.Instant.now());
+                        userSessionRepository.save(bot);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[DB-INIT-WARNING] Failed to initialize virtual Agile_AI_Bot teammate: " + e.getMessage());
+            }
         };
     }
+
 
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
