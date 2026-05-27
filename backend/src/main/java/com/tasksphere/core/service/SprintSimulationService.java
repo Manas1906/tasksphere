@@ -190,20 +190,26 @@ public class SprintSimulationService {
         System.out.println("[SPRINT-SIMULATOR] Fetching AI Agile Sprint advice from Gemini...");
 
         try {
-            // Build the analytical prompt representing the sprint context
+            // Build the analytical prompt representing the sprint context using structured XML delimiters
             StringBuilder promptBuilder = new StringBuilder();
-            promptBuilder.append("System Context: You are the Lead Agile Scrum Master Co-Pilot in TaskSphere.\n");
-            promptBuilder.append("You must analyze the following sprint diagnostic metrics and provide exactly 3 or 4 short, highly focused, actionable rebalancing recommendations to the team to reduce risk and deliver the sprint backlog.\n\n");
+            promptBuilder.append("<role>\n");
+            promptBuilder.append("You are the Lead Agile Scrum Master Co-Pilot in TaskSphere.\n");
+            promptBuilder.append("</role>\n\n");
             
-            promptBuilder.append(String.format("Sprint Diagnostic Metrics:\n"));
+            promptBuilder.append("<task>\n");
+            promptBuilder.append("Analyze the following sprint diagnostic metrics and provide exactly 3 or 4 short, highly focused, actionable rebalancing recommendations to the team to reduce risk and deliver the sprint backlog.\n");
+            promptBuilder.append("</task>\n\n");
+            
+            promptBuilder.append("<metrics>\n");
             promptBuilder.append(String.format("- Simulated Success Likelihood: %d%%\n", likelihood));
             promptBuilder.append(String.format("- Calculated Risk Level: %s\n", risk));
             promptBuilder.append(String.format("- Days Remaining in Sprint: %d days\n", daysLeft));
             promptBuilder.append(String.format("- Backlog Story Points Outstanding: %d SP\n", pointsLeft));
             promptBuilder.append(String.format("- Overdue Tasks Count: %d\n", overdueCount));
-            promptBuilder.append(String.format("- Unassigned High/Critical Priority Tasks: %d\n\n", unassignedCount));
+            promptBuilder.append(String.format("- Unassigned High/Critical Priority Tasks: %d\n", unassignedCount));
+            promptBuilder.append("</metrics>\n\n");
             
-            promptBuilder.append("Current Developer Story Point Workloads:\n");
+            promptBuilder.append("<developer_workloads>\n");
             if (backlogs.isEmpty()) {
                 promptBuilder.append("- No active developer workloads are mapped.\n");
             } else {
@@ -211,8 +217,9 @@ public class SprintSimulationService {
                     promptBuilder.append(String.format("- '%s': %d SP outstanding\n", entry.getKey(), entry.getValue()));
                 }
             }
+            promptBuilder.append("</developer_workloads>\n\n");
             
-            promptBuilder.append("\nIdentified Bottlenecks & SLA Blockages:\n");
+            promptBuilder.append("<bottlenecks>\n");
             if (bottlenecks.isEmpty()) {
                 promptBuilder.append("- No critical blockages identified.\n");
             } else {
@@ -220,8 +227,14 @@ public class SprintSimulationService {
                     promptBuilder.append("- ").append(b.replaceAll("\\*\\*", "")).append("\n");
                 }
             }
+            promptBuilder.append("</bottlenecks>\n\n");
 
-            promptBuilder.append("\nRequirements: Return a JSON array of strings containing exactly 3 or 4 actionable recommendations. Keep each recommendation under 15 words and make them very specific, direct, and practical (e.g. 'Reassign high-priority ticket from overloaded user X to Y'). Do not return markdown, blocks, or explanation text. Just return the JSON array of strings.");
+            promptBuilder.append("<output_requirements>\n");
+            promptBuilder.append("- Return a JSON array of strings containing exactly 3 or 4 actionable recommendations.\n");
+            promptBuilder.append("- Keep each recommendation under 15 words.\n");
+            promptBuilder.append("- Make them very specific, direct, and practical (e.g. 'Reassign high-priority ticket from overloaded user X to Y').\n");
+            promptBuilder.append("- Do not return markdown, blocks, or explanation text. Just return the JSON array of strings.\n");
+            promptBuilder.append("</output_requirements>");
 
             ObjectNode root = mapper.createObjectNode();
             ArrayNode contents = root.putArray("contents");

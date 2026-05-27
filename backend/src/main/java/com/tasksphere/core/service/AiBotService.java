@@ -82,7 +82,7 @@ public class AiBotService {
             }
 
             // Step 1: Call Gemini with Tool Use configuration
-            String jsonPayload = buildGeminiPayload(cleanText, userWhoTalked);
+            String jsonPayload = buildGeminiPayload(textMessage, userWhoTalked, isDm);
             String responseBody = callGeminiApi(jsonPayload);
             
             // Step 2: Parse Gemini response for function calls or direct text
@@ -378,25 +378,29 @@ public class AiBotService {
     /**
      * Builds Jackson ObjectNode representing the Gemini content generation request with full Tools declarations.
      */
-    private String buildGeminiPayload(String query, String userWhoTalked) throws Exception {
+    private String buildGeminiPayload(String query, String userWhoTalked, boolean isDm) throws Exception {
         ObjectNode root = mapper.createObjectNode();
 
-        // Contents
+        // Contents (Stateful Multi-Turn Conversational History with Sliding Window Truncation)
         ArrayNode contents = root.putArray("contents");
-        ObjectNode userTurn = contents.addObject();
-        userTurn.put("role", "user");
-        ArrayNode parts = userTurn.putArray("parts");
-        parts.addObject().put("text", query);
+        appendConversationalHistory(contents, userWhoTalked, isDm, query);
 
-        // System Instruction
+        // System Instruction (XML-style Prompt Optimization for Gemini 3 Alignment)
         ObjectNode systemInstruction = root.putObject("systemInstruction");
         ArrayNode systemParts = systemInstruction.putArray("parts");
         systemParts.addObject().put("text",
-                "You are Agile_AI_Bot, an active virtual teammate in the TaskSphere Scrum board web application. " +
-                "You have administrative rights and can directly query or manipulate Kanban tasks in the database using the tools provided. " +
-                "You are extremely technical, efficient, and direct. Keep your final answers helpful, professional, and under 4 sentences. " +
-                "The active developer talking to you is: " + userWhoTalked + ". " +
-                "Always run tools when the user requests actions like listing, creating, moving, reassigning, or deleting tasks!"
+                "<role>\n" +
+                "You are Agile_AI_Bot, an active virtual teammate in the TaskSphere Scrum board web application.\n" +
+                "</role>\n\n" +
+                "<capabilities>\n" +
+                "- You have administrative rights to directly query or manipulate Kanban tasks in the database using the tools provided.\n" +
+                "- You are extremely technical, efficient, and direct.\n" +
+                "</capabilities>\n\n" +
+                "<constraints>\n" +
+                "- Keep your final answers helpful, professional, and under 4 sentences.\n" +
+                "- The active developer talking to you is: " + userWhoTalked + ".\n" +
+                "- Always run tools when the user requests actions like listing, creating, moving, reassigning, or deleting tasks!\n" +
+                "</constraints>"
         );
 
         // Tools
@@ -463,6 +467,96 @@ public class AiBotService {
         deleteTaskReq.add("taskId");
 
         return mapper.writeValueAsString(root);
+    }
+
+    private List<ChatMessage> getRelevantHistory(String userWhoTalked, boolean isDm) {
+        List<ChatMessage> recent = chatService.getRecentMessages();
+        List<ChatMessage> filtered = new java.util.ArrayList<>();
+        
+        for (ChatMessage msg : recent) {
+            String txt = msg.getMessage();
+            if (txt == null) continue;
+            
+            if (isDm) {
+                boolean userToBot = msg.getUsername().equalsIgnoreCase(userWhoTalked) && txt.startsWith("[DM:Agile_AI_Bot]");
+                boolean botToUser = msg.getUsername().equalsIgnoreCase("Agile_AI_Bot") && txt.startsWith("[DM:" + userWhoTalked + "]");
+                if (userToBot || botToUser) {
+                    filtered.add(msg);
+                }
+            } else {
+                if (!txt.startsWith("[DM:")) {
+                    filtered.add(msg);
+                }
+            }
+        }
+        return filtered;
+    }
+
+    private String cleanMessageContent(String username, String content) {
+        if (content == null) return "";
+        String clean = content;
+        
+        if (clean.startsWith("[DM:")) {
+            int closeBracket = clean.indexOf("]");
+            if (closeBracket != -1) {
+                clean = clean.substring(closeBracket + 1).trim();
+            }
+        }
+        
+        clean = clean.replaceAll("(?i)@Agile_AI_Bot", "").trim();
+        return clean;
+    }
+
+    private void appendConversationalHistory(ArrayNode contents, String userWhoTalked, boolean isDm, String currentQuery) {
+        List<ChatMessage> history = getRelevantHistory(userWhoTalked, isDm);
+        
+        int limit = 12;
+        if (history.size() > limit) {
+            history = history.subList(history.size() - limit, history.size());
+        }
+        
+        class Turn {
+            String role;
+            StringBuilder text = new StringBuilder();
+            Turn(String role, String text) {
+                this.role = role;
+                this.text.append(text);
+            }
+        }
+        
+        List<Turn> turns = new java.util.ArrayList<>();
+        
+        for (ChatMessage msg : history) {
+            String role = "Agile_AI_Bot".equalsIgnoreCase(msg.getUsername()) ? "model" : "user";
+            String text = cleanMessageContent(msg.getUsername(), msg.getMessage());
+            if (text.isEmpty()) continue;
+            
+            if (!turns.isEmpty() && turns.get(turns.size() - 1).role.equals(role)) {
+                turns.get(turns.size() - 1).text.append("\n").append(text);
+            } else {
+                turns.add(new Turn(role, text));
+            }
+        }
+        
+        String currentClean = cleanMessageContent(userWhoTalked, currentQuery);
+        if (!turns.isEmpty() && turns.get(turns.size() - 1).role.equals("user")) {
+            turns.get(turns.size() - 1).text.append("\n").append(currentClean);
+        } else {
+            turns.add(new Turn("user", currentClean));
+        }
+        
+        int startIndex = 0;
+        while (startIndex < turns.size() && !"user".equals(turns.get(startIndex).role)) {
+            startIndex++;
+        }
+        
+        for (int i = startIndex; i < turns.size(); i++) {
+            Turn t = turns.get(i);
+            ObjectNode turnNode = contents.addObject();
+            turnNode.put("role", t.role);
+            ArrayNode partsNode = turnNode.putArray("parts");
+            partsNode.addObject().put("text", t.text.toString());
+        }
     }
 
     /**
