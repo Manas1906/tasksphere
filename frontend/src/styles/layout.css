@@ -261,7 +261,23 @@
   }
 
   .user-badge {
-    display: none !important; /* Hide badge on mobile header for room */
+    display: flex !important;
+    padding: var(--spacing-xs) !important;
+    border-radius: 50% !important;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .user-badge__avatar {
+    width: 28px !important;
+    height: 28px !important;
+    border: 1px solid var(--accent-cyan) !important;
+  }
+
+  .user-badge__info {
+    display: none !important;
   }
 
   .header-profile {
