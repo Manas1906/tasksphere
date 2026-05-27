@@ -9,11 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @Service
 @Transactional
 public class TaskService {
+
+    private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
     @Autowired
     private TaskRepository taskRepository;
@@ -138,7 +142,7 @@ public class TaskService {
             alert.put("timestamp", java.time.Instant.now().toString());
 
             messagingTemplate.convertAndSendToUser(username, "/queue/notifications", alert);
-            System.out.println("[WS-ALERT] Successfully dispatched STOMP " + type + " alert to " + username);
+            log.info("[WS-ALERT] Successfully dispatched STOMP {} alert to {}", type, username);
 
             // Trigger background Web Push notification via Phase 13
             String pushTitle = "⚡ Task Update";
@@ -155,7 +159,7 @@ public class TaskService {
 
             webPushService.sendNotification(username, pushTitle, pushBody, "/");
         } catch (Exception e) {
-            System.err.println("[WS-ALERT-ERROR] Failed to dispatch alert/push to " + username + ": " + e.getMessage());
+            log.error("[WS-ALERT-ERROR] Failed to dispatch alert/push to {}: {}", username, e.getMessage(), e);
         }
     }
 }

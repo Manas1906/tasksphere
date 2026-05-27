@@ -67,7 +67,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                     emailService.executeDirectEmailDispatch(event.getType(), event.getToEmail(), event.getSubject(), event.getHtmlContent());
                 }
             } catch (Exception ex) {
-                log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}", ex.getMessage());
+                if (running) {
+                    log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}", ex.getMessage());
+                } else {
+                    log.info("[REDIS-CONSUMER] Email queue listener shutting down gracefully.");
+                }
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 
                 } catch (InterruptedException ie) { 
@@ -88,7 +92,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                     aiBotService.processAiRequest(event.getUsername(), event.getAvatarUrl(), event.getMessage(), event.isDm());
                 }
             } catch (Exception ex) {
-                log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}", ex.getMessage());
+                if (running) {
+                    log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}", ex.getMessage());
+                } else {
+                    log.info("[REDIS-CONSUMER] AI bot queue listener shutting down gracefully.");
+                }
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 
                 } catch (InterruptedException ie) { 
