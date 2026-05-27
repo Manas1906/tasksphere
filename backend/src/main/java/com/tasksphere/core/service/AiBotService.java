@@ -309,20 +309,30 @@ public class AiBotService {
         try {
             log.info("[AI-BOT] Querying Gemini for tool confirmation response...");
             
-            String prompt = String.format(
-                    "System Context: The user asked: '%s'. You successfully executed the tool '%s' with parameters %s. " +
-                    "The database operation returned the following result:\n\"%s\"\n\n" +
-                    "Formulate a concise, highly professional Scrum-oriented confirmation message to the user informing them " +
-                    "that the action has been completed. Keep your response strictly under 4 sentences.",
-                    originalQuery, toolName, toolArgs.toString(), executionResult
-            );
+            String prompt;
+            if ("listTasks".equals(toolName)) {
+                prompt = String.format(
+                        "System Context: The user asked: '%s'. You successfully executed the tool 'listTasks'. " +
+                        "The database operation returned the following tasks raw list:\n\"%s\"\n\n" +
+                        "Format these tasks into a clean, beautiful Markdown table with columns: ID, Title, Status, Priority, Assignee, and Story Points. " +
+                        "Include a very brief, professional Scrum-oriented intro and/or outro sentence. Do NOT truncate, omit, or summarize any rows.",
+                        originalQuery, executionResult
+                );
+            } else {
+                prompt = String.format(
+                        "System Context: The user asked: '%s'. You successfully executed the tool '%s' with parameters %s. " +
+                        "The database operation returned the following result:\n\"%s\"\n\n" +
+                        "Formulate a concise, highly professional Scrum-oriented confirmation message to the user informing them " +
+                        "that the action has been completed. Keep your response strictly under 4 sentences.",
+                        originalQuery, toolName, toolArgs.toString(), executionResult
+                );
+            }
 
             ObjectNode root = mapper.createObjectNode();
             ArrayNode contents = root.putArray("contents");
             ObjectNode turn = contents.addObject();
             ArrayNode parts = turn.putArray("parts");
             parts.addObject().put("text", prompt);
-
 
             String responseBody = callGeminiApi(mapper.writeValueAsString(root));
             JsonNode resTree = mapper.readTree(responseBody);
@@ -331,6 +341,32 @@ public class AiBotService {
             log.error("[AI-BOT-WARNING] Failed to fetch tool confirmation, using default template: {}", e.getMessage());
             return "✅ **Scrum Action Completed**:\n" + executionResult;
         }
+    }
+
+    /**
+     * Serves the floating AI Copilot chatbot queries securely using server-side keys.
+     */
+    public String getChatbotReply(String userMessage) throws Exception {
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.contains("${GEMINI_API_KEY}")) {
+            throw new IllegalArgumentException("Google Gemini API Key is missing or unconfigured.");
+        }
+
+        log.info("[AI-BOT] Serving secure floating chatbot query...");
+
+        String systemInstruction = "You are an expert Scrum Master assistant in the TaskSphere Agile tool. Respond concisely (under 3 sentences) to the user's query.";
+
+        ObjectNode root = mapper.createObjectNode();
+        ArrayNode contents = root.putArray("contents");
+        ObjectNode turn = contents.addObject();
+        turn.put("role", "user");
+        ArrayNode parts = turn.putArray("parts");
+        parts.addObject().put("text", systemInstruction + "\nUser Query: " + userMessage);
+
+        String payload = mapper.writeValueAsString(root);
+        String responseBody = callGeminiApi(payload);
+
+        JsonNode resTree = mapper.readTree(responseBody);
+        return resTree.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
     }
 
     /**

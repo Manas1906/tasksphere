@@ -1,12 +1,13 @@
+import { api } from './api';
+
 /**
  * AIChatbot - Premium Floating AI Copilot Chat Assistant
- * Seamlessly interfaces with Google Gemini API (v1 gemini-2.5-flash) over Port 443
+ * Seamlessly interfaces with the secure Spring Boot backend proxy for Gemini AI.
  * Equipped with full offline/degraded mock Agile Coach fallback system.
  */
 export class AIChatbot {
   constructor() {
     this.isOpen = false;
-    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     this.messages = [
       { sender: 'ai', text: 'Hi! I am your TaskSphere Agile Assistant. How can I help you optimize your Scrum flow today?' }
     ];
@@ -143,64 +144,23 @@ export class AIChatbot {
     // Fetch response
     let reply = '';
     
-    // Read the key dynamically in case it got populated
-    const activeKey = import.meta.env.VITE_GEMINI_API_KEY || this.apiKey;
-
-    if (activeKey) {
-      try {
-        console.log('[AI-BOT] Querying Google Gemini stable v1 API (gemini-2.5-flash)...');
-        let response;
-        let retries = 2;
-        let delay = 300;
-
-        for (let i = 0; i <= retries; i++) {
-          try {
-            response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{
-                    text: `You are an expert Scrum Master assistant in the TaskSphere Agile tool. Respond concisely (under 3 sentences) to the following request:\n${text}`
-                  }]
-                }]
-              })
-            });
-
-            if (response.ok) {
-              break;
-            }
-
-            // Retry on transient throttling or server errors (503, 429, 500)
-            if ((response.status === 503 || response.status === 429 || response.status === 500) && i < retries) {
-              console.warn(`[AI-BOT-RETRY] Received transient ${response.status} from Gemini. Retrying in ${delay}ms...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              delay *= 2;
-            } else {
-              throw new Error(`API Status ${response.status}`);
-            }
-          } catch (fetchErr) {
-            if (i === retries) {
-              throw fetchErr;
-            }
-            console.warn(`[AI-BOT-RETRY] Fetch failed. Retrying in ${delay}ms...`, fetchErr);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-          }
-        }
-
-        const resData = await response.json();
-        reply = resData.candidates[0].content.parts[0].text;
-      } catch (err) {
-        console.error('[AI-BOT-FAILURE] Live Gemini chatbot query failed:', err);
-        reply = `⚠️ **[API Error: ${err.message}]**\n\n*Agile Coach Local Fallback*:\n` + this.getLocalAgileReply(text);
+    try {
+      console.log('[AI-BOT] Querying secure Spring Boot AI proxy...');
+      const res = await api.request('/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: text })
+      });
+      
+      if (res && res.reply) {
+        reply = res.reply;
+      } else if (res && res.error) {
+        throw new Error(res.error);
+      } else {
+        throw new Error('Malformed or empty reply from AI proxy');
       }
-    } else {
-      // Local simulated response delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      reply = `🤖 *[Offline Mode]*\n` + this.getLocalAgileReply(text);
+    } catch (err) {
+      console.error('[AI-BOT-FAILURE] Live secure chatbot query failed, falling back:', err);
+      reply = `⚠️ **[API Error: ${err.message}]**\n\n*Agile Coach Local Fallback*:\n` + this.getLocalAgileReply(text);
     }
 
     // Remove loader
