@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +29,8 @@ import java.util.Optional;
 
 @Service
 public class AiBotService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiBotService.class);
 
     @Value("${gemini.api.key}")
     private String geminiApiKey;
@@ -59,7 +63,7 @@ public class AiBotService {
      */
     @Async("taskExecutor")
     public void processAiRequest(String userWhoTalked, String userAvatar, String textMessage, boolean isDm) {
-        System.out.println("[AI-BOT] Processing request asynchronously from " + userWhoTalked + ": " + textMessage);
+        log.info("[AI-BOT] Processing request asynchronously from {}: {}", userWhoTalked, textMessage);
         
         String cleanText = textMessage;
         try {
@@ -97,11 +101,11 @@ public class AiBotService {
                 String functionName = functionCall.get("name").asText();
                 JsonNode args = functionCall.get("args");
                 
-                System.out.println("[AI-BOT-TOOL] Gemini requested tool execution: " + functionName + " with args: " + args);
+                log.info("[AI-BOT-TOOL] Gemini requested tool execution: {} with args: {}", functionName, args);
                 
                 // Step 3: Dynamic execution of the tool
                 String executionResult = executeTool(functionName, args);
-                System.out.println("[AI-BOT-TOOL] Tool execution completed. Result: " + executionResult);
+                log.info("[AI-BOT-TOOL] Tool execution completed. Result: {}", executionResult);
                 
                 // Step 4: Ask Gemini to summarize the completed action
                 finalAgileReply = requestGeminiConfirmation(cleanText, functionName, args, executionResult);
@@ -130,11 +134,10 @@ public class AiBotService {
             
             // Broadcast over WebSocket channel
             messagingTemplate.convertAndSend("/topic/chat", saved);
-            System.out.println("[AI-BOT] Dispatched reply successfully: " + saved.getMessage());
+            log.info("[AI-BOT] Dispatched reply successfully: {}", saved.getMessage());
             
         } catch (Exception e) {
-            System.err.println("[AI-BOT-ERROR] Encountered exception while orchestrating AI response: " + e.getMessage());
-            e.printStackTrace();
+            log.error("[AI-BOT-ERROR] Encountered exception while orchestrating AI response: {}", e.getMessage(), e);
             
             // Check if it is a credential, quota, or rate limit error
             boolean isQuotaOrKeyError = e.getMessage() != null && (
@@ -173,7 +176,7 @@ public class AiBotService {
                 redisCacheService.cacheChatMessage(saved);
                 messagingTemplate.convertAndSend("/topic/chat", saved);
             } catch (Exception ex) {
-                System.err.println("[AI-BOT-FATAL] Failed to send error packet to user: " + ex.getMessage());
+                log.error("[AI-BOT-FATAL] Failed to send error packet to user: {}", ex.getMessage());
             }
         }
     }
@@ -304,7 +307,7 @@ public class AiBotService {
      */
     private String requestGeminiConfirmation(String originalQuery, String toolName, JsonNode toolArgs, String executionResult) {
         try {
-            System.out.println("[AI-BOT] Querying Gemini for tool confirmation response...");
+            log.info("[AI-BOT] Querying Gemini for tool confirmation response...");
             
             String prompt = String.format(
                     "System Context: The user asked: '%s'. You successfully executed the tool '%s' with parameters %s. " +
@@ -325,7 +328,7 @@ public class AiBotService {
             JsonNode resTree = mapper.readTree(responseBody);
             return resTree.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
         } catch (Exception e) {
-            System.err.println("[AI-BOT-WARNING] Failed to fetch tool confirmation, using default template: " + e.getMessage());
+            log.error("[AI-BOT-WARNING] Failed to fetch tool confirmation, using default template: {}", e.getMessage());
             return "✅ **Scrum Action Completed**:\n" + executionResult;
         }
     }
@@ -356,7 +359,7 @@ public class AiBotService {
                 
                 // Retry only on transient errors (503 Service Unavailable, 429 Rate Limit, 500 Internal Server Error)
                 if ((status == 503 || status == 429 || status == 500) && i < retries) {
-                    System.out.println("[AI-BOT-RETRY] Received transient status " + status + " from Gemini. Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                    log.warn("[AI-BOT-RETRY] Received transient status {} from Gemini. Retrying in {}ms... (Attempt {})", status, delayMs, i + 1);
                     Thread.sleep(delayMs);
                     delayMs *= 2; // exponential backoff
                 } else {
@@ -366,7 +369,7 @@ public class AiBotService {
                 if (i == retries) {
                     throw e;
                 }
-                System.out.println("[AI-BOT-RETRY-ERROR] Failed connection/request to Gemini: " + e.getMessage() + ". Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                log.error("[AI-BOT-RETRY-ERROR] Failed connection/request to Gemini: {}. Retrying in {}ms... (Attempt {})", e.getMessage(), delayMs, i + 1);
                 Thread.sleep(delayMs);
                 delayMs *= 2;
             }

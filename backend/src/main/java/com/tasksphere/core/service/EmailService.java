@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +29,8 @@ import java.util.Map;
  */
 @Service
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     @Autowired
     private RedisQueueService redisQueueService;
@@ -65,16 +69,12 @@ public class EmailService {
         String htmlMessage = getOtpTemplate(otp);
         String subject = "TaskSphere Security - Your 6-Digit Verification Code: " + otp;
 
-        System.out.println("\n=======================================================");
-        System.out.println("[EMAIL-SERVICE] INCOMING OTP DELIVER SERVICE ACTION");
-        System.out.println("Deliver OTP to: " + cleanEmail);
-        System.out.println("VERIFICATION CODE: " + otp);
-        System.out.println("=======================================================\n");
+        log.info("[EMAIL-SERVICE] INCOMING OTP DELIVER SERVICE ACTION - Deliver to: {}, CODE: {}", cleanEmail, otp);
 
         // Try enqueuing onto Redis first
         boolean enqueued = redisQueueService.enqueueEmail("OTP", cleanEmail, subject, htmlMessage);
         if (enqueued) {
-            System.out.println("[EMAIL-SERVICE] OTP EmailEvent successfully enqueued onto Redis. Core thread returning instantly.");
+            log.info("[EMAIL-SERVICE] OTP EmailEvent successfully enqueued onto Redis. Core thread returning instantly.");
             return;
         }
 
@@ -91,17 +91,12 @@ public class EmailService {
         String htmlMessage = getWelcomeTemplate(username, role);
         String subject = "Welcome to TaskSphere, " + username + "! Your workspace is active.";
 
-        System.out.println("\n=======================================================");
-        System.out.println("[EMAIL-SERVICE] INCOMING WELCOME NEWSLETTER SERVICE ACTION");
-        System.out.println("Deliver Welcome Email to: " + cleanEmail);
-        System.out.println("USERNAME: " + username);
-        System.out.println("ROLE: " + role);
-        System.out.println("=======================================================\n");
+        log.info("[EMAIL-SERVICE] INCOMING WELCOME NEWSLETTER SERVICE ACTION - Deliver to: {}, USERNAME: {}, ROLE: {}", cleanEmail, username, role);
 
         // Try enqueuing onto Redis first
         boolean enqueued = redisQueueService.enqueueEmail("WELCOME", cleanEmail, subject, htmlMessage);
         if (enqueued) {
-            System.out.println("[EMAIL-SERVICE] Welcome Onboarding EmailEvent enqueued onto Redis. Core thread returning instantly.");
+            log.info("[EMAIL-SERVICE] Welcome Onboarding EmailEvent enqueued onto Redis. Core thread returning instantly.");
             return;
         }
 
@@ -120,15 +115,14 @@ public class EmailService {
             if (success) {
                 return;
             }
-            System.out.println("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
+            log.warn("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
         }
 
         // Route 2: Try Google Apps Script Proxy (Method 1)
         if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
             sendViaGoogleScript(toEmail, subject, htmlContent);
         } else {
-            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Simulator output printed above.");
-            System.out.println("[EMAIL-TIP] To receive real emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
+            log.warn("[EMAIL-WARN] Google APIs are not configured. Standard mock simulation succeeded.");
         }
     }
 
@@ -149,9 +143,9 @@ public class EmailService {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
             ResponseEntity<String> response = restTemplate.postForEntity(googleScriptUrl.trim(), entity, String.class);
-            System.out.println("[GMAIL-PROXY-SUCCESS] Email dispatched via Google Apps Script. Response: " + response.getBody());
+            log.info("[GMAIL-PROXY-SUCCESS] Email dispatched via Google Apps Script. Response: {}", response.getBody());
         } catch (Exception ex) {
-            System.err.println("[GMAIL-PROXY-FAILURE] Google Apps Script REST call failed: " + ex.getMessage());
+            log.error("[GMAIL-PROXY-FAILURE] Google Apps Script REST call failed: {}", ex.getMessage());
         }
     }
 
@@ -163,7 +157,7 @@ public class EmailService {
             // 1. Exchange OAuth2 Refresh Token for a fresh Access Token
             String accessToken = getGmailAccessToken();
             if (accessToken == null || accessToken.trim().isEmpty()) {
-                System.err.println("[GMAIL-REST-FAILURE] Failed to retrieve a valid OAuth2 Access Token.");
+                log.error("[GMAIL-REST-FAILURE] Failed to retrieve a valid OAuth2 Access Token.");
                 return false;
             }
 
@@ -197,15 +191,14 @@ public class EmailService {
             );
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                System.out.println("[GMAIL-REST-SUCCESS] Email dispatched successfully via Gmail REST API. Message ID: " 
-                    + response.getBody().get("id"));
+                log.info("[GMAIL-REST-SUCCESS] Email dispatched successfully via Gmail REST API. Message ID: {}", response.getBody().get("id"));
                 return true;
             } else {
-                System.err.println("[GMAIL-REST-FAILURE] Google API responded with code: " + response.getStatusCode());
+                log.error("[GMAIL-REST-FAILURE] Google API responded with code: {}", response.getStatusCode());
                 return false;
             }
         } catch (Exception ex) {
-            System.err.println("[GMAIL-REST-FAILURE] Gmail REST API execution failed: " + ex.getMessage());
+            log.error("[GMAIL-REST-FAILURE] Gmail REST API execution failed: {}", ex.getMessage());
             return false;
         }
     }
@@ -235,7 +228,7 @@ public class EmailService {
                 return (String) response.getBody().get("access_token");
             }
         } catch (Exception ex) {
-            System.err.println("[OAUTH-TOKEN-FAILURE] Failed to exchange refresh token for access token: " + ex.getMessage());
+            log.error("[OAUTH-TOKEN-FAILURE] Failed to exchange refresh token for access token: {}", ex.getMessage());
         }
         return null;
     }

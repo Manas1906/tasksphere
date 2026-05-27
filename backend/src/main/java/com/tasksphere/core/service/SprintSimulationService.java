@@ -12,6 +12,8 @@ import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,6 +27,8 @@ import java.util.*;
 
 @Service
 public class SprintSimulationService {
+
+    private static final Logger log = LoggerFactory.getLogger(SprintSimulationService.class);
 
     @Value("${gemini.api.key}")
     private String geminiApiKey;
@@ -54,7 +58,7 @@ public class SprintSimulationService {
      * Executes the predictive sprint simulation using Monte Carlo calculations and Gemini analysis.
      */
     public SprintForecastResponse runSprintSimulation() {
-        System.out.println("[SPRINT-SIMULATOR] Querying sprint backlog and workload states...");
+        log.info("[SPRINT-SIMULATOR] Querying sprint backlog and workload states...");
 
         List<Task> allTasks = taskService.getAllTasks();
         List<UserSession> allUsers = userSessionRepository.findAll();
@@ -163,7 +167,7 @@ public class SprintSimulationService {
             riskTier = "MEDIUM";
         }
 
-        System.out.println("[SPRINT-SIMULATOR] Monte Carlo simulation complete. Success likelihood: " + completionLikelihood + "%, Risk Tier: " + riskTier);
+        log.info("[SPRINT-SIMULATOR] Monte Carlo simulation complete. Success likelihood: {}%, Risk Tier: {}", completionLikelihood, riskTier);
 
         // 4. Query Google Gemini API for advanced Sprint Rebalancing Advice
         List<String> recommendations = fetchAiRecommendations(
@@ -187,7 +191,7 @@ public class SprintSimulationService {
             int likelihood, String risk, int daysLeft, int pointsLeft,
             int overdueCount, int unassignedCount, Map<String, Integer> backlogs, List<String> bottlenecks
     ) {
-        System.out.println("[SPRINT-SIMULATOR] Fetching AI Agile Sprint advice from Gemini...");
+        log.info("[SPRINT-SIMULATOR] Fetching AI Agile Sprint advice from Gemini...");
 
         try {
             // Build the analytical prompt representing the sprint context using structured XML delimiters
@@ -306,7 +310,7 @@ public class SprintSimulationService {
                 }
                 
                 if ((status == 503 || status == 429 || status == 500) && i < retries) {
-                    System.out.println("[AI-BOT-RETRY] Received transient status " + status + " from Gemini. Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                    log.warn("[AI-BOT-RETRY] Received transient status {} from Gemini. Retrying in {}ms... (Attempt {})", status, delayMs, i + 1);
                     Thread.sleep(delayMs);
                     delayMs *= 2;
                 } else {
@@ -316,7 +320,7 @@ public class SprintSimulationService {
                 if (i == retries) {
                     throw e;
                 }
-                System.out.println("[AI-BOT-RETRY-ERROR] Failed request to Gemini: " + e.getMessage() + ". Retrying in " + delayMs + "ms... (Attempt " + (i + 1) + ")");
+                log.error("[AI-BOT-RETRY-ERROR] Failed request to Gemini: {}. Retrying in {}ms... (Attempt {})", e.getMessage(), delayMs, i + 1);
                 Thread.sleep(delayMs);
                 delayMs *= 2;
             }

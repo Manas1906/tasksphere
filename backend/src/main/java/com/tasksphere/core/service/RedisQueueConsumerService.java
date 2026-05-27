@@ -3,6 +3,9 @@ package com.tasksphere.core.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasksphere.core.model.RedisEvents.AiBotEvent;
 import com.tasksphere.core.model.RedisEvents.EmailEvent;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -16,6 +19,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 public class RedisQueueConsumerService implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(RedisQueueConsumerService.class);
 
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
@@ -34,11 +39,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (redisTemplate == null) {
-            System.out.println("[REDIS-CONSUMER-WARNING] StringRedisTemplate not initialized. Running in Offline Caching mode. Background queue consumers disabled.");
+            log.warn("[REDIS-CONSUMER-WARNING] StringRedisTemplate not initialized. Running in Offline Caching mode. Background queue consumers disabled.");
             return;
         }
 
-        System.out.println("[REDIS-CONSUMER] Initializing Event Queue background listeners...");
+        log.info("[REDIS-CONSUMER] Initializing Event Queue background listeners...");
 
         // Spawn Email Queue Daemon Thread
         Thread emailThread = new Thread(this::consumeEmails, "Redis-Email-Consumer");
@@ -52,17 +57,17 @@ public class RedisQueueConsumerService implements CommandLineRunner {
     }
 
     private void consumeEmails() {
-        System.out.println("[REDIS-CONSUMER] Email Queue listener online. Monitoring list 'queue:email'...");
+        log.info("[REDIS-CONSUMER] Email Queue listener online. Monitoring list 'queue:email'...");
         while (running) {
             try {
                 String payload = redisTemplate.opsForList().rightPop(RedisQueueService.EMAIL_QUEUE, 2, TimeUnit.SECONDS);
                 if (payload != null && !payload.trim().isEmpty()) {
                     EmailEvent event = objectMapper.readValue(payload, EmailEvent.class);
-                    System.out.println("[REDIS-CONSUMER] Dequeued EmailEvent (" + event.getType() + ") for " + event.getToEmail() + ". Processing dispatch...");
+                    log.info("[REDIS-CONSUMER] Dequeued EmailEvent ({}) for {}. Processing dispatch...", event.getType(), event.getToEmail());
                     emailService.executeDirectEmailDispatch(event.getType(), event.getToEmail(), event.getSubject(), event.getHtmlContent());
                 }
             } catch (Exception ex) {
-                // Throttle slightly on transient errors to prevent CPU spikes or log flooding
+                log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}", ex.getMessage());
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 
                 } catch (InterruptedException ie) { 
@@ -73,16 +78,17 @@ public class RedisQueueConsumerService implements CommandLineRunner {
     }
 
     private void consumeAiRequests() {
-        System.out.println("[REDIS-CONSUMER] AI Bot Queue listener online. Monitoring list 'queue:ai'...");
+        log.info("[REDIS-CONSUMER] AI Bot Queue listener online. Monitoring list 'queue:ai'...");
         while (running) {
             try {
                 String payload = redisTemplate.opsForList().rightPop(RedisQueueService.AI_QUEUE, 2, TimeUnit.SECONDS);
                 if (payload != null && !payload.trim().isEmpty()) {
                     AiBotEvent event = objectMapper.readValue(payload, AiBotEvent.class);
-                    System.out.println("[REDIS-CONSUMER] Dequeued AiBotEvent from " + event.getUsername() + ". Invoking Gemini orchestrator...");
+                    log.info("[REDIS-CONSUMER] Dequeued AiBotEvent from {}. Invoking Gemini orchestrator...", event.getUsername());
                     aiBotService.processAiRequest(event.getUsername(), event.getAvatarUrl(), event.getMessage(), event.isDm());
                 }
             } catch (Exception ex) {
+                log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}", ex.getMessage());
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 
                 } catch (InterruptedException ie) { 
@@ -94,6 +100,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
 
     public void stopConsumers() {
         this.running = false;
-        System.out.println("[REDIS-CONSUMER] Event Queue listeners stopping...");
+        log.info("[REDIS-CONSUMER] Event Queue listeners stopping...");
+    }
+
+    @PreDestroy
+    public void onDestroy() {
+        stopConsumers();
     }
 }
