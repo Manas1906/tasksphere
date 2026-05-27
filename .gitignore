@@ -34,3 +34,9 @@ Thumbs.db
 # --- Local Properties for backend (sensitive configs) ---
 **/application-local.properties
 
+# --- Internal Agent Folders ---
+.agents/
+**/brain/
+**/logs/
+
+

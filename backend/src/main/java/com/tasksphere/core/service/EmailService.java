@@ -1,5 +1,6 @@
 package com.tasksphere.core.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,12 +20,16 @@ import java.util.Map;
  * EmailService - Asynchronous production email dispatching.
  * Bypasses Render SMTP port blocks completely via Google REST APIs over HTTPS (Port 443).
  * Supports:
+ * - Decoupled high-performance Redis Event Queueing (Option A)
  * - Method 2: Official Google Gmail REST API (up to 500 emails/day, zero cost, secure OAuth2)
  * - Method 1: Google Apps Script Web App Proxy (fallback, up to 100 emails/day)
  * - Simulator: local/console logging fallback when no remote credentials are configured.
  */
 @Service
 public class EmailService {
+
+    @Autowired
+    private RedisQueueService redisQueueService;
 
     @Value("${google.script.url:}")
     private String googleScriptUrl;
@@ -66,22 +71,15 @@ public class EmailService {
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
 
-        // Route 1: Try Gmail REST API (Method 2)
-        if (isOauthConfigured()) {
-            boolean success = sendViaGmailRestApi(cleanEmail, subject, htmlMessage);
-            if (success) {
-                return;
-            }
-            System.out.println("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
+        // Try enqueuing onto Redis first (Option A)
+        boolean enqueued = redisQueueService.enqueueEmail("OTP", cleanEmail, subject, htmlMessage);
+        if (enqueued) {
+            System.out.println("[EMAIL-SERVICE] OTP EmailEvent successfully enqueued onto Redis. Core thread returning instantly.");
+            return;
         }
 
-        // Route 2: Try Google Apps Script Proxy (Method 1)
-        if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
-            sendViaGoogleScript(cleanEmail, subject, htmlMessage);
-        } else {
-            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Simulator output printed above.");
-            System.out.println("[EMAIL-TIP] To receive real emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
-        }
+        // Fallback: Direct execution if Redis is offline
+        executeDirectEmailDispatch("OTP", cleanEmail, subject, htmlMessage);
     }
 
     /**
@@ -100,9 +98,25 @@ public class EmailService {
         System.out.println("ROLE: " + role);
         System.out.println("=======================================================\n");
 
+        // Try enqueuing onto Redis first (Option A)
+        boolean enqueued = redisQueueService.enqueueEmail("WELCOME", cleanEmail, subject, htmlMessage);
+        if (enqueued) {
+            System.out.println("[EMAIL-SERVICE] Welcome Onboarding EmailEvent enqueued onto Redis. Core thread returning instantly.");
+            return;
+        }
+
+        // Fallback: Direct execution if Redis is offline
+        executeDirectEmailDispatch("WELCOME", cleanEmail, subject, htmlMessage);
+    }
+
+    /**
+     * Direct synchronous dispatch of transactional emails.
+     * Bypasses the event queue (used by background consumers or offline fallback).
+     */
+    public void executeDirectEmailDispatch(String type, String toEmail, String subject, String htmlContent) {
         // Route 1: Try Gmail REST API (Method 2)
         if (isOauthConfigured()) {
-            boolean success = sendViaGmailRestApi(cleanEmail, subject, htmlMessage);
+            boolean success = sendViaGmailRestApi(toEmail, subject, htmlContent);
             if (success) {
                 return;
             }
@@ -111,12 +125,13 @@ public class EmailService {
 
         // Route 2: Try Google Apps Script Proxy (Method 1)
         if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
-            sendViaGoogleScript(cleanEmail, subject, htmlMessage);
+            sendViaGoogleScript(toEmail, subject, htmlContent);
         } else {
-            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Welcome simulation succeeded.");
-            System.out.println("[EMAIL-TIP] To receive real welcome emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
+            System.out.println("[EMAIL-WARN] Google APIs are not configured. Fallback Simulator output printed above.");
+            System.out.println("[EMAIL-TIP] To receive real emails, configure your Gmail REST API OAuth keys or GOOGLE_SCRIPT_URL.");
         }
     }
+
 
     /**
      * Dispatch email via Google Apps Script HTTPS Web App Proxy (Method 1)
