@@ -20,7 +20,7 @@ import java.util.Map;
  * EmailService - Asynchronous production email dispatching.
  * Bypasses Render SMTP port blocks completely via Google REST APIs over HTTPS (Port 443).
  * Supports:
- * - Decoupled high-performance Redis Event Queueing (Option A)
+ * - Decoupled high-performance Redis Event Queueing
  * - Method 2: Official Google Gmail REST API (up to 500 emails/day, zero cost, secure OAuth2)
  * - Method 1: Google Apps Script Web App Proxy (fallback, up to 100 emails/day)
  * - Simulator: local/console logging fallback when no remote credentials are configured.
@@ -71,7 +71,7 @@ public class EmailService {
         System.out.println("VERIFICATION CODE: " + otp);
         System.out.println("=======================================================\n");
 
-        // Try enqueuing onto Redis first (Option A)
+        // Try enqueuing onto Redis first
         boolean enqueued = redisQueueService.enqueueEmail("OTP", cleanEmail, subject, htmlMessage);
         if (enqueued) {
             System.out.println("[EMAIL-SERVICE] OTP EmailEvent successfully enqueued onto Redis. Core thread returning instantly.");
@@ -98,7 +98,7 @@ public class EmailService {
         System.out.println("ROLE: " + role);
         System.out.println("=======================================================\n");
 
-        // Try enqueuing onto Redis first (Option A)
+        // Try enqueuing onto Redis first
         boolean enqueued = redisQueueService.enqueueEmail("WELCOME", cleanEmail, subject, htmlMessage);
         if (enqueued) {
             System.out.println("[EMAIL-SERVICE] Welcome Onboarding EmailEvent enqueued onto Redis. Core thread returning instantly.");

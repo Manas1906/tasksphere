@@ -833,7 +833,7 @@ class TaskSphereApp {
         // Initialize Cursor WebSocket channel subscription
         this.cursorSyncController.subscribeChannel();
 
-        // Subscribe to live system diagnostics metrics stream (CTO Showcase Option A)
+        // Subscribe to live system diagnostics metrics stream (CTO Showcase)
         socket.subscribe('/topic/stats', (stats) => {
           console.log('[APP-SYNC-STATS] Received incoming system diagnostics payload:', stats);
           const archModeEl = document.getElementById('diagArchMode');

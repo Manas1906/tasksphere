@@ -98,7 +98,7 @@ public class RealtimeController {
         long totalAiEnqueued = redisQueueService.getAiEnqueuedCount();
 
         return Map.of(
-                "activeMode", "REDIS EVENT-DRIVEN QUEUE (OPTION A)",
+                "activeMode", "REDIS EVENT-DRIVEN QUEUE",
                 "emailQueueSize", emailQueueSize,
                 "aiQueueSize", aiQueueSize,
                 "totalEmailEnqueued", totalEmailEnqueued,
