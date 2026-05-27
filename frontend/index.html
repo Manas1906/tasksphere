@@ -464,6 +464,9 @@
                 <span class="password-toggle-btn" id="toggleLoginPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
               </div>
             </div>
+            <div style="text-align: right; margin-bottom: var(--spacing-md); margin-top: 4px;">
+              <a class="auth-switch-link" id="forgotPasswordLink" style="display: inline; margin: 0; font-size: 11px;">Forgot Password?</a>
+            </div>
             <button type="submit" id="submitLoginBtn" class="auth-btn">Log In</button>
             <div style="border-top: 1px solid var(--border-color); margin: var(--spacing-md) 0;"></div>
             <button type="button" id="createAccountBtn" class="auth-btn auth-btn--register">Create New Account</button>
@@ -570,6 +573,58 @@
             </div>
 
             <button type="submit" id="launchWorkspaceBtn" class="auth-btn auth-btn--launch">Launch Workspace</button>
+          </form>
+        </div>
+
+        <!-- STEP 1C: Forgot Password - Request Email OTP -->
+        <div class="auth-step hidden" id="authForgotEmailStep">
+          <form id="forgotEmailForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
+              <div class="auth-input-wrapper">
+                <input type="email" id="forgotEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
+                <span class="auth-input-icon">✉</span>
+              </div>
+            </div>
+            <button type="submit" id="sendForgotOtpBtn" class="auth-btn">Send Recovery Code</button>
+            <a class="auth-switch-link" id="forgotBackToLoginLink">← Back to Log In</a>
+          </form>
+        </div>
+
+        <!-- STEP 2C: Forgot Password - Verify OTP -->
+        <div class="auth-step hidden" id="authForgotOtpStep">
+          <form id="forgotOtpSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit Recovery Code</label>
+              <div class="auth-input-wrapper">
+                <input type="text" id="forgotOtpInput" class="auth-input" placeholder="Enter 6-digit code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <span class="auth-input-icon">🔑</span>
+              </div>
+            </div>
+            <button type="submit" id="verifyForgotOtpBtn" class="auth-btn">Verify Recovery Code</button>
+            <a class="auth-switch-link" id="forgotOtpBackToLoginLink">← Back to Log In</a>
+          </form>
+        </div>
+
+        <!-- STEP 3C: Forgot Password - Create New Password -->
+        <div class="auth-step hidden" id="authResetPasswordStep">
+          <form id="resetPasswordSubmitForm" onsubmit="return false;">
+            <div class="auth-group">
+              <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">New Account Password</label>
+              <div class="auth-input-wrapper" style="position: relative;">
+                <input type="password" id="forgotNewPasswordInput" class="auth-input" placeholder="Enter new password..." required autocomplete="new-password" style="padding-right: 40px;">
+                <span class="auth-input-icon">🔒</span>
+                <span class="password-toggle-btn" id="toggleResetRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+              </div>
+              <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
+                <div id="forgotPasswordStrengthBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+              </div>
+              <div id="forgotPasswordFeedback" style="font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">
+                Must contain min 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special symbol.
+              </div>
+            </div>
+            <button type="submit" id="resetPasswordBtn" class="auth-btn auth-btn--launch">Reset Password</button>
+            <a class="auth-switch-link" id="resetPasswordBackToLoginLink">← Back to Log In</a>
           </form>
         </div>
 

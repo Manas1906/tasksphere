@@ -165,4 +165,50 @@ public class AuthController {
         res.put("registered", exists);
         return ResponseEntity.ok(res);
     }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
+
+        if (email == null || otp == null || newPassword == null || 
+                email.trim().isEmpty() || otp.trim().isEmpty() || newPassword.trim().isEmpty()) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Email, OTP Code, and New Password are required.");
+            return ResponseEntity.badRequest().body(err);
+        }
+
+        String normalizedEmail = email.toLowerCase().trim();
+
+        // 1. Verify OTP code
+        boolean isOtpValid = otpService.verifyOtp(normalizedEmail, otp.trim());
+        if (!isOtpValid) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Invalid or expired verification code.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(err);
+        }
+
+        // 2. Scan repository for existing user with this email
+        Optional<UserSession> userOpt = userRepository.findAll().stream()
+                .filter(u -> normalizedEmail.equalsIgnoreCase(u.getExtractedEmail()))
+                .findFirst();
+
+        if (userOpt.isEmpty()) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Account not found for this email address.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(err);
+        }
+
+        UserSession user = userOpt.get();
+
+        // 3. Encrypt and save new password
+        String hashedPwd = passwordEncoder.encode(newPassword);
+        user.packMetadata(user.getPureAvatarUrl(), user.getExtractedEmail(), hashedPwd, user.isMfaEnabled());
+        userRepository.save(user);
+
+        Map<String, String> res = new HashMap<>();
+        res.put("message", "Password updated successfully. Please log in using your new credentials.");
+        return ResponseEntity.ok(res);
+    }
 }

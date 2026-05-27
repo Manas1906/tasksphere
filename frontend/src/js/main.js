@@ -288,6 +288,65 @@ class TaskSphereApp {
       };
     }
 
+    // --- Forgot Password Navigations ---
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const forgotBackToLoginLink = document.getElementById('forgotBackToLoginLink');
+    const forgotOtpBackToLoginLink = document.getElementById('forgotOtpBackToLoginLink');
+    const resetPasswordBackToLoginLink = document.getElementById('resetPasswordBackToLoginLink');
+
+    if (forgotPasswordLink) {
+      forgotPasswordLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authLoginStep').classList.add('hidden');
+        document.getElementById('authForgotEmailStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your registered email to request recovery';
+        document.getElementById('forgotEmailInput').focus();
+      };
+    }
+
+    if (forgotBackToLoginLink) {
+      forgotBackToLoginLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authForgotEmailStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        document.getElementById('loginEmailInput').focus();
+      };
+    }
+
+    if (forgotOtpBackToLoginLink) {
+      forgotOtpBackToLoginLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authForgotOtpStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        document.getElementById('loginEmailInput').focus();
+      };
+    }
+
+    if (resetPasswordBackToLoginLink) {
+      resetPasswordBackToLoginLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        document.getElementById('authResetPasswordStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        document.getElementById('loginEmailInput').focus();
+      };
+    }
+
+    const forgotNewPasswordInput = document.getElementById('forgotNewPasswordInput');
+    if (forgotNewPasswordInput) {
+      forgotNewPasswordInput.oninput = () => {
+        const passBar = document.getElementById('forgotPasswordStrengthBar');
+        const passFeedback = document.getElementById('forgotPasswordFeedback');
+        this.checkPasswordStrength(forgotNewPasswordInput.value, passBar, passFeedback);
+      };
+    }
+
     // --- Submission Handlers ---
 
     // 1. Submit Unified Password Login Form
@@ -572,6 +631,142 @@ class TaskSphereApp {
           } finally {
             launchBtn.disabled = false;
             launchBtn.textContent = 'Launch Workspace';
+          }
+        })();
+
+        return false;
+      };
+    }
+
+    // --- Forgot Password Action Handlers ---
+    let submittedOtp = '';
+
+    const forgotEmailForm = document.getElementById('forgotEmailForm');
+    if (forgotEmailForm) {
+      forgotEmailForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
+
+        const emailInput = document.getElementById('forgotEmailInput');
+        const sendBtn = document.getElementById('sendForgotOtpBtn');
+        const emailVal = emailInput.value.trim();
+
+        if (!emailVal || !emailVal.includes('@')) {
+          showError('Please supply a valid email address.');
+          return false;
+        }
+
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="auth-spinner"></span>Verifying...';
+
+        (async () => {
+          try {
+            console.log(`[AUTH-FORGOT-CHECK] Checking registration status for ${emailVal}...`);
+            const check = await api.checkEmail(emailVal);
+            if (!check || !check.registered) {
+              showError('This email address is not registered.');
+              return;
+            }
+
+            console.log(`[AUTH-FORGOT-OTP] Sending reset OTP to ${emailVal}`);
+            await api.sendOtp(emailVal);
+
+            submittedEmail = emailVal;
+            subtitle.innerHTML = `Recovery code sent to:<br><b style="color: var(--accent-cyan); word-break: break-all;">${emailVal}</b><br>Please enter it below.`;
+            document.getElementById('authForgotEmailStep').classList.add('hidden');
+            document.getElementById('authForgotOtpStep').classList.remove('hidden');
+            document.getElementById('forgotOtpInput').value = '';
+            document.getElementById('forgotOtpInput').focus();
+          } catch (err) {
+            console.error('[AUTH-FORGOT-OTP] Recovery OTP dispatch failed:', err);
+            showError(err.message || 'Verification service failed. Please try again.');
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Recovery Code';
+          }
+        })();
+        return false;
+      };
+    }
+
+    const forgotOtpForm = document.getElementById('forgotOtpSubmitForm');
+    if (forgotOtpForm) {
+      forgotOtpForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
+
+        const otpInput = document.getElementById('forgotOtpInput');
+        const verifyBtn = document.getElementById('verifyForgotOtpBtn');
+        const otpVal = otpInput.value.trim();
+
+        if (otpVal.length !== 6 || isNaN(otpVal)) {
+          showError('Verification code must be 6 digits.');
+          return false;
+        }
+
+        submittedOtp = otpVal;
+        
+        // Transition straight to the reset password view
+        document.getElementById('authForgotOtpStep').classList.add('hidden');
+        document.getElementById('authResetPasswordStep').classList.remove('hidden');
+        document.getElementById('forgotNewPasswordInput').value = '';
+        document.getElementById('forgotNewPasswordInput').focus();
+
+        subtitle.textContent = 'Choose a secure new password for your account';
+        return false;
+      };
+    }
+
+    const resetPasswordForm = document.getElementById('resetPasswordSubmitForm');
+    if (resetPasswordForm) {
+      resetPasswordForm.onsubmit = (e) => {
+        e.preventDefault();
+        clearError();
+
+        const newPassInput = document.getElementById('forgotNewPasswordInput');
+        const resetBtn = document.getElementById('resetPasswordBtn');
+        const newPassword = newPassInput.value;
+
+        // Verify strength before sending
+        const passBar = document.getElementById('forgotPasswordStrengthBar');
+        const passFeedback = document.getElementById('forgotPasswordFeedback');
+        const isStrong = this.checkPasswordStrength(newPassword, passBar, passFeedback);
+        if (!isStrong) {
+          showError('Please specify a secure password matching all validation rules.');
+          return false;
+        }
+
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '<span class="auth-spinner"></span>Updating...';
+
+        (async () => {
+          try {
+            console.log(`[AUTH-RESET] Submitting password reset request for: ${submittedEmail}`);
+            const res = await api.request('/auth/password/reset', {
+              method: 'POST',
+              body: JSON.stringify({
+                email: submittedEmail,
+                otp: submittedOtp,
+                newPassword: newPassword
+              })
+            });
+
+            console.log('[AUTH-RESET-SUCCESS] Password updated successfully. Returning to login.');
+            
+            // Show successful alert
+            alert(res.message || 'Password updated successfully. Please log in using your new credentials.');
+
+            // Transition back to login card
+            document.getElementById('authResetPasswordStep').classList.add('hidden');
+            document.getElementById('authLoginStep').classList.remove('hidden');
+            subtitle.textContent = 'Enter your credentials to access the workspace';
+            document.getElementById('loginEmailInput').focus();
+          } catch (err) {
+            console.error('[AUTH-RESET-FAILURE] Password reset failed:', err);
+            showError(err.message || 'Verification code is invalid or password strength requirements not met.');
+          } finally {
+            resetBtn.disabled = false;
+            resetBtn.textContent = 'Reset Password';
           }
         })();
 
@@ -1745,6 +1940,7 @@ class TaskSphereApp {
     bindToggle('toggleLoginPassword', 'loginPasswordInput');
     bindToggle('toggleRegPassword', 'authPasswordInput');
     bindToggle('toggleSettingsPassword', 'settingsNewPassword');
+    bindToggle('toggleResetRegPassword', 'forgotNewPasswordInput');
   }
 }
 
