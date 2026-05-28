@@ -17,15 +17,28 @@ public class GoogleTokenVerifierService {
     private final GoogleIdTokenVerifier verifier;
 
     public GoogleTokenVerifierService(@Value("${security.google.client-id:}") String googleClientId) {
-        if (googleClientId == null || googleClientId.trim().isEmpty()) {
+        String cleanClientId = sanitize(googleClientId);
+        if (cleanClientId.isEmpty()) {
             // Self-healing fallback for development environment configuration
             this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 .build();
         } else {
             this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(googleClientId.trim()))
+                .setAudience(Collections.singletonList(cleanClientId))
                 .build();
         }
+    }
+
+    private String sanitize(String val) {
+        if (val == null) return "";
+        String trimmed = val.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.trim();
     }
 
     /**

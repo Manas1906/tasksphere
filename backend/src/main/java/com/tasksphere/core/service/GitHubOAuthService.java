@@ -18,6 +18,26 @@ public class GitHubOAuthService {
     @Value("${security.github.client-secret:}")
     private String clientSecret;
 
+    private String getCleanClientId() {
+        return sanitize(clientId);
+    }
+
+    private String getCleanClientSecret() {
+        return sanitize(clientSecret);
+    }
+
+    private String sanitize(String val) {
+        if (val == null) return "";
+        String trimmed = val.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.trim();
+    }
+
     /**
      * Swaps temporary authorization code for a secure GitHub access token.
      */
@@ -29,23 +49,34 @@ public class GitHubOAuthService {
         String url = "https://github.com/login/oauth/access_token";
 
         Map<String, String> requestPayload = new HashMap<>();
-        requestPayload.put("client_id", clientId != null ? clientId.trim() : "");
-        requestPayload.put("client_secret", clientSecret != null ? clientSecret.trim() : "");
+        requestPayload.put("client_id", getCleanClientId());
+        requestPayload.put("client_secret", getCleanClientSecret());
         requestPayload.put("code", code.trim());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "TaskSphere-App/1.0");
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(requestPayload, headers);
 
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
             Map<String, Object> body = response.getBody();
-            if (body == null || !body.containsKey("access_token")) {
-                throw new SecurityException("GitHub OAuth token exchange failed: No access token returned.");
+            if (body == null) {
+                throw new SecurityException("GitHub OAuth token exchange failed: Empty response body returned.");
+            }
+            if (body.containsKey("error")) {
+                throw new SecurityException("GitHub OAuth token exchange failed: " + body.get("error") + " - " + body.get("error_description"));
+            }
+            if (!body.containsKey("access_token")) {
+                throw new SecurityException("GitHub OAuth token exchange failed: No access token returned in response keys: " + body.keySet());
             }
             return (String) body.get("access_token");
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new SecurityException("Failed to exchange authorization code with GitHub. Status: " + e.getStatusCode() + ", Response: " + e.getResponseBodyAsString(), e);
+        } catch (SecurityException se) {
+            throw se;
         } catch (Exception e) {
             throw new SecurityException("Failed to exchange authorization code with GitHub: " + e.getMessage(), e);
         }
@@ -60,6 +91,7 @@ public class GitHubOAuthService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "TaskSphere-App/1.0");
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
@@ -70,6 +102,8 @@ public class GitHubOAuthService {
                 throw new SecurityException("Invalid profile payload returned from GitHub.");
             }
             return body;
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new SecurityException("Failed to query GitHub user profile: Status " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             throw new SecurityException("Failed to query GitHub user profile: " + e.getMessage(), e);
         }
@@ -85,6 +119,7 @@ public class GitHubOAuthService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "TaskSphere-App/1.0");
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
@@ -115,6 +150,8 @@ public class GitHubOAuthService {
             }
 
             throw new SecurityException("GitHub sign-in rejected: Your GitHub primary email address is unverified.");
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new SecurityException("Failed to query GitHub email registry: Status " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
         } catch (SecurityException se) {
             throw se;
         } catch (Exception e) {

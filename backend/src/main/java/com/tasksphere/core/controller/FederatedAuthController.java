@@ -54,6 +54,30 @@ public class FederatedAuthController {
     @Value("${security.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
+    private String getCleanGoogleClientId() {
+        return sanitize(googleClientId);
+    }
+
+    private String getCleanGoogleClientSecret() {
+        return sanitize(googleClientSecret);
+    }
+
+    private String getCleanGithubClientId() {
+        return sanitize(githubClientId);
+    }
+
+    private String sanitize(String val) {
+        if (val == null) return "";
+        String trimmed = val.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed.trim();
+    }
+
     public FederatedAuthController(OAuthStateManager stateManager,
                                    GoogleTokenVerifierService googleTokenVerifierService,
                                    GitHubOAuthService githubOAuthService,
@@ -78,7 +102,7 @@ public class FederatedAuthController {
 
         String redirectUrl = String.format(
                 "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile&state=%s",
-                googleClientId != null ? googleClientId.trim() : "",
+                getCleanGoogleClientId(),
                 googleRedirectUri != null ? googleRedirectUri.trim() : "",
                 state
         );
@@ -110,8 +134,8 @@ public class FederatedAuthController {
             // 2. Exchange code for tokens at https://oauth2.googleapis.com/token
             String tokenUrl = "https://oauth2.googleapis.com/token";
             Map<String, String> requestPayload = new HashMap<>();
-            requestPayload.put("client_id", googleClientId != null ? googleClientId.trim() : "");
-            requestPayload.put("client_secret", googleClientSecret != null ? googleClientSecret.trim() : "");
+            requestPayload.put("client_id", getCleanGoogleClientId());
+            requestPayload.put("client_secret", getCleanGoogleClientSecret());
             requestPayload.put("code", code.trim());
             requestPayload.put("grant_type", "authorization_code");
             requestPayload.put("redirect_uri", googleRedirectUri != null ? googleRedirectUri.trim() : "");
@@ -311,7 +335,7 @@ public class FederatedAuthController {
 
         String redirectUrl = String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=user:email&state=%s",
-                githubClientId != null ? githubClientId.trim() : "",
+                getCleanGithubClientId(),
                 githubRedirectUri != null ? githubRedirectUri.trim() : "",
                 state
         );
