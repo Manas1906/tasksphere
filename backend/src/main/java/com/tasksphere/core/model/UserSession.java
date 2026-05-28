@@ -31,8 +31,15 @@ public class UserSession {
     @Builder.Default
     private Instant lastActiveTime = Instant.now();
 
-    @Transient
+    @Column(name = "email", unique = true)
     private String email;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column(name = "mfa_enabled")
+    @Builder.Default
+    private boolean mfaEnabled = false;
 
     @Transient
     private String password;
@@ -41,6 +48,9 @@ public class UserSession {
     private Boolean mfa;
 
     public String getExtractedEmail() {
+        if (email != null && !email.trim().isEmpty()) {
+            return email.toLowerCase().trim();
+        }
         if (avatarUrl == null || !avatarUrl.contains("||email:")) {
             return null;
         }
@@ -58,6 +68,9 @@ public class UserSession {
     }
 
     public String getPasswordHash() {
+        if (passwordHash != null && !passwordHash.trim().isEmpty()) {
+            return passwordHash;
+        }
         if (avatarUrl == null || !avatarUrl.contains("||pwd:")) {
             return null;
         }
@@ -75,6 +88,9 @@ public class UserSession {
     }
 
     public boolean isMfaEnabled() {
+        if (mfaEnabled) {
+            return true;
+        }
         if (avatarUrl == null || !avatarUrl.contains("||mfa:")) {
             return false;
         }
@@ -102,6 +118,10 @@ public class UserSession {
     }
 
     public void packMetadata(String avatar, String email, String pwdHash, boolean mfa) {
+        this.email = email != null ? email.toLowerCase().trim() : null;
+        this.passwordHash = pwdHash;
+        this.mfaEnabled = mfa;
+
         String baseAvatar = (avatar != null && avatar.contains("||")) ? avatar.split("\\|\\|")[0] : avatar;
         this.avatarUrl = String.format("%s||email:%s||pwd:%s||mfa:%b", 
             baseAvatar != null ? baseAvatar : "",

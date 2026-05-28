@@ -39,6 +39,46 @@ class TaskSphereApp {
       console.warn('[CHATBOT-ERROR] Failed to start chatbot:', chatbotErr);
     }
     
+    // Intercept Google/GitHub redirect parameters from URL search query on startup
+    const urlParams = new URLSearchParams(window.location.search);
+    const oauthToken = urlParams.get('token');
+    const oauthUsername = urlParams.get('username');
+    const oauthRole = urlParams.get('role');
+    const oauthEmail = urlParams.get('email');
+    const oauthAvatar = urlParams.get('avatar');
+    const oauthError = urlParams.get('error');
+
+    if (oauthError) {
+      console.error('[AUTH-OAUTH] Federated social login failed:', oauthError);
+      setTimeout(() => {
+        const errorMsg = document.getElementById('authErrorMsg');
+        if (errorMsg) {
+          errorMsg.textContent = decodeURIComponent(oauthError);
+          errorMsg.classList.add('visible');
+        }
+      }, 300);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (oauthToken && oauthUsername) {
+      console.log('[AUTH-OAUTH] Intercepted federated social credentials in URL callback.');
+      localStorage.setItem('tasksphere_jwt', oauthToken);
+      localStorage.setItem('chat_username', oauthUsername);
+      localStorage.setItem('chat_role', oauthRole || 'DEVELOPER');
+      localStorage.setItem('chat_avatar', oauthAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${oauthUsername}`);
+      localStorage.setItem('tasksphere_email', oauthEmail);
+
+      // Cache profile details
+      if (oauthEmail) {
+        localStorage.setItem('profile_' + oauthEmail.toLowerCase().trim(), JSON.stringify({
+          username: oauthUsername,
+          role: oauthRole || 'DEVELOPER',
+          avatarUrl: oauthAvatar
+        }));
+      }
+
+      // Clean query search parameters from URL instantly to prevent reload loops
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     const token = localStorage.getItem('tasksphere_jwt');
     const username = localStorage.getItem('chat_username');
     const role = localStorage.getItem('chat_role');
@@ -285,6 +325,28 @@ class TaskSphereApp {
         document.getElementById('authLoginStep').classList.remove('hidden');
         subtitle.textContent = 'Enter your credentials to access the workspace';
         document.getElementById('loginPasswordInput').focus();
+      };
+    }
+
+    // --- Federated Social Auth Redirect Handlers ---
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const githubLoginBtn = document.getElementById('githubLoginBtn');
+
+    if (googleLoginBtn) {
+      googleLoginBtn.onclick = () => {
+        clearError();
+        const cleanApiUrl = api.baseUrl.endsWith('/api') ? api.baseUrl.substring(0, api.baseUrl.length - 4) : api.baseUrl;
+        console.log('[AUTH-GOOGLE] Redirecting to Google Login page...');
+        window.location.href = `${cleanApiUrl}/api/auth/google/login`;
+      };
+    }
+
+    if (githubLoginBtn) {
+      githubLoginBtn.onclick = () => {
+        clearError();
+        const cleanApiUrl = api.baseUrl.endsWith('/api') ? api.baseUrl.substring(0, api.baseUrl.length - 4) : api.baseUrl;
+        console.log('[AUTH-GITHUB] Redirecting to GitHub Login page...');
+        window.location.href = `${cleanApiUrl}/api/auth/github/login`;
       };
     }
 
