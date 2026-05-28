@@ -36,26 +36,48 @@
   box-shadow: 0 0 8px var(--accent-emerald);
 }
 
-/* Active users listing */
+/* Redesigned Active Users Bar - Day 6 Premium Interactive Layout */
 .active-users-bar {
   display: flex;
-  gap: var(--spacing-xs);
+  align-items: center; /* Prevent vertical stretching of items */
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(255, 255, 255, 0.015);
   overflow-x: auto;
+  scrollbar-width: none; /* Hide standard Firefox scrollbars */
+}
+
+.active-users-bar::-webkit-scrollbar {
+  display: none; /* Hide Chrome/Safari scrollbars for dynamic floating look */
 }
 
 .active-user-avatar-wrap {
   position: relative;
   cursor: pointer;
+  flex-shrink: 0; /* Prohibit avatar squishing */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast) cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(30, 41, 59, 0.2);
+}
+
+.active-user-avatar-wrap:hover {
+  transform: scale(1.1) translateY(-1px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
 }
 
 .active-user-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--bg-secondary);
+  object-fit: cover;
   background-color: var(--bg-tertiary);
 }
 
@@ -64,14 +86,25 @@
   height: 8px;
   border-radius: 50%;
   position: absolute;
-  bottom: 0;
-  right: 0;
+  bottom: -2px;
+  right: -2px;
   border: 1.5px solid var(--bg-secondary);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  z-index: 10;
 }
 
-.active-user-status-dot--online { background-color: var(--accent-emerald); }
-.active-user-status-dot--away { background-color: var(--accent-amber); }
-.active-user-status-dot--dnd { background-color: var(--accent-rose); }
+.active-user-status-dot--online { 
+  background-color: var(--accent-emerald); 
+  box-shadow: 0 0 6px var(--accent-emerald);
+}
+.active-user-status-dot--away { 
+  background-color: var(--accent-amber); 
+  box-shadow: 0 0 6px var(--accent-amber);
+}
+.active-user-status-dot--dnd { 
+  background-color: var(--accent-rose); 
+  box-shadow: 0 0 6px var(--accent-rose);
+}
 
 /* Messages list area */
 .chat-messages-container {
@@ -561,5 +594,97 @@
 
 .chat-msg--self .chat-msg__threads-trigger {
   justify-content: flex-end;
+}
+
+/* =======================================================
+   User Tagging & Mentions Autocomplete Styles
+   ======================================================= */
+
+/* Mentions Autocomplete Dropdown List */
+.mentions-dropdown {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: var(--spacing-md);
+  right: var(--spacing-md);
+  background: rgba(19, 26, 38, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), var(--cyan-glow);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.mentions-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.mentions-dropdown__item:last-child {
+  border-bottom: none;
+}
+
+.mentions-dropdown__item--active,
+.mentions-dropdown__item:hover {
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.mentions-dropdown__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mentions-dropdown__username {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+}
+
+.mentions-dropdown__role {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+/* Styled Mention Badge inside Chat Bubbles */
+.chat-mention {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(139, 92, 246, 0.15));
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.chat-mention:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+  color: #fff;
+  border-color: var(--accent-cyan);
 }
 

@@ -3,6 +3,7 @@ package com.tasksphere.core.controller;
 import com.tasksphere.core.model.UserSession;
 import com.tasksphere.core.repository.UserSessionRepository;
 import com.tasksphere.core.service.EmailService;
+import com.tasksphere.core.service.RedisCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,9 +28,23 @@ public class UserController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private RedisCacheService redisCacheService;
+
     @GetMapping
     public ResponseEntity<List<UserSession>> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+        List<UserSession> users = userRepository.findAll();
+        for (UserSession user : users) {
+            if ("PENDING_APPROVAL".equalsIgnoreCase(user.getStatus())) {
+                continue;
+            }
+            if (redisCacheService.isUserOnline(user.getUsername())) {
+                user.setStatus("ONLINE");
+            } else {
+                user.setStatus("OFFLINE");
+            }
+        }
+        return ResponseEntity.ok(users);
     }
 
     @PostMapping("/login")

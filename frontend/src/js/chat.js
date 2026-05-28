@@ -19,6 +19,13 @@ export class ChatController {
     
     // Thread replies tracking states - Phase 8
     this.activeThreadMsg = null;   // msg object actively open in thread drawer
+
+    // Autocomplete mentions tracking states
+    this.mentionsDropdown = null;
+    this.mentionsActiveIdx = -1;
+    this.mentionsFilteredUsers = [];
+    this.mentionSearchQuery = '';
+    this.mentionSearchStartIdx = -1;
   }
 
   get myUsername() {
@@ -34,6 +41,7 @@ export class ChatController {
     this.bindEvents();
     this.loadChatHistory();
     this.loadUserDirectory();
+    this.setupMentionsAutocomplete();
   }
 
   async loadUserDirectory() {
@@ -449,7 +457,7 @@ export class ChatController {
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble">${textMsg}</div>
+          <div class="chat-msg__bubble">${this.formatMessageMentions(textMsg)}</div>
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">
@@ -583,6 +591,17 @@ export class ChatController {
     }
 
     this.messagesContainer.appendChild(msgElement);
+
+    // Bind click events on mentions to open direct messaging
+    msgElement.querySelectorAll('.chat-mention').forEach(mentionEl => {
+      mentionEl.onclick = (e) => {
+        e.stopPropagation();
+        const username = mentionEl.getAttribute('data-mention-username');
+        if (username && username !== this.myUsername) {
+          this.switchChatPartner(username);
+        }
+      };
+    });
   }
 
   async toggleMessageReaction(msg, emoji) {
@@ -680,10 +699,21 @@ export class ChatController {
             <span class="chat-msg__sender">${reply.username}</span>
             <span>${time}</span>
           </div>
-          <div class="chat-msg__bubble">${reply.message}</div>
+          <div class="chat-msg__bubble">${this.formatMessageMentions(reply.message)}</div>
         </div>
       `;
       repliesList.appendChild(replyEl);
+
+      // Bind click events on mentions inside replies
+      replyEl.querySelectorAll('.chat-mention').forEach(mentionEl => {
+        mentionEl.onclick = (e) => {
+          e.stopPropagation();
+          const username = mentionEl.getAttribute('data-mention-username');
+          if (username && username !== this.myUsername) {
+            this.switchChatPartner(username);
+          }
+        };
+      });
     });
     
     repliesList.scrollTop = repliesList.scrollHeight;
@@ -828,5 +858,179 @@ export class ChatController {
     });
 
     this.userCountSpan.textContent = `${onlineMembers.length} active session${onlineMembers.length > 1 ? 's' : ''}`;
+  }
+
+  /* =======================================================
+     User Tagging & Autocomplete Engine Methods
+     ======================================================= */
+
+  formatMessageMentions(text) {
+    if (!text) return '';
+    return text.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
+      return `<span class="chat-mention" data-mention-username="${username}">@${username}</span>`;
+    });
+  }
+
+  setupMentionsAutocomplete() {
+    this.input.addEventListener('input', (e) => this.handleMentionsInput(e));
+    this.input.addEventListener('keydown', (e) => this.handleMentionsKeydown(e));
+    
+    // Also bind thread reply input
+    const replyInput = document.getElementById('threadReplyInput');
+    if (replyInput) {
+      replyInput.addEventListener('input', (e) => this.handleMentionsInput(e));
+      replyInput.addEventListener('keydown', (e) => this.handleMentionsKeydown(e));
+    }
+    
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      if (this.mentionsDropdown && !this.mentionsDropdown.contains(e.target) && e.target !== this.input && e.target !== replyInput) {
+        this.destroyMentionsDropdown();
+      }
+    });
+  }
+
+  handleMentionsInput(e) {
+    const input = e.target;
+    const value = input.value;
+    const cursorIdx = input.selectionStart;
+    
+    // Find the last index of '@' before the cursor
+    const lastAtIdx = value.lastIndexOf('@', cursorIdx - 1);
+    if (lastAtIdx === -1) {
+      this.destroyMentionsDropdown();
+      return;
+    }
+    
+    // Check if there is a space or newline between '@' and the cursor
+    const textBetween = value.substring(lastAtIdx + 1, cursorIdx);
+    if (textBetween.includes(' ') || textBetween.includes('\n')) {
+      this.destroyMentionsDropdown();
+      return;
+    }
+    
+    // Ensure the character before '@' is a space or start of line
+    if (lastAtIdx > 0 && value.charAt(lastAtIdx - 1) !== ' ' && value.charAt(lastAtIdx - 1) !== '\n') {
+      this.destroyMentionsDropdown();
+      return;
+    }
+    
+    // Mentions search mode active!
+    this.mentionSearchStartIdx = lastAtIdx;
+    this.mentionSearchQuery = textBetween.toLowerCase();
+    
+    this.showMentionsDropdown(input);
+  }
+
+  handleMentionsKeydown(e) {
+    if (!this.mentionsDropdown) return;
+    
+    const input = e.target;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.mentionsActiveIdx = (this.mentionsActiveIdx + 1) % this.mentionsFilteredUsers.length;
+      this.redrawMentionsItems();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.mentionsActiveIdx = (this.mentionsActiveIdx - 1 + this.mentionsFilteredUsers.length) % this.mentionsFilteredUsers.length;
+      this.redrawMentionsItems();
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (this.mentionsActiveIdx >= 0 && this.mentionsActiveIdx < this.mentionsFilteredUsers.length) {
+        this.selectMention(input, this.mentionsFilteredUsers[this.mentionsActiveIdx].username);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.destroyMentionsDropdown();
+    }
+  }
+
+  showMentionsDropdown(input) {
+    const allUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+    this.mentionsFilteredUsers = allUsers.filter(u => 
+      u.username.toLowerCase().startsWith(this.mentionSearchQuery)
+    );
+    
+    if (this.mentionsFilteredUsers.length === 0) {
+      this.destroyMentionsDropdown();
+      return;
+    }
+    
+    if (!this.mentionsDropdown) {
+      this.mentionsDropdown = document.createElement('div');
+      this.mentionsDropdown.className = 'mentions-dropdown';
+      
+      const inputArea = input.closest('.chat-input-area');
+      if (inputArea) {
+        inputArea.style.position = 'relative';
+        inputArea.appendChild(this.mentionsDropdown);
+      }
+    }
+    
+    this.mentionsDropdown.innerHTML = '';
+    this.mentionsFilteredUsers.forEach((user, idx) => {
+      const item = document.createElement('div');
+      item.className = `mentions-dropdown__item ${idx === this.mentionsActiveIdx ? 'mentions-dropdown__item--active' : ''}`;
+      
+      const cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      const roleText = (user.role || 'DEVELOPER').replace(/_/g, ' ');
+      
+      item.innerHTML = `
+        <img src="${cleanAvatar}" class="mentions-dropdown__avatar" alt="${user.username}">
+        <span class="mentions-dropdown__username">@${user.username}</span>
+        <span class="mentions-dropdown__role">${roleText}</span>
+      `;
+      
+      item.onclick = (e) => {
+        e.stopPropagation();
+        this.selectMention(input, user.username);
+      };
+      
+      this.mentionsDropdown.appendChild(item);
+    });
+    
+    if (this.mentionsActiveIdx >= this.mentionsFilteredUsers.length) {
+      this.mentionsActiveIdx = 0;
+      this.redrawMentionsItems();
+    }
+  }
+
+  redrawMentionsItems() {
+    if (!this.mentionsDropdown) return;
+    const items = this.mentionsDropdown.querySelectorAll('.mentions-dropdown__item');
+    items.forEach((item, idx) => {
+      if (idx === this.mentionsActiveIdx) {
+        item.classList.add('mentions-dropdown__item--active');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('mentions-dropdown__item--active');
+      }
+    });
+  }
+
+  selectMention(input, username) {
+    const value = input.value;
+    const prefix = value.substring(0, this.mentionSearchStartIdx);
+    const suffix = value.substring(input.selectionStart);
+    
+    input.value = `${prefix}@${username} ${suffix}`;
+    
+    const newCursorPos = prefix.length + username.length + 2; // account for '@' and space
+    input.setSelectionRange(newCursorPos, newCursorPos);
+    
+    this.destroyMentionsDropdown();
+    input.focus();
+  }
+
+  destroyMentionsDropdown() {
+    if (this.mentionsDropdown) {
+      this.mentionsDropdown.remove();
+      this.mentionsDropdown = null;
+    }
+    this.mentionsActiveIdx = -1;
+    this.mentionsFilteredUsers = [];
+    this.mentionSearchQuery = '';
+    this.mentionSearchStartIdx = -1;
   }
 }
