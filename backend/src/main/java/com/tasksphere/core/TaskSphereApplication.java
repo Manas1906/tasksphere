@@ -28,10 +28,14 @@ public class TaskSphereApplication {
                 if ("PostgreSQL".equalsIgnoreCase(dbName)) {
                     System.out.println("[DB-INIT] Ensuring users.avatar_url column type is TEXT for PostgreSQL...");
                     jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN avatar_url TYPE TEXT;");
+                    System.out.println("[DB-INIT] Ensuring chat_messages.avatar_url column type is TEXT for PostgreSQL...");
+                    jdbcTemplate.execute("ALTER TABLE chat_messages ALTER COLUMN avatar_url TYPE TEXT;");
                     System.out.println("[DB-INIT] Column size upgrade executed successfully!");
                 } else if ("H2".equalsIgnoreCase(dbName)) {
                     System.out.println("[DB-INIT] Ensuring users.avatar_url column size is expanded for H2...");
                     jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN avatar_url VARCHAR(1048576);");
+                    System.out.println("[DB-INIT] Ensuring chat_messages.avatar_url column size is expanded for H2...");
+                    jdbcTemplate.execute("ALTER TABLE chat_messages ALTER COLUMN avatar_url VARCHAR(1048576);");
                     System.out.println("[DB-INIT] Local db column size expanded successfully!");
                 }
             } catch (Exception e) {

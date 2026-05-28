@@ -19,7 +19,7 @@ public class ChatMessage {
     @Column(nullable = false)
     private String username;
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
     @Column(nullable = false, columnDefinition = "TEXT")
