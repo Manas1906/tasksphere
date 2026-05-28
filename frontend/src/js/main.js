@@ -814,6 +814,10 @@ class TaskSphereApp {
           if (mfaRes.success && mfaRes.token) {
             console.log('[AUTH-MFA] Validation valid. Fetching profile metadata details...');
             
+            // Store the token immediately so subsequent API calls use the authenticated header
+            localStorage.setItem('tasksphere_jwt', mfaRes.token);
+            localStorage.setItem('tasksphere_email', emailVal);
+
             // Fetch directory profiles to extract username & role details
             const users = await api.getUsers() || [];
             const me = users.find(u => {
@@ -830,7 +834,6 @@ class TaskSphereApp {
             const role = me ? me.role : 'DEVELOPER';
             const avatarUrl = me ? (me.avatarUrl || '').split('||')[0] : `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
 
-            localStorage.setItem('tasksphere_jwt', mfaRes.token);
             localStorage.setItem('chat_username', username);
             localStorage.setItem('chat_role', role);
             localStorage.setItem('chat_avatar', avatarUrl);

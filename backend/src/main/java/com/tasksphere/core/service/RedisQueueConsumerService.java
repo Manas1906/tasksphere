@@ -67,10 +67,14 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                     emailService.executeDirectEmailDispatch(event.getType(), event.getToEmail(), event.getSubject(), event.getHtmlContent());
                 }
             } catch (Exception ex) {
-                if (running) {
+                boolean isClosed = !running || (ex.getMessage() != null && 
+                    (ex.getMessage().contains("Connection is already closed") || 
+                     ex.getMessage().contains("closed") || 
+                     ex.getMessage().contains("Redis connection")));
+                if (!isClosed) {
                     log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}", ex.getMessage());
                 } else {
-                    log.info("[REDIS-CONSUMER] Email queue listener shutting down gracefully.");
+                    log.info("[REDIS-CONSUMER] Email queue listener shutting down gracefully due to Redis connection closure.");
                 }
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 
@@ -92,10 +96,14 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                     aiBotService.processAiRequest(event.getUsername(), event.getAvatarUrl(), event.getMessage(), event.isDm());
                 }
             } catch (Exception ex) {
-                if (running) {
+                boolean isClosed = !running || (ex.getMessage() != null && 
+                    (ex.getMessage().contains("Connection is already closed") || 
+                     ex.getMessage().contains("closed") || 
+                     ex.getMessage().contains("Redis connection")));
+                if (!isClosed) {
                     log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}", ex.getMessage());
                 } else {
-                    log.info("[REDIS-CONSUMER] AI bot queue listener shutting down gracefully.");
+                    log.info("[REDIS-CONSUMER] AI bot queue listener shutting down gracefully due to Redis connection closure.");
                 }
                 try { 
                     TimeUnit.MILLISECONDS.sleep(500); 

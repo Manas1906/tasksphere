@@ -33,11 +33,20 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserSession> login(@RequestBody UserSession user) {
+    public ResponseEntity<?> login(@RequestBody UserSession user) {
         Optional<UserSession> existingUser = userRepository.findByUsername(user.getUsername());
         if (existingUser.isPresent()) {
             UserSession activeUser = existingUser.get();
-            
+            String existingEmail = activeUser.getExtractedEmail();
+            String newEmail = user.getEmail();
+
+            // Prevent username hijacking or overwriting by a different email address
+            if (existingEmail != null && newEmail != null && !existingEmail.equalsIgnoreCase(newEmail.trim())) {
+                Map<String, String> err = new HashMap<>();
+                err.put("error", "The username '" + user.getUsername() + "' is already registered by a different email address. Please choose a unique username.");
+                return ResponseEntity.status(409).body(err);
+            }
+
             // If the user's status is already PENDING_APPROVAL, keep it restricted.
             // Otherwise, set them to ONLINE.
             if (!"PENDING_APPROVAL".equalsIgnoreCase(activeUser.getStatus())) {
