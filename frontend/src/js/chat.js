@@ -26,6 +26,13 @@ export class ChatController {
     this.mentionsFilteredUsers = [];
     this.mentionSearchQuery = '';
     this.mentionSearchStartIdx = -1;
+
+    // Typing Indicator tracking states - Phase 15
+    this.typingIndicatorEl = document.getElementById('typingIndicator');
+    this.activeTypers = new Set();
+    this.typingTimeout = null;
+    this.isCurrentlyTyping = false;
+    this.typerTimers = {};
   }
 
   get myUsername() {
@@ -120,12 +127,27 @@ export class ChatController {
       
       this.input.value = '';
       this.input.focus();
+
+      // Reset typing status instantly on message dispatch
+      if (this.typingTimeout) {
+        clearTimeout(this.typingTimeout);
+        this.typingTimeout = null;
+      }
+      if (this.isCurrentlyTyping) {
+        this.isCurrentlyTyping = false;
+        this.publishTypingStatus(false);
+      }
     };
 
     this.sendBtn.onclick = handleSend;
     this.input.onkeydown = (e) => {
       if (e.key === 'Enter') handleSend();
     };
+
+    // Keystroke typing listener - Phase 15
+    this.input.addEventListener('input', () => {
+      this.handleTypingInput();
+    });
 
     // Role-based visibility and click handler for clearing chat history (Admin/Product Owner Only)
     const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
@@ -269,6 +291,11 @@ export class ChatController {
     socket.subscribe('/topic/users', (presenceUpdate) => {
       console.log('[CHAT-PRESENCE-IN] Received user presence update from broker:', presenceUpdate);
       this.updateActiveUsersList(presenceUpdate);
+    });
+
+    // Subscribe to typing status channel - Phase 15
+    socket.subscribe('/topic/chat.typing', (payload) => {
+      this.handleIncomingTypingStatus(payload);
     });
   }
 
@@ -1050,5 +1077,87 @@ export class ChatController {
     this.mentionsFilteredUsers = [];
     this.mentionSearchQuery = '';
     this.mentionSearchStartIdx = -1;
+  }
+
+  // Typing Indicator Logic - Phase 15
+  handleTypingInput() {
+    if (!this.isCurrentlyTyping) {
+      this.isCurrentlyTyping = true;
+      this.publishTypingStatus(true);
+    }
+    
+    if (this.typingTimeout) {
+      clearTimeout(this.typingTimeout);
+    }
+    
+    this.typingTimeout = setTimeout(() => {
+      this.isCurrentlyTyping = false;
+      this.publishTypingStatus(false);
+      this.typingTimeout = null;
+    }, 3000); // 3 seconds idle timeout
+  }
+
+  publishTypingStatus(isTyping) {
+    if (!socket.connected) return;
+    
+    const payload = {
+      username: this.myUsername,
+      typing: isTyping
+    };
+    
+    socket.send('/app/chat.typing', payload);
+  }
+
+  handleIncomingTypingStatus(payload) {
+    const { username, typing } = payload;
+    if (!username || username === this.myUsername) return;
+
+    if (typing) {
+      this.activeTypers.add(username);
+      
+      // Self-healing ghost pruning timer
+      if (this.typerTimers[username]) {
+        clearTimeout(this.typerTimers[username]);
+      }
+      
+      this.typerTimers[username] = setTimeout(() => {
+        this.activeTypers.delete(username);
+        delete this.typerTimers[username];
+        this.updateTypingIndicatorUI();
+      }, 4000); // 4 seconds auto-cleanup
+    } else {
+      this.activeTypers.delete(username);
+      if (this.typerTimers[username]) {
+        clearTimeout(this.typerTimers[username]);
+        delete this.typerTimers[username];
+      }
+    }
+    
+    this.updateTypingIndicatorUI();
+  }
+
+  updateTypingIndicatorUI() {
+    if (!this.typingIndicatorEl) return;
+    
+    const typersArray = Array.from(this.activeTypers);
+    
+    if (typersArray.length === 0) {
+      this.typingIndicatorEl.classList.add('hidden');
+    } else {
+      let text = '';
+      if (typersArray.length === 1) {
+        text = `${typersArray[0]} is typing...`;
+      } else if (typersArray.length === 2) {
+        text = `${typersArray[0]} and ${typersArray[1]} are typing...`;
+      } else {
+        text = 'Multiple people are typing...';
+      }
+      
+      const textSpan = this.typingIndicatorEl.querySelector('span:last-of-type');
+      if (textSpan) {
+        textSpan.textContent = text;
+      }
+      this.typingIndicatorEl.classList.remove('hidden');
+    }
   }
 }

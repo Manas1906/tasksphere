@@ -147,6 +147,15 @@ public class RealtimeController {
         return cursorUpdate;
     }
 
+    /**
+     * Receives real-time chat typing statuses and broadcasts them to all other active chat members.
+     */
+    @MessageMapping("/chat.typing")
+    @SendTo("/topic/chat.typing")
+    public Map<String, Object> broadcastTypingStatus(Map<String, Object> typingPayload) {
+        return typingPayload;
+    }
+
     @Data
     public static class TaskMovePayload {
         private Long taskId;
