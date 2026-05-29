@@ -12,7 +12,7 @@ import java.util.Map;
 @RequestMapping("/api/ping")
 public class PingController {
 
-    @GetMapping
+    @GetMapping({"", "/"})
     public ResponseEntity<Map<String, Object>> ping() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
