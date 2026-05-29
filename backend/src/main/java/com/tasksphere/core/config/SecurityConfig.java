@@ -41,6 +41,7 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/ping").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico").permitAll()
                 .requestMatchers("/ws-tasksphere/**").permitAll()
