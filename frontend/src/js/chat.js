@@ -55,9 +55,12 @@ export class ChatController {
       // Map database users directly using their database status (zero cache dependency!)
       const mappedMembers = approvedTeammates.map(dbUser => {
         // Extract clean avatar URL
-        let cleanAvatar = dbUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${dbUser.username}`;
+        let cleanAvatar = dbUser.avatarUrl || '';
         if (cleanAvatar.includes('||')) {
           cleanAvatar = cleanAvatar.split('||')[0];
+        }
+        if (!cleanAvatar || cleanAvatar.trim() === '') {
+          cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${dbUser.username}`;
         }
         
         return {
@@ -417,7 +420,10 @@ export class ChatController {
     msgElement.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
     msgElement.setAttribute('data-msg-id', msg.id);
     
-    const cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+    let cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+    if (!cleanAvatar || cleanAvatar.trim() === '') {
+      cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.username}`;
+    }
 
     // Build Reactions capsules UI
     let reactionsHtml = '';
@@ -647,7 +653,10 @@ export class ChatController {
     parentContainer.innerHTML = '';
     const parentMsgEl = document.createElement('div');
     parentMsgEl.className = 'chat-msg';
-    const cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+    let cleanAvatar = (msg.avatarUrl || '').split('||')[0];
+    if (!cleanAvatar || cleanAvatar.trim() === '') {
+      cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.username}`;
+    }
     const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
     const parsed = this.parseMessageMeta(msg.message);
     
@@ -687,7 +696,10 @@ export class ChatController {
     replies.forEach(reply => {
       const isSelf = reply.username === this.myUsername;
       const time = reply.timestamp ? new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
-      const cleanAvatar = (reply.avatarUrl || '').split('||')[0];
+      let cleanAvatar = (reply.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar || cleanAvatar.trim() === '') {
+        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${reply.username}`;
+      }
       
       const replyEl = document.createElement('div');
       replyEl.className = `chat-msg ${isSelf ? 'chat-msg--self' : ''}`;
@@ -842,7 +854,10 @@ export class ChatController {
       };
 
       const statusClass = user.status.toLowerCase();
-      const cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar || cleanAvatar.trim() === '') {
+        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+      }
       
       const unreadCount = this.unreadDms[user.username] || 0;
       const badgeHtml = unreadCount > 0 
@@ -973,7 +988,10 @@ export class ChatController {
       const item = document.createElement('div');
       item.className = `mentions-dropdown__item ${idx === this.mentionsActiveIdx ? 'mentions-dropdown__item--active' : ''}`;
       
-      const cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar || cleanAvatar.trim() === '') {
+        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+      }
       const roleText = (user.role || 'DEVELOPER').replace(/_/g, ' ');
       
       item.innerHTML = `

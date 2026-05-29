@@ -894,7 +894,10 @@ class TaskSphereApp {
 
             const username = me ? me.username : emailVal.split('@')[0];
             const role = me ? me.role : 'DEVELOPER';
-            const avatarUrl = me ? (me.avatarUrl || '').split('||')[0] : `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+            let avatarUrl = me ? (me.avatarUrl || '').split('||')[0] : '';
+            if (!avatarUrl || avatarUrl.trim() === '') {
+              avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+            }
 
             localStorage.setItem('chat_username', username);
             localStorage.setItem('chat_role', role);
