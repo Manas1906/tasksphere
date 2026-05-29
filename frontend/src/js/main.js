@@ -1096,34 +1096,7 @@ class TaskSphereApp {
         // Initialize Cursor WebSocket channel subscription
         this.cursorSyncController.subscribeChannel();
 
-        // Subscribe to live system diagnostics metrics stream (CTO Showcase)
-        socket.subscribe('/topic/stats', (stats) => {
-          console.log('[APP-SYNC-STATS] Received incoming system diagnostics payload:', stats);
-          const archModeEl = document.getElementById('diagArchMode');
-          const emailQueueEl = document.getElementById('diagEmailQueue');
-          const aiQueueEl = document.getElementById('diagAiQueue');
-          const latencySavingsEl = document.getElementById('diagLatencySavings');
-          
-          if (archModeEl) archModeEl.textContent = stats.activeMode || 'REDIS EVENT QUEUE';
-          if (emailQueueEl) emailQueueEl.textContent = `${stats.emailQueueSize || 0} pending`;
-          if (aiQueueEl) aiQueueEl.textContent = `${stats.aiQueueSize || 0} pending`;
-          if (latencySavingsEl) latencySavingsEl.textContent = stats.latencySavings || '99.8%';
-        });
 
-        // Periodically trigger system stats collection (every 5 seconds)
-        const triggerStatsSync = () => {
-          if (socket.connected) {
-            socket.send('/app/system.stats', {});
-          }
-        };
-        setTimeout(triggerStatsSync, 2000);
-        const statsInterval = setInterval(() => {
-          if (!socket.connected) {
-            clearInterval(statsInterval);
-          } else {
-            triggerStatsSync();
-          }
-        }, 5000);
       },
       (err) => {
         console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
@@ -1151,17 +1124,7 @@ class TaskSphereApp {
       adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('filter-btn--active'); this.switchRoute('ADMIN_PANEL'); };
     }
 
-    // Figma Inspect Spec Mode toggle - Day 6 UI specifications
-    const inspectBtn = document.getElementById('inspectModeBtn');
-    inspectBtn.onclick = () => {
-      document.body.classList.toggle('figma-inspect-mode');
-      inspectBtn.classList.toggle('filter-btn--active');
-      if (document.body.classList.contains('figma-inspect-mode')) {
-        inspectBtn.textContent = 'Specs Inspector: ON';
-      } else {
-        inspectBtn.textContent = 'Figma Inspect';
-      }
-    };
+
   }
 
   setupModals() {

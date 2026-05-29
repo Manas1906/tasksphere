@@ -35,7 +35,6 @@
       
       <!-- Operations presence controller -->
       <div class="header-profile">
-        <button id="inspectModeBtn" class="filter-btn" title="Inspect UI Spec Guides">Figma Inspect</button>
         <button id="sprintPlannerBtn" class="btn btn--submit">+ New Ticket</button>
         <button id="mobileChatToggleBtn" class="mobile-nav-toggle" title="Toggle Chat">
           <svg style="width: 18px; height: 18px; fill: var(--text-muted)" viewBox="0 0 24 24">
@@ -103,31 +102,7 @@
         </button>
       </div>
       
-      <!-- CTO Systems Diagnostics Panel -->
-      <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted)">
-        <div style="margin-bottom: var(--spacing-xs); display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 12px;">⚡</span>
-          <span style="font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.05em;">CTO Systems Metrics</span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 240, 255, 0.03); padding: 8px; border-radius: var(--radius-sm); border: 1px dashed rgba(0, 240, 255, 0.15)">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Arch Mode:</span>
-            <span style="color: var(--accent-cyan); font-weight: 700; font-family: 'Fira Code', monospace; font-size: 9px;" id="diagArchMode">LOADING...</span>
-          </div>
-          <div style="display: flex; justify-content: space-between">
-            <span>Email Queue:</span>
-            <span style="color: #ff0080; font-weight: 700;" id="diagEmailQueue">0 pending</span>
-          </div>
-          <div style="display: flex; justify-content: space-between">
-            <span>AI Queue:</span>
-            <span style="color: var(--accent-purple); font-weight: 700;" id="diagAiQueue">0 pending</span>
-          </div>
-          <div style="display: flex; justify-content: space-between">
-            <span>Latency Cut:</span>
-            <span style="color: #10b981; font-weight: 700;" id="diagLatencySavings">99.8%</span>
-          </div>
-        </div>
-      </div>
+
 
       <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted)">
         <p>Connection Status: <span id="wsStatus" class="text-rose">● Offline</span></p>
