@@ -160,7 +160,9 @@ public class FederatedAuthController {
             UserSession user;
 
             if (existingOauth.isPresent()) {
-                user = existingOauth.get().getUser();
+                String userId = existingOauth.get().getUser().getId();
+                user = userRepository.findById(userId).orElseThrow(() -> 
+                    new SecurityException("Linked user session not found in database."));
             } else {
                 // Find existing user by verified email (Automatic Account Linking)
                 Optional<UserSession> existingUser = userRepository.findAll().stream()
@@ -266,7 +268,9 @@ public class FederatedAuthController {
             UserSession user;
 
             if (existingOauth.isPresent()) {
-                user = existingOauth.get().getUser();
+                String userId = existingOauth.get().getUser().getId();
+                user = userRepository.findById(userId).orElseThrow(() -> 
+                    new SecurityException("Linked user session not found in database."));
             } else {
                 // Find existing user by verified email (Automatic Account Linking)
                 Optional<UserSession> existingUser = userRepository.findAll().stream()
@@ -381,7 +385,9 @@ public class FederatedAuthController {
             UserSession user;
 
             if (existingOauth.isPresent()) {
-                user = existingOauth.get().getUser();
+                String userId = existingOauth.get().getUser().getId();
+                user = userRepository.findById(userId).orElseThrow(() -> 
+                    new SecurityException("Linked user session not found in database."));
             } else {
                 // Find existing user by verified email (Automatic Account Linking)
                 Optional<UserSession> existingUser = userRepository.findAll().stream()
