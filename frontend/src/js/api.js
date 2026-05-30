@@ -45,15 +45,16 @@ class ApiService {
 
     this.setOnline(true);
 
-    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
-      console.warn('[API-UNAUTHORIZED] Access denied. Directing to login overlay.');
+    if ((response.status === 401 || response.status === 403) && !endpoint.startsWith('/auth/')) {
+      console.warn('[API-UNAUTHORIZED] Access denied or session expired. Directing to login overlay.');
       localStorage.removeItem('tasksphere_jwt');
       localStorage.removeItem('tasksphere_user');
+      localStorage.removeItem('chat_username'); // clear chat username cache
       const loginOverlay = document.getElementById('loginOverlay');
       if (loginOverlay) {
         loginOverlay.classList.remove('hidden');
       }
-      throw new Error('Unauthorized session terminated.');
+      throw new Error('Session expired or unauthorized. Please log in again.');
     }
 
     if (!response.ok) {
