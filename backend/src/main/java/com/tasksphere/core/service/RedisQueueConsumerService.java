@@ -58,9 +58,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
 
     private void consumeEmails() {
         log.info("[REDIS-CONSUMER] Email Queue listener online. Monitoring list 'queue:email'...");
+        long backoffDelayMs = 1000;
         while (running) {
             try {
-                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.EMAIL_QUEUE, 2, TimeUnit.SECONDS);
+                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.EMAIL_QUEUE, 60, TimeUnit.SECONDS);
+                backoffDelayMs = 1000; // Reset backoff delay on successful command
                 if (payload != null && !payload.trim().isEmpty()) {
                     EmailEvent event = objectMapper.readValue(payload, EmailEvent.class);
                     log.info("[REDIS-CONSUMER] Dequeued EmailEvent ({}) for {}. Processing dispatch...", event.getType(), event.getToEmail());
@@ -72,12 +74,14 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                      ex.getMessage().contains("closed") || 
                      ex.getMessage().contains("Redis connection")));
                 if (!isClosed) {
-                    log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}", ex.getMessage());
+                    backoffDelayMs = Math.min(backoffDelayMs * 2, 30000);
+                    log.error("[REDIS-CONSUMER-ERROR] Email queue listener encountered exception: {}. Backing off for {} ms...", ex.getMessage(), backoffDelayMs);
                 } else {
                     log.info("[REDIS-CONSUMER] Email queue listener shutting down gracefully due to Redis connection closure.");
+                    break;
                 }
                 try { 
-                    TimeUnit.MILLISECONDS.sleep(500); 
+                    TimeUnit.MILLISECONDS.sleep(backoffDelayMs); 
                 } catch (InterruptedException ie) { 
                     Thread.currentThread().interrupt(); 
                 }
@@ -87,9 +91,11 @@ public class RedisQueueConsumerService implements CommandLineRunner {
 
     private void consumeAiRequests() {
         log.info("[REDIS-CONSUMER] AI Bot Queue listener online. Monitoring list 'queue:ai'...");
+        long backoffDelayMs = 1000;
         while (running) {
             try {
-                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.AI_QUEUE, 2, TimeUnit.SECONDS);
+                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.AI_QUEUE, 60, TimeUnit.SECONDS);
+                backoffDelayMs = 1000; // Reset backoff delay on successful command
                 if (payload != null && !payload.trim().isEmpty()) {
                     AiBotEvent event = objectMapper.readValue(payload, AiBotEvent.class);
                     log.info("[REDIS-CONSUMER] Dequeued AiBotEvent from {}. Invoking Gemini orchestrator...", event.getUsername());
@@ -101,12 +107,14 @@ public class RedisQueueConsumerService implements CommandLineRunner {
                      ex.getMessage().contains("closed") || 
                      ex.getMessage().contains("Redis connection")));
                 if (!isClosed) {
-                    log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}", ex.getMessage());
+                    backoffDelayMs = Math.min(backoffDelayMs * 2, 30000);
+                    log.error("[REDIS-CONSUMER-ERROR] AI bot queue listener encountered exception: {}. Backing off for {} ms...", ex.getMessage(), backoffDelayMs);
                 } else {
                     log.info("[REDIS-CONSUMER] AI bot queue listener shutting down gracefully due to Redis connection closure.");
+                    break;
                 }
                 try { 
-                    TimeUnit.MILLISECONDS.sleep(500); 
+                    TimeUnit.MILLISECONDS.sleep(backoffDelayMs); 
                 } catch (InterruptedException ie) { 
                     Thread.currentThread().interrupt(); 
                 }
