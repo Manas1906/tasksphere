@@ -120,7 +120,12 @@
       <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm)">
         <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Appearance</span>
         <button id="themeToggleBtn" class="filter-btn" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); border-radius: var(--radius-sm)">
-          <span id="themeToggleIcon">☀️</span> <span id="themeToggleLabel">Light Mode</span>
+          <span id="themeToggleIcon" style="display: flex; align-items: center;">
+            <svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.02.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm-1.06-10.96a.996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06a.996.996 0 00-1.41 0zm-11.31 11.31a.996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06a.996.996 0 00-1.41 0z"/>
+            </svg>
+          </span>
+          <span id="themeToggleLabel">Light Mode</span>
         </button>
       </div>
       
@@ -151,7 +156,12 @@
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <button id="clearChatHistoryBtn" style="display: none; background: none; border: none; color: var(--accent-rose); font-size: 11px; font-weight: 600; cursor: pointer; opacity: 0.65; transition: opacity var(--transition-fast);" title="Clear Chat History (Admin Only)">🗑️ Clear</button>
+            <button id="clearChatHistoryBtn" style="display: none; background: none; border: none; color: var(--accent-rose); font-size: 11px; font-weight: 600; cursor: pointer; opacity: 0.65; transition: opacity var(--transition-fast); align-items: center; gap: 4px;" title="Clear Chat History (Admin Only)">
+              <svg style="width: 11px; height: 11px; fill: currentColor;" viewBox="0 0 24 24">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+              Clear
+            </button>
             <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
           </div>
         </div>
@@ -279,8 +289,13 @@
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xs); width: 100%;">
             <label class="form-label" style="margin-bottom: 0;">Deliverable Checklist</label>
-            <button type="button" id="aiSubtaskBtn" class="btn btn--outline btn--ai-glow">
-              <span>✨</span> <span id="aiSubtaskBtnText">Auto-Generate Subtasks</span>
+            <button type="button" id="aiSubtaskBtn" class="btn btn--outline btn--ai-glow" style="display: inline-flex; align-items: center; gap: 6px;">
+              <span style="display: flex; align-items: center;">
+                <svg style="width: 13px; height: 13px; fill: currentColor" viewBox="0 0 24 24">
+                  <path d="M11.5 9.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5 5.5-2.5-5.5-2.5zM19 17l-1.25-2.75L15 13l2.75-1.25L19 9l1.25 2.75L23 13l-2.75 1.25L19 17z"/>
+                </svg>
+              </span>
+              <span id="aiSubtaskBtnText">Auto-Generate Subtasks</span>
             </button>
           </div>
           <div class="form-checklist-builder">
@@ -358,9 +373,13 @@
         <!-- Change Password Segment -->
         <div class="form-group">
           <label class="form-label" for="settingsNewPassword">Update Password</label>
-          <div style="position: relative;">
+          <div style="position: relative; display: flex; align-items: center;">
             <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password" style="padding-right: 40px;">
-            <span class="password-toggle-btn" id="toggleSettingsPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+            <span class="password-toggle-btn" id="toggleSettingsPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; user-select: none;">
+              <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+              </svg>
+            </span>
           </div>
           <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
             <div id="settingsPasswordBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease;"></div>
@@ -534,7 +553,11 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
               <div class="auth-input-wrapper">
                 <input type="email" id="registerEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
-                <span class="auth-input-icon">✉</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <button type="submit" id="sendRegisterOtpBtn" class="auth-btn">Send Verification Code</button>
