@@ -191,7 +191,7 @@ export class AIChatbot {
 
   getIconSvg(name) {
     const icons = {
-      'bot': `<svg style="width: 20px; height: 20px; fill: currentColor; display: block;" viewBox="0 0 24 24"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 10 15 10s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-5 3h4v1.5h-4V16z"/></svg>`,
+      'bot': `<svg style="width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: block;" viewBox="0 0 24 24"><path d="M12 6V3M12 3a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor"/><rect x="5" y="6" width="14" height="12" rx="3" fill="none"/><path d="M5 10c-1 0-2 .8-2 2s1 2 2 2M19 10c1 0 2 .8 2 2s-1 2-2 2" fill="none"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/><path d="M10 14h4" fill="none"/></svg>`,
       'predictive': `<svg style="width: 14px; height: 14px; fill: var(--accent-purple); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>`
     };
     return icons[name] || '';

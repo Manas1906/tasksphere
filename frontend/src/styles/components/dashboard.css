@@ -16,6 +16,13 @@
   overflow: hidden;
   box-shadow: var(--card-shadow);
   backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .stat-card::after {
@@ -31,6 +38,24 @@
 .stat-card--purple::after { background: var(--accent-purple); }
 .stat-card--emerald::after { background: var(--accent-emerald); }
 .stat-card--rose::after { background: var(--accent-rose); }
+
+/* Active States */
+.stat-card--active.stat-card--cyan {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.25), var(--card-shadow);
+}
+.stat-card--active.stat-card--purple {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.25), var(--card-shadow);
+}
+.stat-card--active.stat-card--emerald {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25), var(--card-shadow);
+}
+.stat-card--active.stat-card--rose {
+  border-color: var(--accent-rose);
+  box-shadow: 0 0 15px rgba(225, 29, 72, 0.25), var(--card-shadow);
+}
 
 .stat-card__title {
   font-size: var(--font-size-xs);

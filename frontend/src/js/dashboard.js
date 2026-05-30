@@ -307,10 +307,21 @@ export class DashboardView {
     this.calculateMetrics();
   }
 
-  /**
-   * Day 9 Curriculum Showcase - Array Manipulation Engine (Filter, Map, Reduce)
-   */
   calculateMetrics() {
+    // Calculate global unfiltered statistics so that card totals remain static and fully representative
+    const unfilteredTasks = [...this.tasks];
+    const unfilteredTotalCount = unfilteredTasks.length;
+    const unfilteredTotalPoints = unfilteredTasks.reduce((acc, curr) => acc + (curr.storyPoints || 0), 0);
+    
+    const unfilteredProgress = unfilteredTasks.filter(t => t.status === 'IN_PROGRESS');
+    const unfilteredReview = unfilteredTasks.filter(t => t.status === 'REVIEW');
+    const unfilteredDone = unfilteredTasks.filter(t => t.status === 'DONE');
+    
+    const unfilteredDonePoints = unfilteredDone.reduce((acc, curr) => acc + (curr.storyPoints || 0), 0);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const unfilteredOverdue = unfilteredTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'DONE');
+
     // 1. Array Filtering
     let filteredTasks = [...this.tasks];
     if (this.filterType === 'HIGH_PRIORITY') {
@@ -319,53 +330,67 @@ export class DashboardView {
       filteredTasks = this.tasks.filter(t => t.priority === 'URGENT');
     } else if (this.filterType === 'UNASSIGNED') {
       filteredTasks = this.tasks.filter(t => !t.assignee);
+    } else if (this.filterType === 'IN_PROGRESS') {
+      filteredTasks = this.tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'REVIEW');
+    } else if (this.filterType === 'COMPLETED') {
+      filteredTasks = this.tasks.filter(t => t.status === 'DONE');
+    } else if (this.filterType === 'OVERDUE') {
+      filteredTasks = this.tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'DONE');
     }
 
     const filteredCount = document.getElementById('filteredCount');
     if (filteredCount) filteredCount.textContent = filteredTasks.length;
 
-    // 2. Statistics Calculations using Array Reduce
+    // 2. Local statistics of the active scope for visual gauges
     const totalCount = filteredTasks.length;
-    const todoTasks = filteredTasks.filter(t => t.status === 'TODO');
-    const progressTasks = filteredTasks.filter(t => t.status === 'IN_PROGRESS');
-    const reviewTasks = filteredTasks.filter(t => t.status === 'REVIEW');
     const doneTasks = filteredTasks.filter(t => t.status === 'DONE');
-
-    // Sum story points using Array.reduce()
-    const totalStoryPoints = filteredTasks.reduce((acc, curr) => acc + (curr.storyPoints || 0), 0);
-    const completedStoryPoints = doneTasks.reduce((acc, curr) => acc + (curr.storyPoints || 0), 0);
-
     const completionRate = totalCount > 0 ? Math.round((doneTasks.length / totalCount) * 100) : 0;
-    
-    // Check for overdue cards (due date is in past)
-    const today = new Date().toISOString().split('T')[0];
-    const overdueTasks = filteredTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'DONE');
 
-    // 3. Inject Stats Grid
+    // 3. Inject Stats Grid with interactive active states
     const statsContainer = document.getElementById('statsContainer');
     if (statsContainer) {
       statsContainer.innerHTML = `
-        <div class="stat-card stat-card--cyan">
+        <div class="stat-card stat-card--cyan ${this.filterType === 'ALL' ? 'stat-card--active' : ''}" data-stat-filter="ALL" title="Filter by All Items">
           <div class="stat-card__title">Total Backlog Items</div>
-          <div class="stat-card__value">${totalCount} Tasks</div>
-          <div class="stat-card__trend text-cyan">Points estimate: ${totalStoryPoints}SP</div>
+          <div class="stat-card__value">${unfilteredTotalCount} Tasks</div>
+          <div class="stat-card__trend text-cyan">Points estimate: ${unfilteredTotalPoints}SP</div>
         </div>
-        <div class="stat-card stat-card--purple">
+        <div class="stat-card stat-card--purple ${this.filterType === 'IN_PROGRESS' ? 'stat-card--active' : ''}" data-stat-filter="IN_PROGRESS" title="Filter by In-Progress Work">
           <div class="stat-card__title">In Progress Load</div>
-          <div class="stat-card__value">${progressTasks.length} Active</div>
-          <div class="stat-card__trend text-purple">${reviewTasks.length} in code review</div>
+          <div class="stat-card__value">${unfilteredProgress.length + unfilteredReview.length} Active</div>
+          <div class="stat-card__trend text-purple">${unfilteredReview.length} in code review</div>
         </div>
-        <div class="stat-card stat-card--emerald">
+        <div class="stat-card stat-card--emerald ${this.filterType === 'COMPLETED' ? 'stat-card--active' : ''}" data-stat-filter="COMPLETED" title="Filter by Completed Scope">
           <div class="stat-card__title">Completed Scope</div>
-          <div class="stat-card__value">${doneTasks.length} Closed</div>
-          <div class="stat-card__trend text-emerald">${completedStoryPoints} of ${totalStoryPoints} SP delivered</div>
+          <div class="stat-card__value">${unfilteredDone.length} Closed</div>
+          <div class="stat-card__trend text-emerald">${unfilteredDonePoints} of ${unfilteredTotalPoints} SP delivered</div>
         </div>
-        <div class="stat-card stat-card--rose">
+        <div class="stat-card stat-card--rose ${this.filterType === 'OVERDUE' ? 'stat-card--active' : ''}" data-stat-filter="OVERDUE" title="Filter by SLA Exceptions">
           <div class="stat-card__title">SLA Exceptions</div>
-          <div class="stat-card__value">${overdueTasks.length} Overdue</div>
+          <div class="stat-card__value">${unfilteredOverdue.length} Overdue</div>
           <div class="stat-card__trend text-rose">Requires sprint adjustments</div>
         </div>
       `;
+
+      // Bind dynamic click events for quick filters
+      statsContainer.querySelectorAll('.stat-card').forEach(card => {
+        card.onclick = async () => {
+          const newFilter = card.getAttribute('data-stat-filter');
+          this.filterType = newFilter;
+
+          // Clear other filter buttons active outlines
+          const buttons = this.container.querySelectorAll('.dashboard-filters .filter-btn');
+          buttons.forEach(btn => {
+            if (btn.getAttribute('data-filter') === newFilter) {
+              btn.classList.add('filter-btn--active');
+            } else {
+              btn.classList.remove('filter-btn--active');
+            }
+          });
+
+          await this.loadAndProcessData();
+        };
+      });
     }
 
     // 4. Render Dynamic SVG Chart - Day 10 DOM basics & math shapes

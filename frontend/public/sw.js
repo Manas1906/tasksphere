@@ -36,8 +36,8 @@ self.addEventListener('push', function(event) {
 
   const options = {
     body: payload.body,
-    icon: '/assets/logo.png', // Fallback to root or custom logo asset
-    badge: '/assets/logo.png',
+    icon: '/favicon.svg', // Fallback to root or custom logo asset
+    badge: '/favicon.svg',
     vibrate: [100, 50, 100],
     data: {
       url: payload.url || '/'
