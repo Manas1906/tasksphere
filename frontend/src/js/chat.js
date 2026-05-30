@@ -156,7 +156,7 @@ export class ChatController {
       if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
         clearHistoryBtn.style.display = 'block';
         clearHistoryBtn.onclick = async () => {
-          const confirmClear = confirm("⚠️ Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
+          const confirmClear = confirm("Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
           if (!confirmClear) return;
           
           try {
@@ -342,8 +342,11 @@ export class ChatController {
       if (backLink) backLink.style.display = 'flex';
       if (chatTitle) {
         chatTitle.innerHTML = `
-          <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 4px; color: #ff0080; font-weight: 700; text-transform: uppercase;">
-            💬 Chat with ${partner}
+          <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: #ff0080; font-weight: 700; text-transform: uppercase;">
+            <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+            </svg>
+            Chat with ${partner}
           </span>
         `;
       }
@@ -460,8 +463,8 @@ export class ChatController {
       activeReactions.forEach(([emoji, users]) => {
         const hasReacted = users.includes(this.myUsername);
         reactionsHtml += `
-          <span class="chat-msg__reaction-capsule ${hasReacted ? 'chat-msg__reaction-capsule--active' : ''}" data-emoji="${emoji}">
-            <span>${emoji}</span>
+          <span class="chat-msg__reaction-capsule ${hasReacted ? 'chat-msg__reaction-capsule--active' : ''}" data-emoji="${emoji}" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;">
+            <span>${this.getEmojiSvg(emoji)}</span>
             <span>${users.length}</span>
           </span>
         `;
@@ -474,8 +477,10 @@ export class ChatController {
     if (meta.replies && meta.replies.length > 0) {
       const count = meta.replies.length;
       threadsHtml = `
-        <div class="chat-msg__threads-trigger">
-          <span>🧵</span>
+        <div class="chat-msg__threads-trigger" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;">
+          <svg style="width: 12px; height: 12px; fill: var(--accent-purple)" viewBox="0 0 24 24">
+            <path d="M4 9h16v2H4zm4 4h8v2H8z"/>
+          </svg>
           <span>${count} ${count > 1 ? 'replies' : 'reply'}</span>
         </div>
       `;
@@ -494,18 +499,18 @@ export class ChatController {
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">
-            ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message" style="position: static; opacity: 1; margin-right: 4px;">✏️</button>` : ''}
-            ${msg.id ? `<button class="chat-msg__reply-btn" title="Reply in thread">🧵</button>` : ''}
+            ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message" style="position: static; opacity: 1; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center;"><svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>` : ''}
+            ${msg.id ? `<button class="chat-msg__reply-btn" title="Reply in thread" style="display: inline-flex; align-items: center; justify-content: center;"><svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24"><path d="M4 9h16v2H4zm4 4h8v2H8z"/></svg></button>` : ''}
           </div>
 
           <!-- Hover springy emojis picker menu -->
           ${msg.id ? `
-            <div class="chat-msg__quick-reactions">
-              <span class="chat-msg__reaction-emoji" data-emoji="👍">👍</span>
-              <span class="chat-msg__reaction-emoji" data-emoji="❤️">❤️</span>
-              <span class="chat-msg__reaction-emoji" data-emoji="🔥">🔥</span>
-              <span class="chat-msg__reaction-emoji" data-emoji="😂">😂</span>
-              <span class="chat-msg__reaction-emoji" data-emoji="😮">😮</span>
+            <div class="chat-msg__quick-reactions" style="display: flex; align-items: center; gap: 6px; padding: 4px 8px;">
+              <span class="chat-msg__reaction-emoji" data-emoji="👍" style="display: inline-flex; align-items: center;">${this.getEmojiSvg('👍')}</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="❤️" style="display: inline-flex; align-items: center;">${this.getEmojiSvg('❤️')}</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="🔥" style="display: inline-flex; align-items: center;">${this.getEmojiSvg('🔥')}</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="😂" style="display: inline-flex; align-items: center;">${this.getEmojiSvg('😂')}</span>
+              <span class="chat-msg__reaction-emoji" data-emoji="😮" style="display: inline-flex; align-items: center;">${this.getEmojiSvg('😮')}</span>
             </div>
           ` : ''}
         </div>
@@ -1159,5 +1164,17 @@ export class ChatController {
       }
       this.typingIndicatorEl.classList.remove('hidden');
     }
+  }
+
+  // Helper mapping to return high-fidelity inline SVGs for standard reactions - Phase 15
+  getEmojiSvg(emoji) {
+    const svgs = {
+      '👍': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--accent-cyan)"><path d="M2 21h4V9H2v12zM21 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L12.17 1 5.58 7.59C5.21 7.95 5 8.45 5 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`,
+      '❤️': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--accent-rose)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`,
+      '🔥': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #f97316"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8c0-5.39-4.5-9.33-4.5-9.33zM12 19c-2.21 0-4-1.79-4-4 0-.89.29-1.71.78-2.38 1.47 1.47 3.82 1.47 5.29 0C14.71 13.29 15 14.11 15 15c0 2.21-1.79 4-4 4z"/></svg>`,
+      '😂': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #eab308"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7c0 2.76 2.24 5 5 5s5-2.24 5-5zm-8-3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`,
+      '😮': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #eab308"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm-3-5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
+    };
+    return svgs[emoji] || emoji;
   }
 }

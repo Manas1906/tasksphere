@@ -1016,15 +1016,18 @@ class TaskSphereApp {
 
     if (!btn || !icon || !label) return;
 
+    const sunSvg = `<svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm-1.06-12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.02.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm-11.31 11.31a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06z"/></svg>`;
+    const moonSvg = `<svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24"><path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10 0-4.8 3.5-8.9 8.2-9.8.6-.1 1.2.3 1.3.9.1.6-.3 1.2-.9 1.3-3.6.7-6.2 3.8-6.2 7.6 0 4.4 3.6 8 8 8 3.8 0 6.9-2.6 7.6-6.2.1-.6.7-1 1.3-.9.6.1 1 .7.9 1.3-.9 4.7-5 8.2-9.8 8.2z"/></svg>`;
+
     // Load active state from localStorage
     const savedTheme = localStorage.getItem('tasksphere_theme') || 'dark';
     if (savedTheme === 'light') {
       document.body.classList.add('light-theme');
-      icon.textContent = '🌙';
+      icon.innerHTML = moonSvg;
       label.textContent = 'Dark Mode';
     } else {
       document.body.classList.remove('light-theme');
-      icon.textContent = '☀️';
+      icon.innerHTML = sunSvg;
       label.textContent = 'Light Mode';
     }
 
@@ -1034,11 +1037,11 @@ class TaskSphereApp {
       const isLight = document.body.classList.toggle('light-theme');
       if (isLight) {
         localStorage.setItem('tasksphere_theme', 'light');
-        icon.textContent = '🌙';
+        icon.innerHTML = moonSvg;
         label.textContent = 'Dark Mode';
       } else {
         localStorage.setItem('tasksphere_theme', 'dark');
-        icon.textContent = '☀️';
+        icon.innerHTML = sunSvg;
         label.textContent = 'Light Mode';
       }
     };
@@ -1888,15 +1891,19 @@ class TaskSphereApp {
     toast.className = `toast-card toast-card--${type.toLowerCase()}`;
     
     // Choose icon depending on type
-    let icon = '🔔';
-    if (type === 'ASSIGNMENT') icon = '⚡';
-    else if (type === 'UNASSIGNMENT') icon = '🚫';
-    else if (type === 'UPDATE') icon = '✏️';
+    let icon = `<svg style="width: 14px; height: 14px; fill: var(--text-muted)" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>`;
+    if (type === 'ASSIGNMENT') {
+      icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>`;
+    } else if (type === 'UNASSIGNMENT') {
+      icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-rose)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm5.31-4.9L6.9 4.69C8.25 3.63 9.95 3 12 3c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>`;
+    } else if (type === 'UPDATE') {
+      icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-purple)" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+    }
 
     toast.innerHTML = `
       <div class="toast-header">
         <div class="toast-badge-group">
-          <span class="toast-icon">${icon}</span>
+          <span class="toast-icon" style="display: inline-flex; align-items: center;">${icon}</span>
           <span class="toast-title">${title}</span>
         </div>
         <button class="toast-close-btn">&times;</button>
@@ -1952,6 +1959,9 @@ class TaskSphereApp {
   }
 
   setupPasswordToggles() {
+    const eyeSvg = `<svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
+    const eyeOffSvg = `<svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.82l2.92 2.92c1.51-1.26 2.7-2.89 3.44-4.74-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>`;
+
     const bindToggle = (toggleId, inputId) => {
       const toggleBtn = document.getElementById(toggleId);
       const inputEl = document.getElementById(inputId);
@@ -1959,10 +1969,10 @@ class TaskSphereApp {
         toggleBtn.onclick = () => {
           if (inputEl.type === 'password') {
             inputEl.type = 'text';
-            toggleBtn.textContent = '🙈';
+            toggleBtn.innerHTML = eyeOffSvg;
           } else {
             inputEl.type = 'password';
-            toggleBtn.textContent = '👁️';
+            toggleBtn.innerHTML = eyeSvg;
           }
         };
       }

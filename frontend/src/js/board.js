@@ -118,7 +118,7 @@ export class BoardView {
       const checklistSize = task.checklist ? task.checklist.length : 0;
       const completedChecklist = task.checklist ? task.checklist.filter(c => c.completed).length : 0;
       const checklistStr = checklistSize > 0 
-        ? `<span class="task-card__metric-item">☑ ${completedChecklist}/${checklistSize}</span>` 
+        ? `<span class="task-card__metric-item" style="display: inline-flex; align-items: center;"><svg style="width: 12px; height: 12px; fill: currentColor; margin-right: 3px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>${completedChecklist}/${checklistSize}</span>` 
         : '';
 
       card.innerHTML = `
@@ -133,7 +133,7 @@ export class BoardView {
         <p class="task-card__description">${task.description || 'No description supplied.'}</p>
         <div class="task-card__footer">
           <div class="task-card__metrics">
-            <span class="task-card__metric-item">⚡ ${task.storyPoints} SP</span>
+            <span class="task-card__metric-item" style="display: inline-flex; align-items: center;"><svg style="width: 12px; height: 12px; fill: var(--accent-cyan); margin-right: 3px;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>${task.storyPoints} SP</span>
             ${checklistStr}
           </div>
           ${assigneeAvatar}

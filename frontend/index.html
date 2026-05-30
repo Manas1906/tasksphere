@@ -59,8 +59,10 @@
             </div>
           </div>
           <div class="profile-dropdown__divider"></div>
-          <button class="profile-dropdown__item" id="securitySettingsBtn" style="color: var(--text-primary);">
-            <span style="font-size: 14px; margin-right: 4px;">🔒</span>
+          <button class="profile-dropdown__item" id="securitySettingsBtn" style="color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
             <span>Security Settings</span>
           </button>
           <div class="profile-dropdown__divider"></div>
@@ -82,16 +84,36 @@
       </div>
       <ul class="active-users-bar" style="flex-direction: column; overflow-y: auto; flex: 1; gap: var(--spacing-sm); padding: var(--spacing-md)">
         <li>
-          <button id="navDashboard" class="filter-btn filter-btn--active" style="width: 100%; text-align: left">📊 Executive Dashboard</button>
+          <button id="navDashboard" class="filter-btn filter-btn--active" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px">
+            <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+            </svg>
+            <span>Executive Dashboard</span>
+          </button>
         </li>
         <li>
-          <button id="navBoard" class="filter-btn" style="width: 100%; text-align: left">📋 Scrum Kanban Board</button>
+          <button id="navBoard" class="filter-btn" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px">
+            <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+            <span>Scrum Kanban Board</span>
+          </button>
         </li>
         <li>
-          <button id="navTeam" class="filter-btn" style="width: 100%; text-align: left">👥 Resource Directory</button>
+          <button id="navTeam" class="filter-btn" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px">
+            <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+            <span>Resource Directory</span>
+          </button>
         </li>
         <li id="navAdminItem" style="display: none;">
-          <button id="navAdmin" class="filter-btn" style="width: 100%; text-align: left; color: #ff0080">👑 Admin Panel</button>
+          <button id="navAdmin" class="filter-btn" style="width: 100%; text-align: left; color: #ff0080; display: flex; align-items: center; gap: 8px">
+            <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M5 16h14a1 1 0 001-.76l2-9a1 1 0 00-1.74-.75l-4.14 4.14L12 3.27l-4.12 6.36-4.14-4.14a1 1 0 00-1.74.75l2 9A1 1 0 005 16zm7 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+            </svg>
+            <span>Admin Panel</span>
+          </button>
         </li>
       </ul>
       <!-- Theme Switch Panel -->
@@ -172,8 +194,10 @@
       <div class="thread-drawer hidden" id="threadDrawer">
         <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: var(--spacing-md) var(--spacing-lg);">
           <h3 class="chat-panel-header__title" style="color: var(--accent-purple); margin: 0; font-size: var(--font-size-sm); display: flex; align-items: center; gap: var(--spacing-xs)">
-            <span>🧵</span> Thread Replies
-          </h3>
+          <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+            <path d="M4 9h16v2H4zm4 4h8v2H8z"/>
+          </svg> Thread Replies
+        </h3>
           <button id="closeThreadBtn" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
         </div>
         
@@ -282,13 +306,23 @@
   <div id="securityModal" class="modal-overlay">
     <div class="modal-container" style="max-width: 440px;">
       <div class="modal-header">
-        <h2 class="modal-header__title">🔒 Workspace Security Settings</h2>
+        <h2 class="modal-header__title" style="display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 18px; height: 18px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+          </svg>
+          <span>Workspace Security Settings</span>
+        </h2>
         <button id="closeSecurityModal" class="modal-close-btn">&times;</button>
       </div>
       <form class="enterprise-form" id="securityForm" onsubmit="return false;">
         <!-- Profile Picture Segment -->
         <div class="form-group" style="display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01);">
-          <label class="form-label" style="text-align: center; margin-bottom: 4px;">👤 Profile Picture</label>
+          <label class="form-label" style="text-align: center; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span>Profile Picture</span>
+          </label>
           <div style="position: relative; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent-cyan); box-shadow: 0 0 15px rgba(0, 240, 255, 0.25); background: var(--bg-primary);">
             <img id="settingsAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar Preview">
             <div id="settingsAvatarLoader" class="hidden" style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent-cyan); font-weight: 600;">Compressing...</div>
@@ -364,21 +398,33 @@
           <!-- Modern feature rows with icons -->
           <div class="auth-features">
             <div class="auth-feature-item">
-              <span class="auth-feature-icon">⚡</span>
+              <span class="auth-feature-icon">
+                <svg style="width: 20px; height: 20px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+                  <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                </svg>
+              </span>
               <div class="auth-feature-text">
                 <h4>Interactive Scrum Boards</h4>
                 <p>Track burndowns, drag cards, and collaborate instantly.</p>
               </div>
             </div>
             <div class="auth-feature-item">
-              <span class="auth-feature-icon">🤖</span>
+              <span class="auth-feature-icon">
+                <svg style="width: 20px; height: 20px; fill: var(--accent-purple)" viewBox="0 0 24 24">
+                  <path d="M12 2a2 2 0 012 2v1h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h4V4a2 2 0 012-2zM9 9a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2zm-6 5h6v1H9v-1z"/>
+                </svg>
+              </span>
               <div class="auth-feature-text">
                 <h4>AI-Driven Insights</h4>
                 <p>Scrum Copilots automate standups and review sprint performance.</p>
               </div>
             </div>
             <div class="auth-feature-item">
-              <span class="auth-feature-icon">🔒</span>
+              <span class="auth-feature-icon">
+                <svg style="width: 20px; height: 20px; fill: var(--accent-rose)" viewBox="0 0 24 24">
+                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                </svg>
+              </span>
               <div class="auth-feature-text">
                 <h4>Enterprise-Grade Security</h4>
                 <p>Advanced MFA options and real-time administrator gating.</p>
@@ -428,15 +474,27 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
               <div class="auth-input-wrapper">
                 <input type="email" id="loginEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
-                <span class="auth-input-icon">✉</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <div class="auth-group" style="margin-top: var(--spacing-md)">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Account Password</label>
-              <div class="auth-input-wrapper" style="position: relative;">
+              <div class="auth-input-wrapper" style="position: relative; display: flex; align-items: center;">
                 <input type="password" id="loginPasswordInput" class="auth-input" placeholder="Enter your password..." required autocomplete="current-password" style="padding-right: 40px;">
-                <span class="auth-input-icon">🔒</span>
-                <span class="password-toggle-btn" id="toggleLoginPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                  </svg>
+                </span>
+                <span class="password-toggle-btn" id="toggleLoginPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; user-select: none;">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <div style="text-align: right; margin-bottom: var(--spacing-md); margin-top: 4px;">
@@ -491,7 +549,11 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit Security Code</label>
               <div class="auth-input-wrapper">
                 <input type="text" id="authOtpInput" class="auth-input" placeholder="Enter 6-digit code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                <span class="auth-input-icon">🔑</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <button type="submit" id="verifyOtpBtn" class="auth-btn">Verify & Authenticate</button>
@@ -506,7 +568,11 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit MFA Security Code</label>
               <div class="auth-input-wrapper">
                 <input type="text" id="authMfaOtpInput" class="auth-input" placeholder="Enter MFA code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                <span class="auth-input-icon">🔑</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <button type="submit" id="verifyMfaOtpBtn" class="auth-btn">Verify & Launch</button>
@@ -521,7 +587,11 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Session Username</label>
               <div class="auth-input-wrapper">
                 <input type="text" id="authUsernameInput" class="auth-input" placeholder="e.g. cto_reviewer, agile_lead" required autocomplete="username">
-                <span class="auth-input-icon">👤</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <div class="auth-group">
@@ -538,20 +608,31 @@
                   <option value="DESIGNER">UI/UX Designer (Design Core)</option>
                   <option value="ARCHITECT">System Architect (Design Core)</option>
                   <option value="ANALYST">Business Analyst (Agile Scope)</option>
-                  <option value="MANAGER">Project/Delivery Manager (Management Core)</option>
-                  <option value="STAKEHOLDER">Business Stakeholder (Agile Scope)</option>
+                                <option value="STAKEHOLDER">Business Stakeholder (Agile Scope)</option>
                 </select>
-                <span class="auth-input-icon">💼</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+                  </svg>
+                </span>
                 <span class="auth-select-arrow" style="position: absolute; right: var(--spacing-md); color: var(--text-muted); pointer-events: none; font-size: 10px;">▼</span>
               </div>
             </div>
-
+ 
             <div class="auth-group">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Workspace Password</label>
-              <div class="auth-input-wrapper" style="position: relative;">
+              <div class="auth-input-wrapper" style="position: relative; display: flex; align-items: center;">
                 <input type="password" id="authPasswordInput" class="auth-input" placeholder="Create secure password..." required autocomplete="new-password" style="padding-right: 40px;">
-                <span class="auth-input-icon">🔒</span>
-                <span class="password-toggle-btn" id="toggleRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                  </svg>
+                </span>
+                <span class="password-toggle-btn" id="toggleRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; user-select: none;">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                </span>
               </div>
               <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
                 <div id="passwordStrengthBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
@@ -579,14 +660,18 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Corporate Email Address</label>
               <div class="auth-input-wrapper">
                 <input type="email" id="forgotEmailInput" class="auth-input" placeholder="e.g. name@company.com" required autocomplete="email">
-                <span class="auth-input-icon">✉</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <button type="submit" id="sendForgotOtpBtn" class="auth-btn">Send Recovery Code</button>
             <a class="auth-switch-link" id="forgotBackToLoginLink">← Back to Log In</a>
           </form>
         </div>
-
+ 
         <!-- STEP 2C: Forgot Password - Verify OTP -->
         <div class="auth-step hidden" id="authForgotOtpStep">
           <form id="forgotOtpSubmitForm" onsubmit="return false;">
@@ -594,23 +679,35 @@
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">6-Digit Recovery Code</label>
               <div class="auth-input-wrapper">
                 <input type="text" id="forgotOtpInput" class="auth-input" placeholder="Enter 6-digit code..." required pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                <span class="auth-input-icon">🔑</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                  </svg>
+                </span>
               </div>
             </div>
             <button type="submit" id="verifyForgotOtpBtn" class="auth-btn">Verify Recovery Code</button>
             <a class="auth-switch-link" id="forgotOtpBackToLoginLink">← Back to Log In</a>
           </form>
         </div>
-
+ 
         <!-- STEP 3C: Forgot Password - Create New Password -->
         <div class="auth-step hidden" id="authResetPasswordStep">
           <form id="resetPasswordSubmitForm" onsubmit="return false;">
             <div class="auth-group">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">New Account Password</label>
-              <div class="auth-input-wrapper" style="position: relative;">
+              <div class="auth-input-wrapper" style="position: relative; display: flex; align-items: center;">
                 <input type="password" id="forgotNewPasswordInput" class="auth-input" placeholder="Enter new password..." required autocomplete="new-password" style="padding-right: 40px;">
-                <span class="auth-input-icon">🔒</span>
-                <span class="password-toggle-btn" id="toggleResetRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 14px; user-select: none;">👁️</span>
+                <span class="auth-input-icon">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                  </svg>
+                </span>
+                <span class="password-toggle-btn" id="toggleResetRegPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; user-select: none;">
+                  <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                </span>
               </div>
               <div style="height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); margin-top: 8px; position: relative; overflow: hidden;">
                 <div id="forgotPasswordStrengthBar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease;"></div>
@@ -626,8 +723,10 @@
 
         <!-- STEP 4: Awaiting Admin Approval -->
         <div class="auth-step hidden" id="authApprovalStep" style="text-align: center; padding: var(--spacing-md) 0;">
-          <div class="blocker-icon-wrap">
-            🔒
+          <div class="blocker-icon-wrap" style="display: flex; align-items: center; justify-content: center;">
+            <svg style="width: 32px; height: 32px; fill: var(--accent-rose)" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
             <div class="blocker-pulse-ring"></div>
           </div>
           <h3 class="modal-header__title" style="font-size: 16px; margin-bottom: var(--spacing-sm); display: inline-block;">Account Pending Approval</h3>

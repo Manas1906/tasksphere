@@ -16,20 +16,20 @@ export class AdminView {
   async render() {
     this.container.innerHTML = `
       <div class="chat-panel-header" style="background: none; border: none; padding: 0; margin-bottom: var(--spacing-lg)">
-        <h2 class="modal-header__title" style="font-size: var(--font-size-xl)">👑 Centralized Admin Directory</h2>
+        <h2 class="modal-header__title" style="font-size: var(--font-size-xl); display: flex; align-items: center; gap: 6px;">${this.getIconSvg('crown')} Centralized Admin Directory</h2>
         <p style="color: var(--text-muted); font-size: var(--font-size-sm)">Review active workspace sessions, authorize pending registrations, and manage team credentials in real-time.</p>
       </div>
 
       <div class="admin-panel">
         <div class="admin-header">
           <div>
-            <div class="admin-title">
-              <span>👥 User Accounts Directory</span>
+            <div class="admin-title" style="display: flex; align-items: center; gap: 6px;">
+              ${this.getIconSvg('group')} <span>User Accounts Directory</span>
             </div>
             <div class="admin-subtitle">Verify workspace membership and approval logs.</div>
           </div>
           <button id="refreshAdminDir" class="filter-btn" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
-            🔄 Refresh Registry
+            ${this.getIconSvg('refresh')} Refresh Registry
           </button>
         </div>
 
@@ -131,7 +131,7 @@ export class AdminView {
                     
                     <div class="tooltip-info-section">
                       <div class="tooltip-info-item">
-                        <span class="info-icon">📧</span>
+                        <span class="info-icon" style="display: inline-flex; align-items: center;">${this.getIconSvg('email')}</span>
                         <div class="info-content">
                           <span class="info-label">Email Address</span>
                           <span class="info-value" title="${email}">${email}</span>
@@ -139,7 +139,7 @@ export class AdminView {
                       </div>
                       
                       <div class="tooltip-info-item">
-                        <span class="info-icon">🔑</span>
+                        <span class="info-icon" style="display: inline-flex; align-items: center;">${this.getIconSvg('key')}</span>
                         <div class="info-content">
                           <span class="info-label">Security Credentials</span>
                           <span class="info-value ${mfaEnabled ? 'enabled' : 'disabled'}">MFA: ${mfaEnabled ? 'Enabled' : 'Disabled'}</span>
@@ -147,7 +147,7 @@ export class AdminView {
                       </div>
 
                       <div class="tooltip-info-item">
-                        <span class="info-icon">⚡</span>
+                        <span class="info-icon" style="display: inline-flex; align-items: center;">${this.getIconSvg('status')}</span>
                         <div class="info-content">
                           <span class="info-label">Account Status</span>
                           <span class="info-value status-${user.status.toLowerCase()}">${isPending ? 'Pending Approval' : 'Approved / Active'}</span>
@@ -155,7 +155,7 @@ export class AdminView {
                       </div>
 
                       <div class="tooltip-info-item">
-                        <span class="info-icon">🆔</span>
+                        <span class="info-icon" style="display: inline-flex; align-items: center;">${this.getIconSvg('id')}</span>
                         <div class="info-content">
                           <span class="info-label">Session ID</span>
                           <span class="info-value tooltip-uuid" title="${user.id}">${user.id}</span>
@@ -172,20 +172,20 @@ export class AdminView {
             </div>
           </td>
           <td>
-            <span class="admin-badge ${isAdminRole ? 'admin-badge--role-admin' : 'admin-badge--role'}">
-              ${isAdminRole ? '👑 ' : ''}${formattedRole}
+            <span class="admin-badge ${isAdminRole ? 'admin-badge--role-admin' : 'admin-badge--role'}" style="display: inline-flex; align-items: center; gap: 4px;">
+              ${isAdminRole ? this.getIconSvg('crown') : ''}${formattedRole}
             </span>
           </td>
           <td>
-            <span class="admin-badge ${isPending ? 'admin-badge--pending' : 'admin-badge--approved'}">
-              ${isPending ? '⏳ Pending Approval' : '● Approved / Active'}
+            <span class="admin-badge ${isPending ? 'admin-badge--pending' : 'admin-badge--approved'}" style="display: inline-flex; align-items: center; gap: 4px;">
+              ${isPending ? `${this.getIconSvg('pending')} Pending Approval` : '● Approved / Active'}
             </span>
           </td>
           <td style="text-align: right">
             <div style="display: inline-flex; gap: 8px; justify-content: flex-end">
               ${isPending ? `
-                <button class="admin-action-btn admin-action-btn--approve" data-user="${user.username}">
-                  ✓ Approve
+                <button class="admin-action-btn admin-action-btn--approve" data-user="${user.username}" style="display: inline-flex; align-items: center;">
+                  ${this.getIconSvg('check')} Approve
                 </button>
               ` : ''}
               <button class="admin-action-btn admin-action-btn--reject" data-user="${user.username}">
@@ -260,7 +260,7 @@ export class AdminView {
       tbody.innerHTML = `
         <tr>
           <td colspan="4" style="text-align: center; color: #ef4444; padding: 24px;">
-            ⚠️ Failed to retrieve directory logs. Error: ${err.message || err}
+            ${this.getIconSvg('warning')} Failed to retrieve directory logs. Error: ${err.message || err}
           </td>
         </tr>
       `;
@@ -309,5 +309,21 @@ export class AdminView {
     } catch (err) {
       alert(`Action failed: ${err.message || err}`);
     }
+  }
+
+  getIconSvg(name) {
+    const icons = {
+      'crown': `<svg style="width: 14px; height: 14px; fill: var(--accent-cyan); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12 2l4 5 5-2-2 12H5L3 5l5 2 4-5z"/></svg>`,
+      'group': `<svg style="width: 14px; height: 14px; fill: var(--accent-purple); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 2 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
+      'refresh': `<svg style="width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>`,
+      'email': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>`,
+      'key': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`,
+      'status': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>`,
+      'id': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`,
+      'pending': `<svg style="width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M6 2h12v6l-4 4 4 4v6H6v-6l4-4-4-4V2zm10 14.5L12 13l-4 3.5V20h8v-3.5zm-4-5l4-3.5V4H8v3.5l4 3.5z"/></svg>`,
+      'check': `<svg style="width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`,
+      'warning': `<svg style="width: 14px; height: 14px; fill: var(--accent-rose); display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`
+    };
+    return icons[name] || '';
   }
 }

@@ -189,7 +189,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
           console.log('[AI-API] Real-time story generated successfully.');
         } catch (err) {
           console.error('[AI-API-FAILURE] Gemini API failed:', err);
-          resultText = `<span style="color: var(--accent-rose)">⚠️ **Failed to connect to Google Gemini API!** ${err.message}</span><br><br><i>Falling back to premium local template generation below:</i><br><br>` + this.getLocalFallbackStory(title, priority);
+          resultText = `<span style="color: var(--accent-rose)"><b>[API Error] Failed to connect to Google Gemini API!</b> ${err.message}</span><br><br><i>Falling back to premium local template generation below:</i><br><br>` + this.getLocalFallbackStory(title, priority);
         }
       } else {
         // Local simulation delay for UI responsiveness

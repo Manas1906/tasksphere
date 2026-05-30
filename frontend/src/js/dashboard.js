@@ -22,9 +22,9 @@ export class DashboardView {
       <div class="dashboard-controls">
         <div class="dashboard-filters">
           <button class="filter-btn ${this.filterType === 'ALL' ? 'filter-btn--active' : ''}" data-filter="ALL">All Items</button>
-          <button class="filter-btn ${this.filterType === 'HIGH_PRIORITY' ? 'filter-btn--active' : ''}" data-filter="HIGH_PRIORITY">⚠️ High Priority</button>
-          <button class="filter-btn ${this.filterType === 'URGENT' ? 'filter-btn--active' : ''}" data-filter="URGENT">🔥 Urgent</button>
-          <button class="filter-btn ${this.filterType === 'UNASSIGNED' ? 'filter-btn--active' : ''}" data-filter="UNASSIGNED">👤 Unassigned</button>
+          <button class="filter-btn ${this.filterType === 'HIGH_PRIORITY' ? 'filter-btn--active' : ''}" data-filter="HIGH_PRIORITY" style="display: inline-flex; align-items: center; gap: 4px;">${this.getIconSvg('warning')} High Priority</button>
+          <button class="filter-btn ${this.filterType === 'URGENT' ? 'filter-btn--active' : ''}" data-filter="URGENT" style="display: inline-flex; align-items: center; gap: 4px;">${this.getIconSvg('urgent')} Urgent</button>
+          <button class="filter-btn ${this.filterType === 'UNASSIGNED' ? 'filter-btn--active' : ''}" data-filter="UNASSIGNED" style="display: inline-flex; align-items: center; gap: 4px;">${this.getIconSvg('user')} Unassigned</button>
         </div>
         <div style="font-size: var(--font-size-xs); color: var(--text-muted)">
           Active Scope: <span class="text-cyan" id="filteredCount">0</span> tasks mapped
@@ -78,7 +78,7 @@ export class DashboardView {
       <!-- Predictive Sprint Simulation & Forecast Panel (Phase 12) -->
       <div class="chart-card" style="margin-top: var(--spacing-lg)">
         <div class="chart-card__title" style="display: flex; align-items: center; gap: 8px;">
-          <span>🔮</span> Predictive AI Sprint Simulation & Forecast
+          ${this.getIconSvg('predictive')} Predictive AI Sprint Simulation & Forecast
         </div>
         <p style="color: var(--text-muted); font-size: var(--font-size-xs); margin-bottom: var(--spacing-md)">
           Execute a 1,000-path mathematical Monte Carlo simulation coupled with real-time Google Gemini analysis to model team capacity and rebalance workloads.
@@ -88,7 +88,7 @@ export class DashboardView {
           <!-- Initial state: Big call-to-action button -->
           <div style="display: flex; justify-content: center; align-items: center; padding: var(--spacing-xl) 0">
             <button id="runSimulationBtn" class="auth-btn" style="background: linear-gradient(135deg, #8b54f6 0%, #ff0080 100%); border: none; padding: 12px 30px; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.3); border-radius: var(--border-radius-md); transition: transform 0.2s, box-shadow 0.2s;">
-              <span>🔮</span> Run Sprint Simulation
+              ${this.getIconSvg('predictive')} Run Sprint Simulation
             </button>
           </div>
         </div>
@@ -171,20 +171,20 @@ export class DashboardView {
       if (result.bottlenecks && result.bottlenecks.length > 0) {
         bottleneckListHtml = result.bottlenecks.map(b => {
           let cleanText = b.replace(/\*\*/g, '');
-          let emoji = "🚨";
-          if (cleanText.includes("Unassigned")) emoji = "⚠️";
-          if (cleanText.includes("Resource")) emoji = "👤";
+          let svgIcon = this.getIconSvg('siren');
+          if (cleanText.includes("Unassigned")) svgIcon = this.getIconSvg('warning');
+          if (cleanText.includes("Resource")) svgIcon = this.getIconSvg('user');
           return `
             <div style="font-size: 11px; padding: var(--spacing-xs); background: rgba(255,255,255,0.02); border-radius: var(--border-radius-sm); border-left: 2px solid var(--border-color); display: flex; gap: 6px; align-items: flex-start; line-height: 1.4;">
-              <span style="font-size: 13px;">${emoji}</span>
+              <span style="display: inline-flex; align-items: center; margin-top: 2px;">${svgIcon}</span>
               <span style="color: var(--text-muted);">${cleanText}</span>
             </div>
           `;
         }).join('');
       } else {
         bottleneckListHtml = `
-          <div style="font-size: 11px; color: var(--text-muted); font-style: italic; text-align: center; padding: var(--spacing-md);">
-            ✅ No critical SLA exceptions or resource bottlenecks detected.
+          <div style="font-size: 11px; color: var(--text-muted); font-style: italic; text-align: center; padding: var(--spacing-md); display: flex; align-items: center; justify-content: center; gap: 4px;">
+            ${this.getIconSvg('success')} No critical SLA exceptions or resource bottlenecks detected.
           </div>
         `;
       }
@@ -248,7 +248,7 @@ export class DashboardView {
           <!-- Column 3: AI Recommendations -->
           <div style="flex: 1.5; display: flex; flex-direction: column; min-width: 280px; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-purple); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
             <div style="font-size: 10px; color: var(--accent-purple); margin-bottom: var(--spacing-sm); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;">
-              🔮 AI Sprint Advisor
+              ${this.getIconSvg('predictive')} AI Sprint Advisor
             </div>
             <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
               ${recommendationsListHtml}
@@ -259,8 +259,8 @@ export class DashboardView {
 
         <!-- Action Bar to rerun -->
         <div style="display: flex; justify-content: flex-end; width: 100%; margin-top: var(--spacing-sm);">
-          <button id="runSimulationBtn" class="auth-btn" style="background: rgba(139, 84, 246, 0.1); border: 1px solid var(--accent-purple); padding: 8px 18px; color: var(--accent-purple); font-size: var(--font-size-xs); font-weight: bold; cursor: pointer; border-radius: var(--border-radius-sm); transition: background 0.2s;">
-            <span>🔮</span> Rerun Simulation
+          <button id="runSimulationBtn" class="auth-btn" style="background: rgba(139, 84, 246, 0.1); border: 1px solid var(--accent-purple); padding: 8px 18px; color: var(--accent-purple); font-size: var(--font-size-xs); font-weight: bold; cursor: pointer; border-radius: var(--border-radius-sm); transition: background 0.2s; display: inline-flex; align-items: center; gap: 4px;">
+            ${this.getIconSvg('predictive')} Rerun Simulation
           </button>
         </div>
       `;
@@ -284,9 +284,11 @@ export class DashboardView {
       console.error('[SPRINT-SIMULATOR-ERROR] Failed to run sprint simulation:', err);
       panelContent.innerHTML = `
         <div style="text-align: center; padding: var(--spacing-lg) 0; border: 1px dashed var(--accent-rose); border-radius: var(--border-radius-md); background: rgba(255, 0, 85, 0.05);">
-          <div style="color: var(--accent-rose); font-weight: bold; font-size: var(--font-size-sm); margin-bottom: var(--spacing-xs);">⚠️ Predictive Simulation Run Failed</div>
+          <div style="color: var(--accent-rose); font-weight: bold; font-size: var(--font-size-sm); margin-bottom: var(--spacing-xs); display: flex; align-items: center; justify-content: center; gap: 4px;">
+            ${this.getIconSvg('siren')} Predictive Simulation Run Failed
+          </div>
           <p style="color: var(--text-muted); font-size: var(--font-size-xs); margin-bottom: var(--spacing-md);">${err.message}</p>
-          <button id="runSimulationBtn" class="auth-btn" style="background: var(--bg-secondary); border: 1px solid var(--accent-rose); color: var(--accent-rose); padding: 8px 16px; border-radius: var(--border-radius-sm); font-weight: bold; cursor: pointer;">
+          <button id="runSimulationBtn" class="auth-btn" style="background: var(--bg-secondary); border: 1px solid var(--accent-rose); color: var(--accent-rose); padding: 8px 16px; border-radius: var(--border-radius-sm); font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto;">
             Retry Simulation
           </button>
         </div>
@@ -675,5 +677,17 @@ export class DashboardView {
         <td colspan="4" style="text-align: center; color: var(--text-muted); font-style: italic">No workload data mapped in active scope.</td>
       </tr>
     `;
+  }
+
+  getIconSvg(name) {
+    const icons = {
+      'warning': `<svg style="width: 14px; height: 14px; fill: var(--accent-amber); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`,
+      'urgent': `<svg style="width: 14px; height: 14px; fill: #f97316; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8c0-5.39-4.5-9.33-4.5-9.33zM12 19c-2.21 0-4-1.79-4-4 0-.89.29-1.71.78-2.38 1.47 1.47 3.82 1.47 5.29 0C14.71 13.29 15 14.11 15 15c0 2.21-1.79 4-4 4z"/></svg>`,
+      'user': `<svg style="width: 14px; height: 14px; fill: var(--text-muted); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`,
+      'predictive': `<svg style="width: 16px; height: 16px; fill: var(--accent-purple); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>`,
+      'siren': `<svg style="width: 14px; height: 14px; fill: var(--accent-rose); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>`,
+      'success': `<svg style="width: 14px; height: 14px; fill: var(--accent-emerald); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
+    };
+    return icons[name] || '';
   }
 }
