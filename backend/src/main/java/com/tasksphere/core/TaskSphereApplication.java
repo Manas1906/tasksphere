@@ -1,5 +1,7 @@
 package com.tasksphere.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,6 +16,8 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class TaskSphereApplication {
 
+    private static final Logger log = LoggerFactory.getLogger(TaskSphereApplication.class);
+
     public static void main(String[] args) {
         SpringApplication.run(TaskSphereApplication.class, args);
     }
@@ -23,28 +27,28 @@ public class TaskSphereApplication {
         return args -> {
             try {
                 String dbName = jdbcTemplate.getDataSource().getConnection().getMetaData().getDatabaseProductName();
-                System.out.println("[DB-INIT] Detected active database product name: " + dbName);
+                log.info("[DB-INIT] Detected active database product name: {}", dbName);
                 
                 if ("PostgreSQL".equalsIgnoreCase(dbName)) {
-                    System.out.println("[DB-INIT] Ensuring users.avatar_url column type is TEXT for PostgreSQL...");
+                    log.info("[DB-INIT] Ensuring users.avatar_url column type is TEXT for PostgreSQL...");
                     jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN avatar_url TYPE TEXT;");
-                    System.out.println("[DB-INIT] Ensuring chat_messages.avatar_url column type is TEXT for PostgreSQL...");
+                    log.info("[DB-INIT] Ensuring chat_messages.avatar_url column type is TEXT for PostgreSQL...");
                     jdbcTemplate.execute("ALTER TABLE chat_messages ALTER COLUMN avatar_url TYPE TEXT;");
-                    System.out.println("[DB-INIT] Column size upgrade executed successfully!");
+                    log.info("[DB-INIT] Column size upgrade executed successfully!");
                 } else if ("H2".equalsIgnoreCase(dbName)) {
-                    System.out.println("[DB-INIT] Ensuring users.avatar_url column size is expanded for H2...");
+                    log.info("[DB-INIT] Ensuring users.avatar_url column size is expanded for H2...");
                     jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN avatar_url VARCHAR(1048576);");
-                    System.out.println("[DB-INIT] Ensuring chat_messages.avatar_url column size is expanded for H2...");
+                    log.info("[DB-INIT] Ensuring chat_messages.avatar_url column size is expanded for H2...");
                     jdbcTemplate.execute("ALTER TABLE chat_messages ALTER COLUMN avatar_url VARCHAR(1048576);");
-                    System.out.println("[DB-INIT] Local db column size expanded successfully!");
+                    log.info("[DB-INIT] Local db column size expanded successfully!");
                 }
             } catch (Exception e) {
-                System.err.println("[DB-INIT-WARNING] Did not execute database column alter: " + e.getMessage());
+                log.warn("[DB-INIT-WARNING] Did not execute database column alter: {}", e.getMessage());
             }
 
             try {
                 if (userSessionRepository.findByUsername("Agile_AI_Bot").isEmpty()) {
-                    System.out.println("[DB-INIT] Registering virtual teammate Agile_AI_Bot in database...");
+                    log.info("[DB-INIT] Registering virtual teammate Agile_AI_Bot in database...");
                     com.tasksphere.core.model.UserSession bot = com.tasksphere.core.model.UserSession.builder()
                             .id("agile-ai-bot-uuid-static-1111")
                             .username("Agile_AI_Bot")
@@ -54,7 +58,7 @@ public class TaskSphereApplication {
                             .build();
                     bot.packMetadata("https://api.dicebear.com/7.x/bottts/svg?seed=AgileAiBot", "ai-bot@tasksphere.com", null, false);
                     userSessionRepository.save(bot);
-                    System.out.println("[DB-INIT] Agile_AI_Bot successfully registered!");
+                    log.info("[DB-INIT] Agile_AI_Bot successfully registered!");
                 } else {
                     // Update active status to ONLINE just in case
                     userSessionRepository.findByUsername("Agile_AI_Bot").ifPresent(bot -> {
@@ -64,7 +68,7 @@ public class TaskSphereApplication {
                     });
                 }
             } catch (Exception e) {
-                System.err.println("[DB-INIT-WARNING] Failed to initialize virtual Agile_AI_Bot teammate: " + e.getMessage());
+                log.error("[DB-INIT-WARNING] Failed to initialize virtual Agile_AI_Bot teammate: {}", e.getMessage());
             }
         };
     }
