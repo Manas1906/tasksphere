@@ -191,7 +191,7 @@ export class AIChatbot {
 
   getIconSvg(name) {
     const icons = {
-      'bot': `<svg style="width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: block;" viewBox="0 0 24 24"><path d="M12 6V3M12 3a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor"/><rect x="5" y="6" width="14" height="12" rx="3" fill="none"/><path d="M5 10c-1 0-2 .8-2 2s1 2 2 2M19 10c1 0 2 .8 2 2s-1 2-2 2" fill="none"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/><path d="M10 14h4" fill="none"/></svg>`,
+      'bot': `<svg viewBox="0 0 24 24" style="width: 26px; height: 26px; fill: currentColor; display: block;"><defs><mask id="bot-mask"><rect width="24" height="24" fill="white" /><circle cx="8.5" cy="11.5" r="1.5" fill="black" /><circle cx="15.5" cy="11.5" r="1.5" fill="black" /><path d="M9 14.5c1 1.5 3 1.5 4 0" stroke="black" stroke-width="1.8" stroke-linecap="round" fill="none" /></mask></defs><rect x="1" y="10" width="1.8" height="5" rx="0.9" /><rect x="21.2" y="10" width="1.8" height="5" rx="0.9" /><line x1="12" y1="5.5" x2="12" y2="2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /><circle cx="12" cy="2" r="1.2" /><path d="M18 5.5H6c-1.9 0-3.5 1.6-3.5 3.5v5c0 1.9 1.6 3.5 3.5 3.5h3.5l3 3 3-3H18c1.9 0 3.5-1.6 3.5-3.5V9c0-1.9-1.6-3.5-3.5-3.5z" mask="url(#bot-mask)" /></svg>`,
       'predictive': `<svg style="width: 14px; height: 14px; fill: var(--accent-purple); display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>`
     };
     return icons[name] || '';
