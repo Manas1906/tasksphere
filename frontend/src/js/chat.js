@@ -257,6 +257,18 @@ export class ChatController {
       // In-place edit replacement if message ID already exists
       const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
       if (existingIdx !== -1) {
+        const oldMsg = this.historyMessages[existingIdx];
+        const oldParsed = this.parseMessageMeta(oldMsg.message);
+        const newParsed = this.parseMessageMeta(message.message);
+        
+        // Play notification chime if a new thread reply was added by someone else
+        if (newParsed.meta.replies && oldParsed.meta.replies && newParsed.meta.replies.length > oldParsed.meta.replies.length) {
+          const lastReply = newParsed.meta.replies[newParsed.meta.replies.length - 1];
+          if (lastReply && lastReply.username !== this.myUsername && window.app) {
+            window.app.playNotificationSound();
+          }
+        }
+
         this.historyMessages[existingIdx] = message;
         
         // Dynamically update active thread replies view if the open thread message is modified
@@ -266,6 +278,10 @@ export class ChatController {
         }
       } else {
         this.historyMessages.push(message);
+        // Play notification chime on new message arrival
+        if (window.app) {
+          window.app.playNotificationSound();
+        }
       }
       
       // Parse direct message notifications
