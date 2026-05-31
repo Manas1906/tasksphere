@@ -1182,15 +1182,8 @@ export class ChatController {
     }
   }
 
-  // Helper mapping to return high-fidelity inline SVGs for standard reactions - Phase 15
+  // Helper mapping to return literal emojis instead of SVGs
   getEmojiSvg(emoji) {
-    const svgs = {
-      '👍': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--accent-cyan)"><path d="M2 21h4V9H2v12zM21 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L12.17 1 5.58 7.59C5.21 7.95 5 8.45 5 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`,
-      '❤️': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--accent-rose)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`,
-      '🔥': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #f97316"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8c0-5.39-4.5-9.33-4.5-9.33zM12 19c-2.21 0-4-1.79-4-4 0-.89.29-1.71.78-2.38 1.47 1.47 3.82 1.47 5.29 0C14.71 13.29 15 14.11 15 15c0 2.21-1.79 4-4 4z"/></svg>`,
-      '😂': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #eab308"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7c0 2.76 2.24 5 5 5s5-2.24 5-5zm-8-3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`,
-      '😮': `<svg class="reaction-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: #eab308"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm-3-5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
-    };
-    return svgs[emoji] || emoji;
+    return emoji;
   }
 }

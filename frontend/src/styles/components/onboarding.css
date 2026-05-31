@@ -203,6 +203,16 @@ body.light-theme .onboarding-guide-card {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06), 0 0 15px rgba(79, 70, 229, 0.08);
 }
 
+body.light-theme .onboarding-welcome-card h2,
+body.light-theme .onboarding-guide-card h3 {
+  color: var(--text-primary) !important;
+}
+
+body.light-theme .onboarding-welcome-card p,
+body.light-theme .onboarding-guide-card p {
+  color: var(--text-secondary) !important;
+}
+
 body.light-theme .onboarding-dot {
   background: rgba(15, 23, 42, 0.1);
 }

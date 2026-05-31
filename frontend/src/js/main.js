@@ -1460,13 +1460,19 @@ class TaskSphereApp {
   handleApprovalSuccess(username, role) {
     console.log(`[APPROVAL-SUCCESS] Granting full access credentials to username: ${username}`);
     
+    // Persist active credentials in storage
+    localStorage.setItem('chat_username', username);
+    localStorage.setItem('chat_role', role);
+    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    localStorage.setItem('chat_avatar', avatarUrl);
+
     // Cache profile details for the active email to bypass OTP setup completely
     const email = localStorage.getItem('tasksphere_email');
     if (email) {
       localStorage.setItem('profile_' + email.toLowerCase().trim(), JSON.stringify({
         username: username,
         role: role,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+        avatarUrl: avatarUrl
       }));
     }
  

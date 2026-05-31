@@ -151,8 +151,8 @@ body.light-theme .filter-btn--active {
 }
 
 body.light-theme .task-card:hover {
-  border-color: rgba(15, 23, 42, 0.15) !important;
-  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(79, 70, 229, 0.4) !important;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.08) !important;
 }
 
 body.light-theme .active-users-bar li button {
