@@ -11,8 +11,8 @@
   /* Vibrancy Accents */
   --accent-cyan: #00F0FF;
   --accent-cyan-rgb: 0, 240, 255;
-  --accent-purple: #8B5CF6;
-  --accent-purple-rgb: 139, 92, 246;
+  --accent-purple: #6366F1; /* Premium Calming Indigo instead of harsh neon purple */
+  --accent-purple-rgb: 99, 102, 241;
   --accent-emerald: #10B981;
   --accent-emerald-rgb: 16, 185, 129;
   --accent-amber: #F59E0B;
@@ -51,7 +51,7 @@
   --glass-blur: blur(12px);
   --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --cyan-glow: 0 0 15px rgba(0, 240, 255, 0.2);
-  --purple-glow: 0 0 15px rgba(139, 92, 246, 0.25);
+  --purple-glow: 0 0 15px rgba(99, 102, 241, 0.2); /* Calming Indigo glow */
   /* Default dark theme text light helper */
   --text-light: #E2E8F0;
 
@@ -71,15 +71,15 @@
 body.light-theme {
   /* Color Palette - Premium Space-Light Mode */
   --bg-primary: #F8FAFC;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F1F5F9;
-  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-secondary: #F1F5F9; /* Stand-out columns background matching mockup */
+  --bg-tertiary: #E2E8F0;
+  --bg-card: #FFFFFF; /* Pure white task cards matching mockup */
   
   --border-color: rgba(15, 23, 42, 0.08);
   
   /* Rich Aesthetics Overrides for Light Mode Accents */
   --accent-cyan: #0284C7; /* Rich readable Sky Blue instead of neon cyan */
-  --accent-purple: #7C3AED; /* Rich Indigo/Purple instead of neon purple */
+  --accent-purple: #4F46E5; /* Rich humanistic Indigo instead of purple */
   --accent-emerald: #10B981; /* Premium deep emerald */
   --accent-rose: #E11D48; /* Premium deep rose */
   --accent-amber: #D97706; /* Premium deep amber */
@@ -91,9 +91,9 @@ body.light-theme {
   
   /* Glassmorphism overrides for Light Mode */
   --glass-bg: rgba(255, 255, 255, 0.85);
-  --card-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  --card-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05); /* Soft premium shadow matching mockup */
   --cyan-glow: 0 0 15px rgba(2, 132, 199, 0.15);
-  --purple-glow: 0 0 15px rgba(124, 58, 237, 0.15);
+  --purple-glow: 0 0 15px rgba(79, 70, 229, 0.15);
 }
 
 /* Page Element Overrides for Premium Light Mode Contrast */

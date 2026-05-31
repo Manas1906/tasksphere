@@ -87,7 +87,7 @@ export class DashboardView {
         <div id="simulationPanelContent" style="display: flex; flex-direction: column; gap: var(--spacing-md); width: 100%">
           <!-- Initial state: Big call-to-action button -->
           <div style="display: flex; justify-content: center; align-items: center; padding: var(--spacing-xl) 0">
-            <button id="runSimulationBtn" class="auth-btn" style="background: linear-gradient(135deg, #8b54f6 0%, #ff0080 100%); border: none; padding: 12px 30px; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.3); border-radius: var(--border-radius-md); transition: transform 0.2s, box-shadow 0.2s;">
+            <button id="runSimulationBtn" class="auth-btn" style="background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-cyan) 100%); border: none; padding: 12px 30px; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); border-radius: var(--border-radius-md); transition: transform 0.2s, box-shadow 0.2s;">
               ${this.getIconSvg('predictive')} Run Sprint Simulation
             </button>
           </div>
@@ -372,23 +372,14 @@ export class DashboardView {
         </div>
       `;
 
-      // Bind dynamic click events for quick filters
+      // Bind dynamic click events for quick filters (Redirects to Kanban Board with visual highlight)
       statsContainer.querySelectorAll('.stat-card').forEach(card => {
         card.onclick = async () => {
           const newFilter = card.getAttribute('data-stat-filter');
-          this.filterType = newFilter;
-
-          // Clear other filter buttons active outlines
-          const buttons = this.container.querySelectorAll('.dashboard-filters .filter-btn');
-          buttons.forEach(btn => {
-            if (btn.getAttribute('data-filter') === newFilter) {
-              btn.classList.add('filter-btn--active');
-            } else {
-              btn.classList.remove('filter-btn--active');
-            }
-          });
-
-          await this.loadAndProcessData();
+          localStorage.setItem('board_filter_redirect', newFilter);
+          if (window.app) {
+            window.app.switchRoute('BOARD');
+          }
         };
       });
     }

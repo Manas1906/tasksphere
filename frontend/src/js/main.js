@@ -7,6 +7,7 @@ import { AICopilot } from './copilot';
 import { AIChatbot } from './chatbot';
 import { AdminView } from './admin';
 import { CursorSyncController } from './cursors';
+import { OnboardingTour } from './onboarding';
 
 /**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
@@ -1099,7 +1100,11 @@ class TaskSphereApp {
         // Initialize Cursor WebSocket channel subscription
         this.cursorSyncController.subscribeChannel();
 
-
+        // Trigger onboarding tour dynamically
+        if (!window.onboarding) {
+          window.onboarding = new OnboardingTour();
+          window.onboarding.init();
+        }
       },
       (err) => {
         console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
@@ -1314,6 +1319,7 @@ class TaskSphereApp {
         }
       });
 
+      const targetStatus = document.getElementById('ticketModal').getAttribute('data-target-status') || 'TODO';
       const payload = {
         title: form.querySelector('#ticketTitle').value.trim(),
         description: form.querySelector('#ticketDescription').value.trim(),
@@ -1321,14 +1327,20 @@ class TaskSphereApp {
         storyPoints: parseInt(form.querySelector('#ticketPoints').value) || 3,
         dueDate: form.querySelector('#ticketDueDate').value || null,
         assignee: assignee,
-        status: 'TODO',
+        status: targetStatus,
         checklist: checklistItems
       };
 
       try {
         await api.createTask(payload);
+        if (window.onboarding) {
+          window.onboarding.onTicketCreated();
+        }
       } catch (err) {
         console.warn('API error, task cached to memory.');
+        if (window.onboarding) {
+          window.onboarding.onTicketCreated(); // progress even in offline cache fallback mode
+        }
       }
       
       closeModal();
@@ -1752,6 +1764,10 @@ class TaskSphereApp {
             this.currentView.render();
           }
           closeModal();
+          
+          if (window.onboarding) {
+            window.onboarding.onSecuritySaved();
+          }
         }
       } catch (err) {
         console.error('[SECURITY-SETTINGS-ERROR] Failed to save:', err);
@@ -2111,5 +2127,5 @@ function makeChecklistDragSortable(container, listArray, renderCallback) {
 }
 
 // Instantiate and launch app
-const app = new TaskSphereApp();
-window.addEventListener('DOMContentLoaded', () => app.start());
+window.app = new TaskSphereApp();
+window.addEventListener('DOMContentLoaded', () => window.app.start());

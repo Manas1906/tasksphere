@@ -29,6 +29,7 @@ export class BoardView {
             </h3>
             <span class="kanban-column-header__count" id="count-TODO">0</span>
           </div>
+          <button class="kanban-column-add-btn" data-add-status="TODO">+ Add New Task</button>
           <div class="kanban-cards" id="lane-TODO"></div>
         </section>
 
@@ -40,6 +41,7 @@ export class BoardView {
             </h3>
             <span class="kanban-column-header__count" id="count-IN_PROGRESS">0</span>
           </div>
+          <button class="kanban-column-add-btn" data-add-status="IN_PROGRESS">+ Add New Task</button>
           <div class="kanban-cards" id="lane-IN_PROGRESS"></div>
         </section>
 
@@ -51,6 +53,7 @@ export class BoardView {
             </h3>
             <span class="kanban-column-header__count" id="count-REVIEW">0</span>
           </div>
+          <button class="kanban-column-add-btn" data-add-status="REVIEW">+ Add New Task</button>
           <div class="kanban-cards" id="lane-REVIEW"></div>
         </section>
 
@@ -62,6 +65,7 @@ export class BoardView {
             </h3>
             <span class="kanban-column-header__count" id="count-DONE">0</span>
           </div>
+          <button class="kanban-column-add-btn" data-add-status="DONE">+ Add New Task</button>
           <div class="kanban-cards" id="lane-DONE"></div>
         </section>
       </div>
@@ -69,6 +73,85 @@ export class BoardView {
 
     await this.loadBoardData();
     this.setupDragAndDrop();
+    this.bindAddButtons();
+    this.handleRedirectHighlight();
+  }
+
+  bindAddButtons() {
+    this.container.querySelectorAll('.kanban-column-add-btn').forEach(btn => {
+      btn.onclick = () => {
+        const targetStatus = btn.getAttribute('data-add-status');
+        
+        // Open the Scrum ticket creator modal
+        const modal = document.getElementById('ticketModal');
+        const form = document.getElementById('ticketForm');
+        if (modal && form) {
+          form.reset();
+          modal.querySelector('.modal-header__title').textContent = 'Create Scrum Ticket';
+          
+          // Pre-select status
+          modal.setAttribute('data-target-status', targetStatus);
+          
+          // Populate assignee dropdown options
+          const assigneeSelect = form.querySelector('#ticketAssignee');
+          assigneeSelect.innerHTML = `<option value="">Unassigned</option>`;
+          
+          const members = JSON.parse(localStorage.getItem('cache_users') || '[]');
+          members.forEach(member => {
+            const opt = document.createElement('option');
+            opt.value = member.id;
+            opt.textContent = `${member.username} (${member.role})`;
+            assigneeSelect.appendChild(opt);
+          });
+          
+          form.querySelector('#checklistBuilderList').innerHTML = '';
+          
+          modal.classList.add('modal-overlay--active');
+        }
+      };
+    });
+  }
+
+  handleRedirectHighlight() {
+    const redirectFilter = localStorage.getItem('board_filter_redirect');
+    if (redirectFilter) {
+      localStorage.removeItem('board_filter_redirect');
+      
+      // Delay slightly to ensure browser has rendered DOM
+      setTimeout(() => {
+        let targetCol = null;
+        if (redirectFilter === 'ALL') {
+          // Glow all lanes for CTO showcase!
+          document.querySelectorAll('.kanban-column').forEach(c => c.classList.add('kanban-column--highlight-glow'));
+          setTimeout(() => {
+            document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('kanban-column--highlight-glow'));
+          }, 3000);
+          return;
+        } else if (redirectFilter === 'IN_PROGRESS') {
+          targetCol = document.querySelector('.kanban-column--progress');
+        } else if (redirectFilter === 'COMPLETED') {
+          targetCol = document.querySelector('.kanban-column--done');
+        } else if (redirectFilter === 'OVERDUE') {
+          // Highlight overdue tasks inside the lanes!
+          document.querySelectorAll('.task-card--overdue').forEach(card => {
+            card.style.outline = '3px solid var(--accent-rose)';
+            card.style.boxShadow = '0 0 20px rgba(244, 63, 94, 0.4)';
+            setTimeout(() => {
+              card.style.outline = '';
+              card.style.boxShadow = '';
+            }, 3000);
+          });
+          targetCol = document.querySelector('.kanban-column--review');
+        }
+        
+        if (targetCol) {
+          targetCol.classList.add('kanban-column--highlight-glow');
+          setTimeout(() => {
+            targetCol.classList.remove('kanban-column--highlight-glow');
+          }, 3000);
+        }
+      }, 100);
+    }
   }
 
   async loadBoardData() {

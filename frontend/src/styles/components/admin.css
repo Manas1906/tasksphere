@@ -112,9 +112,9 @@
 }
 
 .admin-badge--role-admin {
-  background: rgba(255, 0, 128, 0.1);
-  color: #ff0080;
-  border: 1px solid rgba(255, 0, 128, 0.2);
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent-purple);
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .admin-badge--pending {
@@ -350,7 +350,7 @@
 .admin-user-details-tooltip.tooltip--bottom::after {
   top: auto;
   bottom: 100%;
-  border-color: transparent transparent #da0f90 transparent; /* blends seamlessly with hot pink/purple top banner edge */
+  border-color: transparent transparent var(--accent-purple) transparent; /* blends seamlessly with humanistic indigo top banner edge */
 }
 
 .admin-avatar-container:hover .admin-user-details-tooltip.tooltip--bottom {
@@ -361,7 +361,7 @@
 /* Tooltip Cover Banner */
 .tooltip-banner {
   height: 65px;
-  background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00dfd8 100%);
+  background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-cyan) 100%);
   position: relative;
 }
 

@@ -342,7 +342,7 @@ export class ChatController {
       if (backLink) backLink.style.display = 'flex';
       if (chatTitle) {
         chatTitle.innerHTML = `
-          <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: #ff0080; font-weight: 700; text-transform: uppercase;">
+          <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: var(--accent-purple); font-weight: 700; text-transform: uppercase;">
             <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
               <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
             </svg>
@@ -870,7 +870,7 @@ export class ChatController {
 
       // Outline the selected partner
       if (this.activeChatPartner === user.username) {
-        avatarWrap.style.outline = '2px solid #ff0080';
+        avatarWrap.style.outline = '2px solid var(--accent-purple)';
         avatarWrap.style.outlineOffset = '2px';
         avatarWrap.style.transform = 'scale(1.05)';
       }

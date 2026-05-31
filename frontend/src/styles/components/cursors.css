@@ -65,11 +65,11 @@
 
 /* Role-based custom theme color parameters */
 .remote-cursor--product_owner {
-  --cursor-color: #ff0080;
+  --cursor-color: #4F46E5; /* Humanistic Indigo */
 }
 
 .remote-cursor--manager {
-  --cursor-color: #8b54f6;
+  --cursor-color: #06B6D4; /* Humanistic Teal */
 }
 
 .remote-cursor--developer {

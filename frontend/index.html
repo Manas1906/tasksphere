@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles/main.css">
   <link rel="stylesheet" href="/src/styles/components/admin.css">
+  <link rel="stylesheet" href="/src/styles/components/onboarding.css">
   <script>
     if (typeof global === 'undefined') {
       window.global = window;
@@ -108,7 +109,7 @@
           </button>
         </li>
         <li id="navAdminItem" style="display: none;">
-          <button id="navAdmin" class="filter-btn" style="width: 100%; text-align: left; color: #ff0080; display: flex; align-items: center; gap: 8px">
+          <button id="navAdmin" class="filter-btn" style="width: 100%; text-align: left; color: var(--accent-purple); display: flex; align-items: center; gap: 8px">
             <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
               <path d="M5 16h14a1 1 0 001-.76l2-9a1 1 0 00-1.74-.75l-4.14 4.14L12 3.27l-4.12 6.36-4.14-4.14a1 1 0 00-1.74.75l2 9A1 1 0 005 16zm7 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
             </svg>
@@ -173,8 +174,8 @@
         </div>
 
         <!-- Dynamic mode switcher back-link for DM chats -->
-        <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(255, 0, 128, 0.05); align-items: center; gap: 6px; cursor: pointer;">
-          <span style="color: #ff0080; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
+        <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(99, 102, 241, 0.05); align-items: center; gap: 6px; cursor: pointer;">
+          <span style="color: var(--accent-purple); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
         </div>
 
         <!-- Horizontal user avatars scrolling bar -->

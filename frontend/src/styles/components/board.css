@@ -201,3 +201,63 @@
   border: 1px dashed rgba(0, 240, 255, 0.2);
   border-radius: var(--radius-sm);
 }
+
+/* Inline Column Add Task Buttons - Mockup realign */
+.kanban-column-add-btn {
+  margin: var(--spacing-xs) var(--spacing-md) 0 var(--spacing-md);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #FFFFFF;
+  transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kanban-column-add-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.kanban-column-add-btn:active {
+  transform: translateY(0);
+}
+
+.kanban-column--todo .kanban-column-add-btn {
+  background-color: var(--accent-purple);
+}
+
+.kanban-column--progress .kanban-column-add-btn {
+  background-color: var(--accent-amber);
+}
+
+.kanban-column--review .kanban-column-add-btn {
+  background-color: var(--accent-cyan);
+}
+
+.kanban-column--done .kanban-column-add-btn {
+  background-color: var(--accent-emerald);
+}
+
+/* Board Column highlight animations */
+.kanban-column--highlight-glow {
+  animation: column-glow-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes column-glow-pulse {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 240, 255, 0.1), inset 0 0 5px rgba(0, 240, 255, 0.05);
+    border-color: var(--border-color);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), inset 0 0 10px rgba(99, 102, 241, 0.2);
+    border-color: var(--accent-purple);
+  }
+}
+
