@@ -591,4 +591,17 @@ body.light-theme .sidebar-nav-btn--active {
   color: var(--accent-purple) !important;
 }
 
+/* Force perfect layout stretch and left alignment in the sidebar navigation */
+.app-sidebar .active-users-bar {
+  align-items: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.app-sidebar .active-users-bar li {
+  width: 100% !important;
+  display: block !important;
+}
+
+
 
