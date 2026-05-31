@@ -1119,17 +1119,17 @@ class TaskSphereApp {
     const adminBtn = document.getElementById('navAdmin');
  
     const clearActive = () => {
-      dashboardBtn.classList.remove('filter-btn--active');
-      boardBtn.classList.remove('filter-btn--active');
-      teamBtn.classList.remove('filter-btn--active');
-      if (adminBtn) adminBtn.classList.remove('filter-btn--active');
+      dashboardBtn.classList.remove('sidebar-nav-btn--active');
+      boardBtn.classList.remove('sidebar-nav-btn--active');
+      teamBtn.classList.remove('sidebar-nav-btn--active');
+      if (adminBtn) adminBtn.classList.remove('sidebar-nav-btn--active');
     };
  
-    dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('filter-btn--active'); this.switchRoute('DASHBOARD'); };
-    boardBtn.onclick = () => { clearActive(); boardBtn.classList.add('filter-btn--active'); this.switchRoute('BOARD'); };
-    teamBtn.onclick = () => { clearActive(); teamBtn.classList.add('filter-btn--active'); this.switchRoute('AI_LAB'); };
+    dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('DASHBOARD'); };
+    boardBtn.onclick = () => { clearActive(); boardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('BOARD'); };
+    teamBtn.onclick = () => { clearActive(); teamBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('AI_LAB'); };
     if (adminBtn) {
-      adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('filter-btn--active'); this.switchRoute('ADMIN_PANEL'); };
+      adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('ADMIN_PANEL'); };
     }
 
 

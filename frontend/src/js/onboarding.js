@@ -11,7 +11,7 @@ export class OnboardingTour {
     this.steps = [
       {
         title: "Welcome to TaskSphere!",
-        desc: "Your highly optimized, decoupled Agile workspace is ready. Let's take a 1-minute guided tour to set up your profile and create your first Scrum ticket!",
+        desc: "Your highly optimized, decoupled Agile workspace is ready. Let's take a quick guided tour to set up your profile and join team collaborations!",
         target: null,
         placement: "center"
       },
@@ -46,10 +46,28 @@ export class OnboardingTour {
         placement: "left"
       },
       {
-        title: "Step 5: Enforce Password & Complete",
-        desc: "Enter an updated password (optional) and click **Save Settings** to persist your profile customizations and finalize your onboarding!",
+        title: "Step 5: Enforce Password & Apply",
+        desc: "Enter an updated password (optional) and click **Save Settings** to persist your profile customizations and progress to chat tools!",
         target: "#securityForm button[type='submit']",
         placement: "top"
+      },
+      {
+        title: "Step 6: Team Collaboration",
+        desc: "Coordinate with your squad in real-time. Type message updates in the input box below and hit Enter to publish instantly to the group channel.",
+        target: "#chatContainer",
+        placement: "left"
+      },
+      {
+        title: "Step 7: Private Chat DMs",
+        desc: "Want to talk in private? Click any teammate's avatar in the active list above to immediately launch a secure direct message (DM) session.",
+        target: "#activeUsersList",
+        placement: "left"
+      },
+      {
+        title: "Step 8: Reactions, Edits & Threads",
+        desc: "Hover over any chat bubble to react with emojis (👍, ❤️, 🔥), edit your sent messages, or click the **Reply** icon to start nested threads!",
+        target: "#chatMessages",
+        placement: "left"
       }
     ];
   }
@@ -77,8 +95,8 @@ export class OnboardingTour {
       const li = document.createElement('li');
       li.id = 'navReplayTour';
       li.innerHTML = `
-        <button class="filter-btn" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; color: var(--accent-purple);">
-          <svg style="width: 16px; height: 16px; fill: currentColor" viewBox="0 0 24 24">
+        <button class="sidebar-nav-btn" style="color: var(--accent-purple);">
+          <svg viewBox="0 0 24 24">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
           </svg>
           <span>Replay Walkthrough</span>
@@ -151,6 +169,16 @@ export class OnboardingTour {
       window.app.switchRoute('BOARD');
     }
 
+    // Ensure chat panel is visible for Chat steps
+    if (this.currentStep >= 7 && this.currentStep <= 9) {
+      const shell = document.getElementById('appShell');
+      if (shell) {
+        shell.classList.add('app-shell--show-chat');
+        shell.classList.remove('app-shell--hide-chat');
+        shell.classList.remove('app-shell--show-sidebar');
+      }
+    }
+
     const targetEl = document.querySelector(step.target);
     if (!targetEl && this.currentStep > 0) {
       console.warn(`[ONBOARDING] Target ${step.target} not found. Skipping step.`);
@@ -180,7 +208,9 @@ export class OnboardingTour {
     } else if (this.currentStep === 2) {
       nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); animation: pulseLock 1.5s infinite">Submit ticket form to progress</span>`;
     } else if (this.currentStep === 6) {
-      nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-emerald)">Submit security settings to finish</span>`;
+      nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-emerald)">Submit security settings to progress</span>`;
+    } else if (this.currentStep === 9) {
+      nextBtnHtml = `<button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Finish Tour 🚀</button>`;
     }
 
     this.guideCard.innerHTML = `
@@ -192,7 +222,7 @@ export class OnboardingTour {
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
         <div class="onboarding-dots">${dotsHtml}</div>
         <div style="display: flex; gap: var(--spacing-sm); align-items: center">
-          ${this.currentStep > 2 && this.currentStep < 6 ? `<button id="onboardingBackBtn" class="onboarding-btn onboarding-btn--secondary">Back</button>` : ''}
+          ${this.currentStep > 2 && this.currentStep !== 7 ? `<button id="onboardingBackBtn" class="onboarding-btn onboarding-btn--secondary">Back</button>` : ''}
           ${nextBtnHtml}
         </div>
       </div>
@@ -200,8 +230,13 @@ export class OnboardingTour {
 
     document.body.appendChild(this.guideCard);
 
-    // Position spotlight & guide card dynamically next to the target element
-    this.positionSpotlightAndGuide(targetEl, step.placement);
+    // Scroll the target element smoothly into view
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Position spotlight & guide card dynamically next to the target element with a short delay for smooth scrolling
+    setTimeout(() => {
+      this.positionSpotlightAndGuide(targetEl, step.placement);
+    }, 250);
 
     // Listen to window size tweaks to self-heal coordinates
     window.onresize = () => this.positionSpotlightAndGuide(targetEl, step.placement);
@@ -295,26 +330,32 @@ export class OnboardingTour {
   // Intercepted from main.js when profile settings is successfully saved
   onSecuritySaved() {
     if (this.currentStep === 6) {
-      console.log('[ONBOARDING] Intercepted profile save success. Walkthrough completed!');
-      this.cleanupDOM();
-      
-      localStorage.setItem('tasksphere_onboarding_completed', 'true');
-      this.injectReplayButton();
-
-      // Render custom success notifications alert
-      if (window.app) {
-        window.app.playNotificationSound();
-        window.app.showNotificationToast("🎉 Onboarding Completed!", "Your profile is optimized and secure. Ready to work!", "UPDATE");
-      }
+      console.log('[ONBOARDING] Intercepted profile save success. Progressing to Chat onboarding steps...');
+      this.currentStep = 7;
+      setTimeout(() => {
+        this.renderGuideStep();
+      }, 600);
     }
   }
 
   nextStep() {
     this.currentStep++;
     if (this.currentStep >= this.steps.length) {
-      this.skipTour();
+      this.finishTour();
     } else {
       this.renderGuideStep();
+    }
+  }
+
+  finishTour() {
+    console.log('[ONBOARDING] Tour completed cleanly.');
+    this.cleanupDOM();
+    localStorage.setItem('tasksphere_onboarding_completed', 'true');
+    this.injectReplayButton();
+
+    if (window.app) {
+      window.app.playNotificationSound();
+      window.app.showNotificationToast("🎉 Walkthrough Completed!", "Collaboration hub ready. Go ahead and conquer your goals!", "UPDATE");
     }
   }
 
