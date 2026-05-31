@@ -50,6 +50,12 @@ class ApiService {
       localStorage.removeItem('tasksphere_jwt');
       localStorage.removeItem('tasksphere_user');
       localStorage.removeItem('chat_username'); // clear chat username cache
+      
+      // Clean up any active onboarding guides and spotlights
+      if (window.onboarding) {
+        window.onboarding.cleanupDOM();
+      }
+
       const loginOverlay = document.getElementById('loginOverlay');
       if (loginOverlay) {
         loginOverlay.classList.remove('hidden');

@@ -72,17 +72,42 @@ export class OnboardingTour {
     ];
   }
 
+  get myUsername() {
+    return localStorage.getItem('chat_username') || 'Guest';
+  }
+
   init() {
-    // Check if onboarding was already completed
-    const completed = localStorage.getItem('tasksphere_onboarding_completed') === 'true';
+    // 1. Prevent onboarding starting if user is not authenticated or login overlay is visible
+    const token = localStorage.getItem('tasksphere_jwt');
+    const username = this.myUsername;
+    if (!token || username === 'Guest') {
+      console.log('[ONBOARDING] User not authenticated. Aborting walkthrough.');
+      return;
+    }
+
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay && !loginOverlay.classList.contains('hidden')) {
+      console.log('[ONBOARDING] Workspace locked behind authentication screen. Aborting walkthrough.');
+      return;
+    }
+
+    // 2. Check if onboarding was already completed by this specific user
+    const completed = localStorage.getItem(`tasksphere_onboarding_completed_${username}`) === 'true';
     if (completed) {
-      console.log('[ONBOARDING] Tour already completed previously.');
+      console.log(`[ONBOARDING] Tour already completed previously by ${username}.`);
       this.injectReplayButton();
       return;
     }
 
     // Delay start slightly to let the workspace render cleanly
     setTimeout(() => {
+      // Re-verify login screen & auth token are still active before popping up
+      const currentToken = localStorage.getItem('tasksphere_jwt');
+      const checkOverlay = document.getElementById('loginOverlay');
+      if (!currentToken || (checkOverlay && !checkOverlay.classList.contains('hidden'))) {
+        console.log('[ONBOARDING] User logged out or login screen is active. Aborting start.');
+        return;
+      }
       this.startTour();
     }, 1500);
   }
@@ -169,6 +194,44 @@ export class OnboardingTour {
       window.app.switchRoute('BOARD');
     }
 
+    // Ensure appropriate modals are open/closed depending on the step
+    if (this.currentStep === 2) {
+      // Auto-open ticket modal for Step 2 if not open yet
+      const ticketModal = document.getElementById('ticketModal');
+      if (ticketModal && !ticketModal.classList.contains('modal-overlay--active')) {
+        const addBtn = document.querySelector(".kanban-column--todo .kanban-column-add-btn");
+        if (addBtn) {
+          addBtn.click();
+        } else {
+          ticketModal.classList.add('modal-overlay--active');
+        }
+      }
+    } else {
+      // Auto-close ticket modal when leaving Step 2
+      const ticketModal = document.getElementById('ticketModal');
+      if (ticketModal && ticketModal.classList.contains('modal-overlay--active')) {
+        ticketModal.classList.remove('modal-overlay--active');
+      }
+    }
+
+    if (this.currentStep >= 3 && this.currentStep <= 6) {
+      // Auto-open security modal for Steps 3, 4, 5, 6 if not open yet
+      const securityModal = document.getElementById('securityModal');
+      if (securityModal && !securityModal.classList.contains('modal-overlay--active')) {
+        if (window.app) {
+          window.app.openSecurityModal();
+        } else {
+          securityModal.classList.add('modal-overlay--active');
+        }
+      }
+    } else {
+      // Auto-close security modal when leaving settings steps
+      const securityModal = document.getElementById('securityModal');
+      if (securityModal && securityModal.classList.contains('modal-overlay--active')) {
+        securityModal.classList.remove('modal-overlay--active');
+      }
+    }
+
     // Ensure chat panel is visible for Chat steps
     if (this.currentStep >= 7 && this.currentStep <= 9) {
       const shell = document.getElementById('appShell');
@@ -204,17 +267,33 @@ export class OnboardingTour {
     // Dynamic buttons depending on action requirement
     let nextBtnHtml = `<button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Next</button>`;
     if (this.currentStep === 1) {
-      nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-amber); animation: pulseOrange 1.5s infinite">Click + Add New Task to progress</span>`;
+      nextBtnHtml = `
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span style="font-size: 9px; font-weight: 700; color: var(--accent-amber); animation: pulseOrange 1.5s infinite; white-space: nowrap;">Click + Add New Task to progress</span>
+          <button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Next</button>
+        </div>
+      `;
     } else if (this.currentStep === 2) {
-      nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); animation: pulseLock 1.5s infinite">Submit ticket form to progress</span>`;
+      nextBtnHtml = `
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span style="font-size: 9px; font-weight: 700; color: var(--accent-cyan); animation: pulseLock 1.5s infinite; white-space: nowrap;">Submit ticket form to progress</span>
+          <button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Next</button>
+        </div>
+      `;
     } else if (this.currentStep === 6) {
-      nextBtnHtml = `<span style="font-size: 10px; font-weight: 700; color: var(--accent-emerald)">Submit security settings to progress</span>`;
+      nextBtnHtml = `
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span style="font-size: 9px; font-weight: 700; color: var(--accent-emerald); white-space: nowrap;">Submit security settings to progress</span>
+          <button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Next</button>
+        </div>
+      `;
     } else if (this.currentStep === 9) {
       nextBtnHtml = `<button id="onboardingNextBtn" class="onboarding-btn onboarding-btn--primary">Finish Tour 🚀</button>`;
     }
 
     this.guideCard.innerHTML = `
-      <h3 style="font-size: var(--font-size-base); font-weight: bold; margin-bottom: var(--spacing-xs); color: #fff; display: flex; align-items: center; gap: 6px;">
+      <button class="onboarding-close" style="position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+      <h3 style="font-size: var(--font-size-base); font-weight: bold; margin-bottom: var(--spacing-xs); color: #fff; display: flex; align-items: center; gap: 6px; padding-right: 24px;">
         <svg style="width: 15px; height: 15px; fill: var(--accent-purple);" viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2c0 .28-.06.53-.16.76l1.92 1.92C18.43 7.15 20 9.38 20 12v1H4v-1c0-2.62 1.57-4.85 4.24-5.32l1.92-1.92c-.1-.23-.16-.48-.16-.76a2 2 0 012-2"/></svg>
         <span>${step.title}</span>
       </h3>
@@ -222,7 +301,7 @@ export class OnboardingTour {
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
         <div class="onboarding-dots">${dotsHtml}</div>
         <div style="display: flex; gap: var(--spacing-sm); align-items: center">
-          ${this.currentStep > 2 && this.currentStep !== 7 ? `<button id="onboardingBackBtn" class="onboarding-btn onboarding-btn--secondary">Back</button>` : ''}
+          ${this.currentStep > 1 && this.currentStep !== 7 ? `<button id="onboardingBackBtn" class="onboarding-btn onboarding-btn--secondary">Back</button>` : ''}
           ${nextBtnHtml}
         </div>
       </div>
@@ -249,6 +328,10 @@ export class OnboardingTour {
     const backBtn = this.guideCard.querySelector('#onboardingBackBtn');
     if (backBtn) {
       backBtn.onclick = () => this.backStep();
+    }
+    const closeBtn = this.guideCard.querySelector('.onboarding-close');
+    if (closeBtn) {
+      closeBtn.onclick = () => this.skipTour();
     }
 
     // Dynamic Action Event Interception Triggers
@@ -350,7 +433,8 @@ export class OnboardingTour {
   finishTour() {
     console.log('[ONBOARDING] Tour completed cleanly.');
     this.cleanupDOM();
-    localStorage.setItem('tasksphere_onboarding_completed', 'true');
+    const username = this.myUsername;
+    localStorage.setItem(`tasksphere_onboarding_completed_${username}`, 'true');
     this.injectReplayButton();
 
     if (window.app) {
@@ -370,7 +454,8 @@ export class OnboardingTour {
   skipTour() {
     console.log('[ONBOARDING] User dismissed interactive tour.');
     this.cleanupDOM();
-    localStorage.setItem('tasksphere_onboarding_completed', 'true');
+    const username = this.myUsername;
+    localStorage.setItem(`tasksphere_onboarding_completed_${username}`, 'true');
     this.injectReplayButton();
   }
 

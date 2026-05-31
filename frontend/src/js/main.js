@@ -100,6 +100,11 @@ class TaskSphereApp {
             return;
           }
         } catch (e) {
+          if (!localStorage.getItem('tasksphere_jwt')) {
+            console.log('[APP-START] Recovered session was invalid or unauthorized. Aborting startup.');
+            if (loginOverlay) loginOverlay.classList.remove('hidden');
+            return;
+          }
           console.warn('[APP-START] Could not verify database registration status, assuming active.', e);
         }
         
