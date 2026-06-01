@@ -61,7 +61,7 @@ public class RedisQueueConsumerService implements CommandLineRunner {
         long backoffDelayMs = 1000;
         while (running) {
             try {
-                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.EMAIL_QUEUE, 2, TimeUnit.SECONDS);
+                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.EMAIL_QUEUE, 30, TimeUnit.SECONDS);
                 backoffDelayMs = 1000; // Reset backoff delay on successful command
                 if (payload != null && !payload.trim().isEmpty()) {
                     EmailEvent event = objectMapper.readValue(payload, EmailEvent.class);
@@ -94,7 +94,7 @@ public class RedisQueueConsumerService implements CommandLineRunner {
         long backoffDelayMs = 1000;
         while (running) {
             try {
-                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.AI_QUEUE, 2, TimeUnit.SECONDS);
+                String payload = redisTemplate.opsForList().rightPop(RedisQueueService.AI_QUEUE, 30, TimeUnit.SECONDS);
                 backoffDelayMs = 1000; // Reset backoff delay on successful command
                 if (payload != null && !payload.trim().isEmpty()) {
                     AiBotEvent event = objectMapper.readValue(payload, AiBotEvent.class);
