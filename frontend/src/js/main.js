@@ -1063,6 +1063,12 @@ class TaskSphereApp {
 
   initRealtimeSync() {
     console.log('[APP-SYNC] Instantiating ChatController and establishing socket handlers.');
+    
+    // Trigger onboarding tour dynamically and instantly (no connection delay!)
+    if (!window.onboarding) {
+      window.onboarding = new OnboardingTour();
+      window.onboarding.init();
+    }
     // Instantiate and initialize chat controller instantly so the Send button binds and works immediately
     this.chatController = new ChatController();
     this.chatController.init();
@@ -1112,12 +1118,6 @@ class TaskSphereApp {
 
         // Initialize Cursor WebSocket channel subscription
         this.cursorSyncController.subscribeChannel();
-
-        // Trigger onboarding tour dynamically
-        if (!window.onboarding) {
-          window.onboarding = new OnboardingTour();
-          window.onboarding.init();
-        }
       },
       (err) => {
         console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
