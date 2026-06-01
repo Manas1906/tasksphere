@@ -77,17 +77,11 @@ export class OnboardingTour {
   }
 
   init() {
-    // 1. Prevent onboarding starting if user is not authenticated or login overlay is visible
+    // 1. Prevent onboarding starting if user is not authenticated
     const token = localStorage.getItem('tasksphere_jwt');
     const username = this.myUsername;
     if (!token || username === 'Guest') {
       console.log('[ONBOARDING] User not authenticated. Aborting walkthrough.');
-      return;
-    }
-
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay && !loginOverlay.classList.contains('hidden')) {
-      console.log('[ONBOARDING] Workspace locked behind authentication screen. Aborting walkthrough.');
       return;
     }
 
@@ -96,6 +90,13 @@ export class OnboardingTour {
     if (completed) {
       console.log(`[ONBOARDING] Tour already completed previously by ${username}.`);
       this.injectReplayButton();
+      return;
+    }
+
+    // 3. Prevent onboarding auto-start if workspace is locked behind authentication screen
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay && !loginOverlay.classList.contains('hidden')) {
+      console.log('[ONBOARDING] Workspace locked behind authentication screen. Aborting walkthrough.');
       return;
     }
 

@@ -88,6 +88,16 @@ class TaskSphereApp {
     if (token && username && role) {
       console.log('[APP-START] Active JWT session recovered. Checking approval status...');
       
+      // Initialize onboarding tour instantly so sidebar replay button loads with zero REST latency
+      try {
+        if (!window.onboarding) {
+          window.onboarding = new OnboardingTour();
+          window.onboarding.init();
+        }
+      } catch (onboardingErr) {
+        console.warn('[ONBOARDING-ERROR] Failed to start onboarding early:', onboardingErr);
+      }
+      
       // Before letting them in, verify their status is not PENDING_APPROVAL
       (async () => {
         try {
