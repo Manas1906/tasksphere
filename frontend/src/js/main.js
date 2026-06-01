@@ -1499,7 +1499,7 @@ class TaskSphereApp {
   }
  
   toggleAdminTab() {
-    const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+    const role = (localStorage.getItem('chat_role') || 'DEVELOPER').toUpperCase().trim();
     const adminNav = document.getElementById('navAdminItem');
     if (adminNav) {
       if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
