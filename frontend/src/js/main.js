@@ -1505,7 +1505,7 @@ class TaskSphereApp {
       if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
         adminNav.style.display = 'block';
       } else {
-        adminNav.style.display = 'none';
+        adminNav.remove();
       }
     }
   }
