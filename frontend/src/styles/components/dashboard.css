@@ -17,13 +17,17 @@
   box-shadow: var(--card-shadow);
   backdrop-filter: var(--glass-blur);
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
+
+.stat-card--cyan:hover { border-color: rgba(0, 240, 255, 0.45); box-shadow: 0 8px 24px rgba(0, 240, 255, 0.08), var(--card-shadow); }
+.stat-card--purple:hover { border-color: rgba(99, 102, 241, 0.45); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08), var(--card-shadow); }
+.stat-card--emerald:hover { border-color: rgba(16, 185, 129, 0.45); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.08), var(--card-shadow); }
+.stat-card--rose:hover { border-color: rgba(244, 63, 94, 0.45); box-shadow: 0 8px 24px rgba(244, 63, 94, 0.08), var(--card-shadow); }
 
 .stat-card::after {
   content: "";
@@ -106,6 +110,13 @@
   box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
+  transition: transform var(--transition-fast) ease, border-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08), var(--card-shadow);
 }
 
 .chart-card__title {
@@ -239,6 +250,12 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-lg);
+  transition: border-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+}
+
+.dashboard-controls:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.04), var(--card-shadow);
 }
 
 .dashboard-filters {
@@ -268,3 +285,19 @@
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
 }
+
+/* Premium Light Theme Hover Overrides for Dashboard */
+body.light-theme .chart-card:hover {
+  border-color: rgba(79, 70, 229, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.06), var(--card-shadow) !important;
+}
+
+body.light-theme .dashboard-controls:hover {
+  border-color: rgba(79, 70, 229, 0.25) !important;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.04), var(--card-shadow) !important;
+}
+
+body.light-theme .stat-card--cyan:hover { border-color: rgba(2, 132, 199, 0.45) !important; }
+body.light-theme .stat-card--purple:hover { border-color: rgba(79, 70, 229, 0.45) !important; }
+body.light-theme .stat-card--emerald:hover { border-color: rgba(16, 185, 129, 0.45) !important; }
+body.light-theme .stat-card--rose:hover { border-color: rgba(225, 29, 72, 0.45) !important; }

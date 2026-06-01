@@ -24,6 +24,11 @@
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
+.kanban-column:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.05), var(--card-shadow);
+}
+
 /* Advanced Selector Curriculum Showcase - Day 4 :has() Selector */
 /* Highlights the column container if it contains any ticket cards that are overdue */
 .kanban-column:has(.task-card--overdue) {
@@ -259,5 +264,11 @@
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), inset 0 0 10px rgba(99, 102, 241, 0.2);
     border-color: var(--accent-purple);
   }
+}
+
+/* Light theme overrides for Kanban Board */
+body.light-theme .kanban-column:hover {
+  border-color: rgba(79, 70, 229, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.05), var(--card-shadow) !important;
 }
 

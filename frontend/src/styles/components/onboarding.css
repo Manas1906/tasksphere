@@ -205,12 +205,18 @@ body.light-theme .onboarding-guide-card {
 
 body.light-theme .onboarding-welcome-card h2,
 body.light-theme .onboarding-guide-card h3 {
-  color: var(--text-primary) !important;
+  color: var(--text-main, #0f172a) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--text-main, #0f172a) !important;
 }
 
 body.light-theme .onboarding-welcome-card p,
 body.light-theme .onboarding-guide-card p {
-  color: var(--text-secondary) !important;
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .onboarding-close {
+  color: var(--text-muted, #64748b) !important;
 }
 
 body.light-theme .onboarding-dot {

@@ -93,10 +93,18 @@ class TaskSphereApp {
         try {
           const users = await api.getUsers() || [];
           const me = users.find(u => u.username === username);
+          if (me) {
+            localStorage.setItem('chat_role', me.role);
+            if (me.avatarUrl) {
+              localStorage.setItem('chat_avatar', me.avatarUrl.split('||')[0]);
+            }
+            this.toggleAdminTab();
+            this.applyProfileUI();
+          }
           if (me && me.status === 'PENDING_APPROVAL') {
             console.log('[APP-START] Recovered session requires admin approval. Gating.');
             if (loginOverlay) loginOverlay.classList.remove('hidden');
-            this.waitForApproval(username, role);
+            this.waitForApproval(username, me.role || role);
             return;
           }
         } catch (e) {
@@ -1864,7 +1872,14 @@ class TaskSphereApp {
     } else if (route === 'AI_LAB') {
       this.currentView = new AICopilot('mainContainer');
     } else if (route === 'ADMIN_PANEL') {
-      this.currentView = new AdminView('mainContainer');
+      const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+      if (role !== 'PRODUCT_OWNER' && role !== 'MANAGER') {
+        console.warn(`[ROUTE-GATE] Unauthorized access attempt to ADMIN_PANEL by role: ${role}. Redirecting to DASHBOARD.`);
+        this.activeRoute = 'DASHBOARD';
+        this.currentView = new DashboardView('mainContainer');
+      } else {
+        this.currentView = new AdminView('mainContainer');
+      }
     }
  
     await this.currentView.render();

@@ -541,7 +541,7 @@
   align-items: center;
   gap: 10px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: pointer;
@@ -561,6 +561,7 @@
 .sidebar-nav-btn:hover {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-nav-btn:hover svg {
@@ -584,6 +585,7 @@
 body.light-theme .sidebar-nav-btn:hover {
   background: rgba(15, 23, 42, 0.04);
   color: var(--text-main);
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 body.light-theme .sidebar-nav-btn--active {
@@ -591,6 +593,7 @@ body.light-theme .sidebar-nav-btn--active {
   color: var(--accent-purple) !important;
   border: 1px solid rgba(79, 70, 229, 0.22) !important;
 }
+
 
 /* Force perfect layout stretch and left alignment in the sidebar navigation */
 .app-sidebar .active-users-bar {
