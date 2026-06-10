@@ -113,9 +113,6 @@ class TaskSphereApp {
           const usernameInput = document.getElementById('authUsernameInput');
           if (usernameInput) {
             usernameInput.value = username;
-            usernameInput.setAttribute('readonly', 'true');
-            usernameInput.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-            usernameInput.style.cursor = 'not-allowed';
           }
           
           // Hide password field container
@@ -447,9 +444,6 @@ class TaskSphereApp {
         // Clean up input fields to original state
         const usernameInput = document.getElementById('authUsernameInput');
         if (usernameInput) {
-          usernameInput.removeAttribute('readonly');
-          usernameInput.style.backgroundColor = '';
-          usernameInput.style.cursor = '';
           usernameInput.value = '';
         }
         
@@ -781,11 +775,7 @@ class TaskSphereApp {
             // Cleanup fields attributes
             if (isSocialSignup) {
               localStorage.removeItem('is_social_signup');
-              if (usernameInput) {
-                usernameInput.removeAttribute('readonly');
-                usernameInput.style.backgroundColor = '';
-                usernameInput.style.cursor = '';
-              }
+
               if (passwordInput) {
                 passwordInput.setAttribute('required', 'true');
                 const pwdGroup = passwordInput.closest('.auth-group');

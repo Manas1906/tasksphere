@@ -229,6 +229,11 @@ public class EmailService {
             }
         } catch (Exception ex) {
             log.error("[OAUTH-TOKEN-FAILURE] Failed to exchange refresh token for access token: {}", ex.getMessage());
+            if (ex.getMessage() != null && (ex.getMessage().contains("invalid_grant") || ex.getMessage().contains("400"))) {
+                log.error("[OAUTH-TOKEN-FAILURE-TIP] Google returned 'invalid_grant'. This usually means the refresh token is expired or revoked. " +
+                          "Note: If your Google Cloud OAuth Consent Screen is in 'Testing' mode, refresh tokens expire automatically after 7 days. " +
+                          "Please switch it to 'In Production' (Publish App) in the Google Cloud Console and generate a new refresh token.");
+            }
         }
         return null;
     }

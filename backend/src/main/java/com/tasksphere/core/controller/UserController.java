@@ -70,6 +70,14 @@ public class UserController {
         }
 
         Optional<UserSession> existingUser = userRepository.findByUsername(user.getUsername());
+        if (!existingUser.isPresent() && resolvedEmail != null && !resolvedEmail.trim().isEmpty()) {
+            Optional<UserSession> userByEmail = userRepository.findByEmail(resolvedEmail);
+            if (userByEmail.isPresent()) {
+                UserSession sessionToRename = userByEmail.get();
+                sessionToRename.setUsername(user.getUsername());
+                existingUser = Optional.of(sessionToRename);
+            }
+        }
         if (existingUser.isPresent()) {
             UserSession activeUser = existingUser.get();
             String existingEmail = activeUser.getExtractedEmail();
