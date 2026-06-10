@@ -60,7 +60,7 @@
             </div>
           </div>
           <div class="profile-dropdown__divider"></div>
-          <button class="profile-dropdown__item" id="securitySettingsBtn" style="color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+          <button class="profile-dropdown__item" id="securitySettingsBtn" style="display: flex; align-items: center; gap: 8px;">
             <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
               <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
             </svg>
@@ -118,7 +118,7 @@
         </li>
       </ul>
       <!-- Theme Switch Panel -->
-      <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: var(--spacing-sm)">
+      <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--spacing-sm)">
         <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Appearance</span>
         <div class="theme-toggle-capsule">
           <button id="themeLightBtn" class="theme-toggle-btn" title="Light Mode">
@@ -128,7 +128,7 @@
           </button>
           <button id="themeDarkBtn" class="theme-toggle-btn" title="Dark Mode">
             <svg viewBox="0 0 24 24" class="theme-toggle-icon">
-              <path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10 0-4.8 3.5-8.9 8.2-9.8.6-.1 1.2.3 1.3.9.1.6-.3 1.2-.9 1.3-3.6.7-6.2 3.8-6.2 7.6 0 4.4 3.6 8 8 8 3.8 0 6.9-2.6 7.6-6.2.1-.6.7-1 1.3-.9.6.1 1 .7.9 1.3-.9 4.7-5 8.2-9.8 8.2z"/>
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
         </div>
@@ -379,7 +379,7 @@
         <div class="form-group">
           <label class="form-label" for="settingsNewPassword">Update Password</label>
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password" style="padding-right: 40px;">
+            <input type="password" id="settingsNewPassword" class="form-input" placeholder="Enter new password (optional)" autocomplete="new-password" style="width: 100%; padding-right: 40px;">
             <span class="password-toggle-btn" id="toggleSettingsPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; user-select: none;">
               <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
                 <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>

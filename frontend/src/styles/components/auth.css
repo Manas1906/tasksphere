@@ -700,4 +700,22 @@ select.auth-input option {
   background: rgba(139, 92, 246, 0.05);
 }
 
+/* Light Theme Overrides for User Profile Dropdown Card */
+body.light-theme .profile-dropdown {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%) !important;
+  border: 1px solid rgba(79, 70, 229, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 0 15px rgba(79, 70, 229, 0.05) !important;
+}
+
+body.light-theme .profile-dropdown__avatar {
+  background-color: var(--bg-card);
+  border-color: var(--accent-cyan);
+}
+
+body.light-theme .profile-dropdown__item:hover {
+  background: rgba(15, 23, 42, 0.04) !important;
+  color: var(--accent-purple) !important;
+}
+
+
 

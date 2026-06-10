@@ -1040,7 +1040,7 @@ class TaskSphereApp {
     if (!lightBtn || !darkBtn) return;
 
     // Load active state from localStorage
-    const savedTheme = localStorage.getItem('tasksphere_theme') || 'dark';
+    const savedTheme = localStorage.getItem('tasksphere_theme') || 'light';
 
     const updateThemeButtons = (theme) => {
       if (theme === 'light') {
@@ -1833,19 +1833,24 @@ class TaskSphereApp {
       avatarPreview.src = localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${localStorage.getItem('chat_username') || 'Admin'}`;
     }
 
-    // Set toggle state by fetching database user details
+    // Show modal instantly
+    modal.classList.add('modal-overlay--active');
+
+    // Set toggle state by fetching database user details asynchronously
     const username = localStorage.getItem('chat_username');
     if (mfaToggle) {
       mfaToggle.checked = false; // default
-      try {
-        const users = await api.getUsers() || [];
-        const me = users.find(u => u.username === username);
-        if (me) {
-          mfaToggle.checked = me.status === 'PENDING_APPROVAL' ? false : me.avatarUrl.includes('||mfa:true');
+      (async () => {
+        try {
+          const users = await api.getUsers() || [];
+          const me = users.find(u => u.username === username);
+          if (me) {
+            mfaToggle.checked = me.status === 'PENDING_APPROVAL' ? false : me.avatarUrl.includes('||mfa:true');
+          }
+        } catch (err) {
+          console.warn('[SECURITY-SETTINGS-LOAD] Failed to load user security details:', err);
         }
-      } catch (err) {
-        console.warn('[SECURITY-SETTINGS-LOAD] Failed to load user security details:', err);
-      }
+      })();
     }
 
     // Set Desktop Push Notifications toggle state by checking active browser registration (Phase 13)
@@ -1862,9 +1867,6 @@ class TaskSphereApp {
         });
       }
     }
-
-    // Show modal
-    modal.classList.add('modal-overlay--active');
   }
 
   async switchRoute(route) {
