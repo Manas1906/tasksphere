@@ -368,6 +368,9 @@
 .toast-card--update {
   border-left: 4px solid var(--accent-purple);
 }
+.toast-card--registration_approval {
+  border-left: 4px solid var(--accent-amber);
+}
 
 .toast-header {
   display: flex;
@@ -438,6 +441,9 @@
 }
 .toast-card--update .toast-progress-bar {
   background: var(--accent-purple);
+}
+.toast-card--registration_approval .toast-progress-bar {
+  background: var(--accent-amber);
 }
 
 /* ==========================================

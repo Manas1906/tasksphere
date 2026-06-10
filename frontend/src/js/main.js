@@ -1115,7 +1115,7 @@ class TaskSphereApp {
           socket.subscribe('/user/queue/notifications', (alert) => {
             console.log('[APP-SYNC-ALERT] Intercepted real-time notification queue alert payload:', alert);
             this.showNotificationToast(
-              alert.type === 'ASSIGNMENT' ? 'Task Assigned' : alert.type === 'UNASSIGNMENT' ? 'Task Unassigned' : 'Task Updated', 
+              alert.type === 'ASSIGNMENT' ? 'Task Assigned' : alert.type === 'UNASSIGNMENT' ? 'Task Unassigned' : alert.type === 'REGISTRATION_APPROVAL' ? 'Approval Required' : 'Task Updated', 
               alert.message, 
               alert.type
             );
@@ -1952,6 +1952,8 @@ class TaskSphereApp {
       icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-rose)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm5.31-4.9L6.9 4.69C8.25 3.63 9.95 3 12 3c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>`;
     } else if (type === 'UPDATE') {
       icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-purple)" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+    } else if (type === 'REGISTRATION_APPROVAL') {
+      icon = `<svg style="width: 14px; height: 14px; fill: var(--accent-amber)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`;
     }
 
     toast.innerHTML = `

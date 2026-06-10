@@ -9,6 +9,7 @@ import com.tasksphere.core.repository.UserSessionRepository;
 import com.tasksphere.core.service.GitHubOAuthService;
 import com.tasksphere.core.service.GoogleTokenVerifierService;
 import com.tasksphere.core.service.OAuthStateManager;
+import com.tasksphere.core.service.UserApprovalService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,6 +35,7 @@ public class FederatedAuthController {
     private final OAuthAccountRepository oauthAccountRepository;
     private final UserSessionRepository userRepository;
     private final JwtTokenProvider tokenProvider;
+    private final UserApprovalService userApprovalService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${security.google.client-id:}")
@@ -83,13 +85,15 @@ public class FederatedAuthController {
                                    GitHubOAuthService githubOAuthService,
                                    OAuthAccountRepository oauthAccountRepository,
                                    UserSessionRepository userRepository,
-                                   JwtTokenProvider tokenProvider) {
+                                   JwtTokenProvider tokenProvider,
+                                   UserApprovalService userApprovalService) {
         this.stateManager = stateManager;
         this.googleTokenVerifierService = googleTokenVerifierService;
         this.githubOAuthService = githubOAuthService;
         this.oauthAccountRepository = oauthAccountRepository;
         this.userRepository = userRepository;
         this.tokenProvider = tokenProvider;
+        this.userApprovalService = userApprovalService;
     }
 
     /**
@@ -182,7 +186,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("ONLINE")
+                            .status("PENDING_APPROVAL")
                             .build();
                     user.packMetadata(
                             picture != null ? picture : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -191,6 +195,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential
@@ -290,7 +295,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("ONLINE")
+                            .status("PENDING_APPROVAL")
                             .build();
                     user.packMetadata(
                             picture != null ? picture : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -299,6 +304,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential
@@ -407,7 +413,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("ONLINE")
+                            .status("PENDING_APPROVAL")
                             .build();
                     user.packMetadata(
                             avatarUrl != null ? avatarUrl : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -416,6 +422,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential

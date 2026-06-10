@@ -4,6 +4,7 @@ import com.tasksphere.core.model.UserSession;
 import com.tasksphere.core.repository.UserSessionRepository;
 import com.tasksphere.core.service.EmailService;
 import com.tasksphere.core.service.RedisCacheService;
+import com.tasksphere.core.service.UserApprovalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -30,6 +31,9 @@ public class UserController {
 
     @Autowired
     private RedisCacheService redisCacheService;
+
+    @Autowired
+    private UserApprovalService userApprovalService;
 
     @GetMapping
     public ResponseEntity<List<UserSession>> getAllUsers() {
@@ -101,7 +105,11 @@ public class UserController {
             
             newUser.packMetadata(user.getAvatarUrl(), user.getEmail(), pwdHash, mfaVal);
             
-            return ResponseEntity.ok(userRepository.save(newUser));
+            UserSession savedUser = userRepository.save(newUser);
+            if ("PENDING_APPROVAL".equalsIgnoreCase(initialStatus)) {
+                userApprovalService.notifyAdminsForApproval(savedUser);
+            }
+            return ResponseEntity.ok(savedUser);
         }
     }
 
