@@ -162,6 +162,7 @@ public class FederatedAuthController {
             // 4. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("google", externalUserId);
             UserSession user;
+            boolean isNewSocial = false;
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
@@ -176,6 +177,7 @@ public class FederatedAuthController {
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
                 } else {
+                    isNewSocial = true;
                     // Create new user profile
                     String username = email.split("@")[0].toLowerCase().trim();
                     Optional<UserSession> userWithUsername = userRepository.findByUsername(username);
@@ -213,13 +215,14 @@ public class FederatedAuthController {
             // Redirect back to frontend overlay with success URL query parameters
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             String redirectDest = String.format(
-                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s",
+                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s&new_social=%b",
                     cleanFrontend,
                     jwt,
                     user.getUsername(),
                     user.getRole(),
                     user.getExtractedEmail(),
-                    user.getPureAvatarUrl()
+                    user.getPureAvatarUrl(),
+                    isNewSocial
             );
             response.sendRedirect(redirectDest);
 
@@ -271,6 +274,7 @@ public class FederatedAuthController {
             // 3. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("google", externalUserId);
             UserSession user;
+            boolean isNewSocial = false;
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
@@ -285,6 +289,7 @@ public class FederatedAuthController {
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
                 } else {
+                    isNewSocial = true;
                     // Create new user profile
                     String username = email.split("@")[0].toLowerCase().trim();
                     Optional<UserSession> userWithUsername = userRepository.findByUsername(username);
@@ -326,6 +331,7 @@ public class FederatedAuthController {
             response.put("role", user.getRole());
             response.put("avatarUrl", user.getPureAvatarUrl());
             response.put("email", user.getExtractedEmail());
+            response.put("new_social", isNewSocial);
 
             return ResponseEntity.ok(response);
         } catch (Exception ex) {
@@ -389,6 +395,7 @@ public class FederatedAuthController {
             // 4. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("github", externalUserId);
             UserSession user;
+            boolean isNewSocial = false;
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
@@ -403,6 +410,7 @@ public class FederatedAuthController {
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
                 } else {
+                    isNewSocial = true;
                     // Create new user profile
                     String username = verifiedEmail.split("@")[0].toLowerCase().trim();
                     Optional<UserSession> userWithUsername = userRepository.findByUsername(username);
@@ -440,13 +448,14 @@ public class FederatedAuthController {
             // Redirect back to frontend overlay with success URL query parameters
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             String redirectDest = String.format(
-                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s",
+                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s&new_social=%b",
                     cleanFrontend,
                     jwt,
                     user.getUsername(),
                     user.getRole(),
                     user.getExtractedEmail(),
-                    user.getPureAvatarUrl()
+                    user.getPureAvatarUrl(),
+                    isNewSocial
             );
             response.sendRedirect(redirectDest);
 

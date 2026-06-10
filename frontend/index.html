@@ -405,7 +405,7 @@
   <div id="chatBackdrop" class="drawer-backdrop"></div>
 
   <!-- Authentication Glassmorphism Overlay Modal -->
-  <div id="loginOverlay" class="auth-overlay hidden">
+  <div id="loginOverlay" class="auth-overlay">
     <!-- Background neon floating blobs -->
     <div class="auth-blob auth-blob--purple"></div>
     <div class="auth-blob auth-blob--cyan"></div>
@@ -625,7 +625,8 @@
             <div class="auth-group">
               <label class="form-label" style="color: var(--text-muted); margin-bottom: var(--spacing-sm)">Enterprise Role</label>
               <div class="auth-input-wrapper">
-                <select id="authRoleSelect" class="auth-input" style="padding-right: var(--spacing-md); appearance: none; -webkit-appearance: none; cursor: pointer;">
+                <select id="authRoleSelect" class="auth-input" required style="padding-right: var(--spacing-md); appearance: none; -webkit-appearance: none; cursor: pointer;">
+                  <option value="" disabled selected hidden>— Select your enterprise role —</option>
                   <option value="DEVELOPER">Full-stack Developer (Dev Core)</option>
                   <option value="BACKEND_DEVELOPER">Backend Engineer (Dev Core)</option>
                   <option value="FRONTEND_DEVELOPER">Frontend Engineer (Dev Core)</option>
@@ -678,6 +679,7 @@
             </div>
 
             <button type="submit" id="launchWorkspaceBtn" class="auth-btn auth-btn--launch">Launch Workspace</button>
+            <a class="auth-switch-link" id="cancelProfileLink" style="display: block; text-align: center; margin-top: var(--spacing-sm);">← Back to Log In</a>
           </form>
         </div>
 

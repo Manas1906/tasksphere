@@ -48,6 +48,7 @@ class TaskSphereApp {
     const oauthEmail = urlParams.get('email');
     const oauthAvatar = urlParams.get('avatar');
     const oauthError = urlParams.get('error');
+    const newSocial = urlParams.get('new_social') === 'true';
 
     if (oauthError) {
       console.error('[AUTH-OAUTH] Federated social login failed:', oauthError);
@@ -67,6 +68,10 @@ class TaskSphereApp {
       localStorage.setItem('chat_avatar', oauthAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${oauthUsername}`);
       localStorage.setItem('tasksphere_email', oauthEmail);
 
+      if (newSocial) {
+        localStorage.setItem('is_social_signup', 'true');
+      }
+
       // Cache profile details
       if (oauthEmail) {
         localStorage.setItem('profile_' + oauthEmail.toLowerCase().trim(), JSON.stringify({
@@ -84,18 +89,55 @@ class TaskSphereApp {
     const username = localStorage.getItem('chat_username');
     const role = localStorage.getItem('chat_role');
     const loginOverlay = document.getElementById('loginOverlay');
+    const isSocialSignup = localStorage.getItem('is_social_signup') === 'true';
     
     if (token && username && role) {
       console.log('[APP-START] Active JWT session recovered. Checking approval status...');
       
-      // Initialize onboarding tour instantly so sidebar replay button loads with zero REST latency
-      try {
-        if (!window.onboarding) {
-          window.onboarding = new OnboardingTour();
-          window.onboarding.init();
+      // If this is a new social signup, immediately route to Step 3 Profile Selection
+      if (isSocialSignup) {
+        console.log('[APP-START] Social registration requires profile setup. Navigating to Step 3.');
+        if (loginOverlay) {
+          loginOverlay.classList.remove('hidden');
+          document.getElementById('authLoginStep').classList.add('hidden');
+          document.getElementById('authOtpStep').classList.add('hidden');
+          document.getElementById('authProfileStep').classList.remove('hidden');
+          
+          document.querySelector('.auth-card__logo').textContent = 'Setup Social Profile';
+          document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
+          document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
+          
+          const subtitle = document.getElementById('authSubtitle');
+          if (subtitle) subtitle.textContent = 'Choose your session username and enterprise role';
+          
+          const usernameInput = document.getElementById('authUsernameInput');
+          if (usernameInput) {
+            usernameInput.value = username;
+            usernameInput.setAttribute('readonly', 'true');
+            usernameInput.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            usernameInput.style.cursor = 'not-allowed';
+          }
+          
+          // Hide password field container
+          const passwordInput = document.getElementById('authPasswordInput');
+          if (passwordInput) {
+            passwordInput.removeAttribute('required');
+            const pwdGroup = passwordInput.closest('.auth-group');
+            if (pwdGroup) pwdGroup.style.display = 'none';
+          }
+          
+          // Hide MFA toggle for social signups (no password = no MFA login)
+          const mfaToggle = document.getElementById('authMfaToggle');
+          if (mfaToggle) {
+            const mfaGroup = mfaToggle.closest('.auth-group');
+            if (mfaGroup) mfaGroup.style.display = 'none';
+          }
+          
+          // Focus role selection
+          const roleSelect = document.getElementById('authRoleSelect');
+          if (roleSelect) roleSelect.focus();
         }
-      } catch (onboardingErr) {
-        console.warn('[ONBOARDING-ERROR] Failed to start onboarding early:', onboardingErr);
+        return;
       }
       
       // Before letting them in, verify their status is not PENDING_APPROVAL
@@ -118,17 +160,30 @@ class TaskSphereApp {
             return;
           }
         } catch (e) {
-          if (!localStorage.getItem('tasksphere_jwt')) {
-            console.log('[APP-START] Recovered session was invalid or unauthorized. Aborting startup.');
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
-            return;
+          console.error('[APP-START] Could not verify database registration status, gating workspace:', e);
+          if (loginOverlay) {
+            loginOverlay.classList.remove('hidden');
+            const loginStep = document.getElementById('authLoginStep');
+            if (loginStep) loginStep.classList.remove('hidden');
+            const approvalStep = document.getElementById('authApprovalStep');
+            if (approvalStep) approvalStep.classList.add('hidden');
           }
-          console.warn('[APP-START] Could not verify database registration status, assuming active.', e);
+          return;
         }
         
         console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
         this.applyProfileUI();
         if (loginOverlay) loginOverlay.classList.add('hidden');
+
+        // Initialize onboarding tour only after confirming active session is verified!
+        try {
+          if (!window.onboarding) {
+            window.onboarding = new OnboardingTour();
+            window.onboarding.init();
+          }
+        } catch (onboardingErr) {
+          console.warn('[ONBOARDING-ERROR] Failed to start onboarding:', onboardingErr);
+        }
 
         // Recover email directly from JWT subject claim if missing to self-heal browser state
         let email = localStorage.getItem('tasksphere_email');
@@ -375,6 +430,51 @@ class TaskSphereApp {
     }
 
     // --- Forgot Password Navigations ---
+    const cancelProfileLink = document.getElementById('cancelProfileLink');
+    if (cancelProfileLink) {
+      cancelProfileLink.onclick = (e) => {
+        e.preventDefault();
+        clearError();
+        
+        // Remove social signup tracking flags and authentication details
+        localStorage.removeItem('is_social_signup');
+        localStorage.removeItem('tasksphere_jwt');
+        localStorage.removeItem('chat_username');
+        localStorage.removeItem('chat_role');
+        localStorage.removeItem('chat_avatar');
+        localStorage.removeItem('tasksphere_email');
+        
+        // Clean up input fields to original state
+        const usernameInput = document.getElementById('authUsernameInput');
+        if (usernameInput) {
+          usernameInput.removeAttribute('readonly');
+          usernameInput.style.backgroundColor = '';
+          usernameInput.style.cursor = '';
+          usernameInput.value = '';
+        }
+        
+        const passwordInput = document.getElementById('authPasswordInput');
+        if (passwordInput) {
+          passwordInput.setAttribute('required', 'true');
+          passwordInput.value = '';
+          const pwdGroup = passwordInput.closest('.auth-group');
+          if (pwdGroup) pwdGroup.style.display = '';
+        }
+        
+        document.getElementById('authProfileStep').classList.add('hidden');
+        document.getElementById('authLoginStep').classList.remove('hidden');
+        
+        // Reset logo and subtitle text
+        document.querySelector('.auth-card__logo').textContent = 'TaskSphere';
+        document.querySelector('.auth-card__logo').style.fontSize = '';
+        document.querySelector('.auth-card__logo').style.letterSpacing = '';
+        subtitle.textContent = 'Enter your credentials to access the workspace';
+        
+        const loginEmailInput = document.getElementById('loginEmailInput');
+        if (loginEmailInput) loginEmailInput.focus();
+      };
+    }
+
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const forgotBackToLoginLink = document.getElementById('forgotBackToLoginLink');
     const forgotOtpBackToLoginLink = document.getElementById('forgotOtpBackToLoginLink');
@@ -636,6 +736,11 @@ class TaskSphereApp {
           return false;
         }
 
+        if (!role) {
+          showError('Please select your enterprise role before launching.');
+          return false;
+        }
+
         launchBtn.disabled = true;
         launchBtn.innerHTML = '<span class="auth-spinner"></span>Launching...';
 
@@ -645,18 +750,21 @@ class TaskSphereApp {
             
             const passwordInput = document.getElementById('authPasswordInput');
             const mfaToggle = document.getElementById('authMfaToggle');
-            const password = passwordInput.value;
+            const isSocialSignup = localStorage.getItem('is_social_signup') === 'true';
+            const password = isSocialSignup ? null : passwordInput.value;
             const mfaEnabled = mfaToggle ? mfaToggle.checked : false;
 
-            // Verify strength before sending
-            const passBar = document.getElementById('passwordStrengthBar');
-            const passFeedback = document.getElementById('passwordFeedback');
-            const isStrong = this.checkPasswordStrength(password, passBar, passFeedback);
-            if (!isStrong) {
-              showError('Please specify a secure password matching all validation rules.');
-              launchBtn.disabled = false;
-              launchBtn.textContent = 'Launch Workspace';
-              return false;
+            if (!isSocialSignup) {
+              // Verify strength before sending
+              const passBar = document.getElementById('passwordStrengthBar');
+              const passFeedback = document.getElementById('passwordFeedback');
+              const isStrong = this.checkPasswordStrength(password, passBar, passFeedback);
+              if (!isStrong) {
+                showError('Please specify a secure password matching all validation rules.');
+                launchBtn.disabled = false;
+                launchBtn.textContent = 'Launch Workspace';
+                return false;
+              }
             }
 
             // Call /api/users/login to register active session on backend
@@ -669,6 +777,30 @@ class TaskSphereApp {
               password: password,
               mfa: mfaEnabled
             });
+
+            // Cleanup fields attributes
+            if (isSocialSignup) {
+              localStorage.removeItem('is_social_signup');
+              if (usernameInput) {
+                usernameInput.removeAttribute('readonly');
+                usernameInput.style.backgroundColor = '';
+                usernameInput.style.cursor = '';
+              }
+              if (passwordInput) {
+                passwordInput.setAttribute('required', 'true');
+                const pwdGroup = passwordInput.closest('.auth-group');
+                if (pwdGroup) pwdGroup.style.display = '';
+              }
+              // Restore MFA toggle visibility
+              if (mfaToggle) {
+                const mfaGroup = mfaToggle.closest('.auth-group');
+                if (mfaGroup) mfaGroup.style.display = '';
+              }
+              // Reset logo text
+              document.querySelector('.auth-card__logo').textContent = 'TaskSphere';
+              document.querySelector('.auth-card__logo').style.fontSize = '';
+              document.querySelector('.auth-card__logo').style.letterSpacing = '';
+            }
 
             if (activeSession && activeSession.status === 'PENDING_APPROVAL') {
               console.log('[AUTH-PROFILE] User session requires administrator activation.');

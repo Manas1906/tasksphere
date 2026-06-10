@@ -53,11 +53,33 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserSession user) {
+        // Resolve missing email from authenticated Spring Security Context if not provided
+        String resolvedEmail = user.getEmail();
+        if (resolvedEmail == null || resolvedEmail.trim().isEmpty()) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null && !auth.getName().trim().isEmpty()) {
+                String principalName = auth.getName().trim();
+                if (principalName.contains("@")) {
+                    resolvedEmail = principalName;
+                }
+            }
+        }
+        if (resolvedEmail != null) {
+            resolvedEmail = resolvedEmail.toLowerCase().trim();
+            user.setEmail(resolvedEmail);
+        }
+
         Optional<UserSession> existingUser = userRepository.findByUsername(user.getUsername());
         if (existingUser.isPresent()) {
             UserSession activeUser = existingUser.get();
             String existingEmail = activeUser.getExtractedEmail();
             String newEmail = user.getEmail();
+
+            // Self-heal missing email in database if we now have a resolved email
+            if ((existingEmail == null || existingEmail.trim().isEmpty()) && resolvedEmail != null && !resolvedEmail.trim().isEmpty()) {
+                existingEmail = resolvedEmail;
+                activeUser.packMetadata(activeUser.getPureAvatarUrl(), existingEmail, activeUser.getPasswordHash(), activeUser.isMfaEnabled());
+            }
 
             // Prevent username hijacking or overwriting by a different email address
             if (existingEmail != null && newEmail != null && !existingEmail.equalsIgnoreCase(newEmail.trim())) {
@@ -66,11 +88,14 @@ public class UserController {
                 return ResponseEntity.status(409).body(err);
             }
 
-            // If the user's status is already PENDING_APPROVAL, keep it restricted.
-            // Otherwise, set them to ONLINE.
-            if (!"PENDING_APPROVAL".equalsIgnoreCase(activeUser.getStatus())) {
+            // Allow Admin Direct Bypass: Update status to ONLINE if the user is assigned a PRODUCT_OWNER or MANAGER role during profile update.
+            String targetRole = user.getRole() != null ? user.getRole() : activeUser.getRole();
+            if ("PRODUCT_OWNER".equalsIgnoreCase(targetRole) || "MANAGER".equalsIgnoreCase(targetRole)) {
+                activeUser.setStatus("ONLINE");
+            } else if (!"PENDING_APPROVAL".equalsIgnoreCase(activeUser.getStatus())) {
                 activeUser.setStatus("ONLINE");
             }
+
             activeUser.setLastActiveTime(Instant.now());
             if (user.getRole() != null) activeUser.setRole(user.getRole());
             
@@ -80,6 +105,8 @@ public class UserController {
                 String pwdHash = user.getPassword() != null ? passwordEncoder.encode(user.getPassword()) : activeUser.getPasswordHash();
                 boolean mfaVal = user.getMfa() != null ? user.getMfa() : activeUser.isMfaEnabled();
                 activeUser.packMetadata(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : user.getAvatarUrl(), emailVal, pwdHash, mfaVal);
+            } else if (user.getEmail() != null) {
+                activeUser.packMetadata(activeUser.getPureAvatarUrl(), user.getEmail(), activeUser.getPasswordHash(), activeUser.isMfaEnabled());
             }
             
             return ResponseEntity.ok(userRepository.save(activeUser));
