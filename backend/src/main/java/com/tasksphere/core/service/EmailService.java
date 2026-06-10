@@ -234,6 +234,9 @@ public class EmailService {
                           "Note: If your Google Cloud OAuth Consent Screen is in 'Testing' mode, refresh tokens expire automatically after 7 days. " +
                           "Please switch it to 'In Production' (Publish App) in the Google Cloud Console and generate a new refresh token.");
             }
+            if (ex.getMessage() != null && ex.getMessage().contains("401")) {
+                log.error("[OAUTH-TOKEN-FAILURE-TIP] Google returned '401 Unauthorized'. This means the client_id or client_secret configured on your server is incorrect or does not match the credentials used to generate the refresh token. Check for surrounding quotes, trailing/leading spaces, or typos in your server's OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET environment variables.");
+            }
         }
         return null;
     }
