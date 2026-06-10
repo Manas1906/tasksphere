@@ -107,6 +107,8 @@
 }
 
 .form-input, .form-select, .form-textarea {
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
