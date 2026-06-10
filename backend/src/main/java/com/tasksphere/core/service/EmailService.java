@@ -50,17 +50,6 @@ public class EmailService {
     @Value("${google.oauth.email:}")
     private String oauthEmail;
 
-    @Value("${maileroo.api.key:}")
-    private String mailerooApiKey;
-
-    @Value("${maileroo.sender:}")
-    private String mailerooSender;
-
-    private boolean isMailerooConfigured() {
-        return mailerooApiKey != null && !mailerooApiKey.trim().isEmpty() && !mailerooApiKey.contains("${") &&
-               mailerooSender != null && !mailerooSender.trim().isEmpty() && !mailerooSender.contains("${");
-    }
-
     /**
      * Check if the official Gmail REST API (Method 2) credentials are fully populated.
      */
@@ -129,20 +118,11 @@ public class EmailService {
             log.warn("[EMAIL-WARN] Method 2 (Gmail REST API) failed. Attempting Route 2 fallback...");
         }
 
-        // Route 2: Try Maileroo REST API
-        if (isMailerooConfigured()) {
-            boolean success = sendViaMaileroo(toEmail, subject, htmlContent);
-            if (success) {
-                return;
-            }
-            log.warn("[EMAIL-WARN] Maileroo REST API failed. Attempting Route 3 fallback...");
-        }
-
-        // Route 3: Try Google Apps Script Proxy (Method 1)
+        // Route 2: Try Google Apps Script Proxy (Method 1)
         if (googleScriptUrl != null && !googleScriptUrl.trim().isEmpty() && !googleScriptUrl.contains("${GOOGLE_SCRIPT_URL}")) {
             sendViaGoogleScript(toEmail, subject, htmlContent);
         } else {
-            log.warn("[EMAIL-WARN] Google/Maileroo APIs are not configured. Standard mock simulation succeeded.");
+            log.warn("[EMAIL-WARN] Google APIs are not configured. Standard mock simulation succeeded.");
         }
     }
 
@@ -166,50 +146,6 @@ public class EmailService {
             log.info("[GMAIL-PROXY-SUCCESS] Email dispatched via Google Apps Script. Response: {}", response.getBody());
         } catch (Exception ex) {
             log.error("[GMAIL-PROXY-FAILURE] Google Apps Script REST call failed: {}", ex.getMessage());
-        }
-    }
-
-    /**
-     * Dispatch email via Maileroo REST API over HTTPS (Port 443)
-     */
-    private boolean sendViaMaileroo(String toEmail, String subject, String htmlContent) {
-        try {
-            log.info("[MAILEROO-SERVICE] Attempting email dispatch via Maileroo to: {}", toEmail);
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", mailerooApiKey.trim());
-
-            Map<String, Object> fromObj = new HashMap<>();
-            fromObj.put("email", mailerooSender.trim());
-            fromObj.put("name", "TaskSphere");
-
-            Map<String, Object> toObj = new HashMap<>();
-            toObj.put("email", toEmail.trim());
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("from", fromObj);
-            payload.put("to", new Object[]{toObj});
-            payload.put("subject", subject);
-            payload.put("html", htmlContent);
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                "https://smtp.maileroo.com/api/v2/emails",
-                entity,
-                Map.class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                log.info("[MAILEROO-SUCCESS] Email dispatched via Maileroo. Response: {}", response.getBody());
-                return true;
-            } else {
-                log.error("[MAILEROO-FAILURE] Maileroo responded with status: {}", response.getStatusCode());
-                return false;
-            }
-        } catch (Exception ex) {
-            log.error("[MAILEROO-FAILURE] Maileroo dispatch failed: {}", ex.getMessage());
-            return false;
         }
     }
 
