@@ -71,31 +71,31 @@ public class UserApprovalService {
                         "/"
                     );
                 } catch (Exception e) {
-                    log.error("[APPROVAL-SERVICE-ERROR] Failed to send WS alert to admin {}: {}", adminUsername, e.getMessage());
+                    log.error("[APPROVAL-SERVICE-ERROR] Failed to send WS/Push alert to admin {}: {}", adminUsername, e.getMessage());
+                }
+            }
+
+            // Always send email notification to the admin
+            String adminEmail = admin.getExtractedEmail();
+            if (adminEmail != null && !adminEmail.trim().isEmpty()) {
+                try {
+                    String subject = "[TaskSphere] Action Required: Approve Registration for " + newUser.getUsername();
+                    String htmlContent = "<h3>New User Access Request</h3>" +
+                            "<p>A new user has registered on TaskSphere and requires administrator approval before they can access the workspace.</p>" +
+                            "<ul>" +
+                            "<li><strong>Username:</strong> " + newUser.getUsername() + "</li>" +
+                            "<li><strong>Email:</strong> " + (newUser.getExtractedEmail() != null ? newUser.getExtractedEmail() : "N/A") + "</li>" +
+                            "<li><strong>Role Requested:</strong> " + newUser.getRole() + "</li>" +
+                            "</ul>" +
+                            "<p>Please log in to your TaskSphere Administrator Panel to approve or reject this request.</p>";
+
+                    emailService.executeDirectEmailDispatch("APPROVAL_REQUEST", adminEmail, subject, htmlContent);
+                    log.info("[APPROVAL-SERVICE] Dispatched notification email to admin: {} ({})", adminUsername, adminEmail);
+                } catch (Exception ex) {
+                    log.error("[APPROVAL-SERVICE-ERROR] Failed to send approval email to admin {}: {}", adminUsername, ex.getMessage());
                 }
             } else {
-                // Send email notification to offline admin
-                String adminEmail = admin.getExtractedEmail();
-                if (adminEmail != null && !adminEmail.trim().isEmpty()) {
-                    try {
-                        String subject = "[TaskSphere] Action Required: Approve Registration for " + newUser.getUsername();
-                        String htmlContent = "<h3>New User Access Request</h3>" +
-                                "<p>A new user has registered on TaskSphere and requires administrator approval before they can access the workspace.</p>" +
-                                "<ul>" +
-                                "<li><strong>Username:</strong> " + newUser.getUsername() + "</li>" +
-                                "<li><strong>Email:</strong> " + (newUser.getExtractedEmail() != null ? newUser.getExtractedEmail() : "N/A") + "</li>" +
-                                "<li><strong>Role Requested:</strong> " + newUser.getRole() + "</li>" +
-                                "</ul>" +
-                                "<p>Please log in to your TaskSphere Administrator Panel to approve or reject this request.</p>";
-
-                        emailService.executeDirectEmailDispatch("APPROVAL_REQUEST", adminEmail, subject, htmlContent);
-                        log.info("[APPROVAL-SERVICE] Dispatched notification email to offline admin: {} ({})", adminUsername, adminEmail);
-                    } catch (Exception ex) {
-                        log.error("[APPROVAL-SERVICE-ERROR] Failed to send approval email to admin {}: {}", adminUsername, ex.getMessage());
-                    }
-                } else {
-                    log.warn("[APPROVAL-SERVICE] Admin {} has no registered email. Skipping email dispatch.", adminUsername);
-                }
+                log.warn("[APPROVAL-SERVICE] Admin {} has no registered email. Skipping email dispatch.", adminUsername);
             }
         }
     }
