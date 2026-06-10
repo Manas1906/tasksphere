@@ -717,5 +717,14 @@ body.light-theme .profile-dropdown__item:hover {
   color: var(--accent-purple) !important;
 }
 
+/* Gating blocker high-contrast title */
+.auth-step-title {
+  font-weight: 700;
+  background: linear-gradient(to right, #FFFFFF, #94A3B8) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+
 
 
