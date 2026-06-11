@@ -188,7 +188,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("PENDING_APPROVAL")
+                            .status("ONBOARDING")
                             .build();
                     user.packMetadata(
                             picture != null ? picture : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -197,7 +197,6 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
-                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential
@@ -300,7 +299,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("PENDING_APPROVAL")
+                            .status("ONBOARDING")
                             .build();
                     user.packMetadata(
                             picture != null ? picture : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -309,7 +308,6 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
-                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential
@@ -421,7 +419,7 @@ public class FederatedAuthController {
                     user = UserSession.builder()
                             .username(username)
                             .role("DEVELOPER")
-                            .status("PENDING_APPROVAL")
+                            .status("ONBOARDING")
                             .build();
                     user.packMetadata(
                             avatarUrl != null ? avatarUrl : "https://api.dicebear.com/7.x/bottts/svg?seed=" + username,
@@ -430,7 +428,6 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
-                    userApprovalService.notifyAdminsForApproval(user);
                 }
 
                 // Link social credential

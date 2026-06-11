@@ -94,8 +94,7 @@ class TaskSphereApp {
     if (token && username && role) {
       console.log('[APP-START] Active JWT session recovered. Checking approval status...');
       
-      // If this is a new social signup, immediately route to Step 3 Profile Selection
-      if (isSocialSignup) {
+      const showSocialProfileSetup = (userVal) => {
         console.log('[APP-START] Social registration requires profile setup. Navigating to Step 3.');
         if (loginOverlay) {
           loginOverlay.classList.remove('hidden');
@@ -112,7 +111,7 @@ class TaskSphereApp {
           
           const usernameInput = document.getElementById('authUsernameInput');
           if (usernameInput) {
-            usernameInput.value = username;
+            usernameInput.value = userVal;
           }
           
           // Hide password field container
@@ -134,10 +133,15 @@ class TaskSphereApp {
           const roleSelect = document.getElementById('authRoleSelect');
           if (roleSelect) roleSelect.focus();
         }
+      };
+
+      // If this is a new social signup, immediately route to Step 3 Profile Selection
+      if (isSocialSignup) {
+        showSocialProfileSetup(username);
         return;
       }
       
-      // Before letting them in, verify their status is not PENDING_APPROVAL
+      // Before letting them in, verify their status is not PENDING_APPROVAL or ONBOARDING
       (async () => {
         try {
           const users = await api.getUsers() || [];
@@ -149,6 +153,12 @@ class TaskSphereApp {
             }
             this.toggleAdminTab();
             this.applyProfileUI();
+          }
+          if (me && me.status === 'ONBOARDING') {
+            console.log('[APP-START] Recovered social session requires onboarding profile setup. Navigating to Step 3.');
+            localStorage.setItem('is_social_signup', 'true');
+            showSocialProfileSetup(username);
+            return;
           }
           if (me && me.status === 'PENDING_APPROVAL') {
             console.log('[APP-START] Recovered session requires admin approval. Gating.');

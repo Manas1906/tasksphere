@@ -97,9 +97,12 @@ public class UserController {
             }
 
             // Allow Admin Direct Bypass: Update status to ONLINE if the user is assigned a PRODUCT_OWNER or MANAGER role during profile update.
+            boolean isNewProfileCompletion = "ONBOARDING".equalsIgnoreCase(activeUser.getStatus());
             String targetRole = user.getRole() != null ? user.getRole() : activeUser.getRole();
             if ("PRODUCT_OWNER".equalsIgnoreCase(targetRole) || "MANAGER".equalsIgnoreCase(targetRole)) {
                 activeUser.setStatus("ONLINE");
+            } else if (isNewProfileCompletion) {
+                activeUser.setStatus("PENDING_APPROVAL");
             } else if (!"PENDING_APPROVAL".equalsIgnoreCase(activeUser.getStatus())) {
                 activeUser.setStatus("ONLINE");
             }
@@ -117,7 +120,11 @@ public class UserController {
                 activeUser.packMetadata(activeUser.getPureAvatarUrl(), user.getEmail(), activeUser.getPasswordHash(), activeUser.isMfaEnabled());
             }
             
-            return ResponseEntity.ok(userRepository.save(activeUser));
+            UserSession savedUser = userRepository.save(activeUser);
+            if (isNewProfileCompletion && "PENDING_APPROVAL".equalsIgnoreCase(savedUser.getStatus())) {
+                userApprovalService.notifyAdminsForApproval(savedUser);
+            }
+            return ResponseEntity.ok(savedUser);
         } else {
             // New user registration
             String initialStatus = "ONLINE";
