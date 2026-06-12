@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController
-@RequestMapping("/api/ping")
+// @RestController
+// @RequestMapping("/api/ping")
 public class PingController {
 
     @GetMapping({"", "/"})
