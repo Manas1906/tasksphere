@@ -60,6 +60,34 @@ public class ChatController {
     }
 
     /**
+     * Delete direct message history between requester and partner, and invalidate cache.
+     * Accessible by the authenticated participants only.
+     */
+    @DeleteMapping("/dm")
+    public ResponseEntity<Void> clearDirectMessageHistory(
+            @RequestParam String partner,
+            @RequestParam String requester,
+            java.security.Principal principal) {
+        
+        if (principal == null || !principal.getName().equalsIgnoreCase(requester)) {
+            return ResponseEntity.status(403).build();
+        }
+        
+        chatService.clearDirectMessages(requester, partner);
+        redisCacheService.invalidateChatHistory();
+        
+        // Broadcast a socket notification so both users refresh in real time
+        java.util.Map<String, String> broadcast = java.util.Map.of(
+            "type", "CLEAR_DM",
+            "requester", requester,
+            "partner", partner
+        );
+        messagingTemplate.convertAndSend("/topic/chat", broadcast);
+        
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Edit a chat message in the database, invalidate cache, and broadcast update over WebSocket.
      */
     @PutMapping("/{id}")

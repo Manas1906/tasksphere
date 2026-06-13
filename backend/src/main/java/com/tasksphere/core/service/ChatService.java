@@ -26,6 +26,10 @@ public class ChatService {
         chatMessageRepository.deleteAll();
     }
 
+    public void clearDirectMessages(String user1, String user2) {
+        chatMessageRepository.deleteDirectMessagesBetween(user1, user2);
+    }
+
     public ChatMessage updateMessage(Long id, String newMessageContent) {
         return chatMessageRepository.findById(id)
                 .map(msg -> {

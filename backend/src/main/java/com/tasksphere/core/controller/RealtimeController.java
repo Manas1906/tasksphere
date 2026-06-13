@@ -169,8 +169,19 @@ public class RealtimeController {
         String target = (String) payload.get("target");
         if (target == null || target.trim().isEmpty()) return;
 
-        System.out.println("[CALL-SIGNAL] Call offer from " + payload.get("caller") + " → " + target);
+        String caller = (String) payload.get("caller");
+        System.out.println("[CALL-SIGNAL] Call offer from " + caller + " → " + target);
+        
+        // Dispatch live WebSocket signal
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+        
+        // Dispatch background Web Push notification for mobile / lock screen alerts
+        try {
+            webPushService.sendNotification(target, "📞 Incoming Voice Call", "Incoming call from " + caller, "/");
+            System.out.println("[CALL-SIGNAL] Web Push call notification sent successfully to: " + target);
+        } catch (Exception e) {
+            System.err.println("[CALL-SIGNAL-WARNING] Failed to dispatch Web Push call alert: " + e.getMessage());
+        }
     }
 
     /**

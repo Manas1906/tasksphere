@@ -153,33 +153,7 @@ export class ChatController {
       this.handleTypingInput();
     });
 
-    // Role-based visibility and click handler for clearing chat history (Admin/Product Owner Only)
-    const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
-    if (clearHistoryBtn) {
-      const role = localStorage.getItem('chat_role') || 'DEVELOPER';
-      if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
-        clearHistoryBtn.style.display = 'block';
-        clearHistoryBtn.onclick = async () => {
-          const confirmClear = confirm("Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
-          if (!confirmClear) return;
-          
-          try {
-            console.log('[CHAT-CLEAR] Sending DELETE request to clear chat history...');
-            await api.request('/chat-messages', { method: 'DELETE' });
-            
-            // Wipe local memory and update the UI
-            this.historyMessages = [];
-            this.redrawMessages();
-            alert('Chat history cleared successfully!');
-          } catch (err) {
-            console.error('[CHAT-CLEAR-ERROR] Failed to clear chat history:', err);
-            alert(`Failed to clear chat history: ${err.message || err}`);
-          }
-        };
-      } else {
-        clearHistoryBtn.style.display = 'none';
-      }
-    }
+    // clearChatHistoryBtn visibility and bindings are handled dynamically in switchChatPartner()
 
     // Bind DM Back Button switches
     const backLink = document.getElementById('chatModeBackLink');
@@ -257,6 +231,15 @@ export class ChatController {
     // Subscribe to chat stream
     socket.subscribe('/topic/chat', (message) => {
       console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
+      
+      // Handle direct message clear notifications
+      if (message && message.type === 'CLEAR_DM') {
+        if (this.activeChatPartner === message.requester || this.activeChatPartner === message.partner) {
+          console.log('[CHAT-DM-CLEAR-LIVE] DM clear event received. Reloading history...');
+          this.loadChatHistory();
+        }
+        return;
+      }
       
       // In-place edit replacement if message ID already exists
       const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
@@ -367,6 +350,58 @@ export class ChatController {
     // Always clear existing call button to avoid duplicates
     const oldCallBtn = document.getElementById('dmCallBtn');
     if (oldCallBtn) oldCallBtn.remove();
+    
+    // Dynamic binding and visibility for clearing history
+    const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
+    if (clearHistoryBtn) {
+      if (partner) {
+        // DM mode: both participants have authority to clear their own DM history
+        clearHistoryBtn.style.display = 'block';
+        clearHistoryBtn.onclick = async (e) => {
+          e.stopPropagation();
+          const confirmClear = confirm(`Are you sure you want to permanently delete your DM history with ${partner}?\n\nThis will delete it for both of you in the database.`);
+          if (!confirmClear) return;
+          
+          try {
+            console.log('[CHAT-DM-CLEAR] Requesting DM clear history...');
+            await api.request(`/chat-messages/dm?partner=${encodeURIComponent(partner)}&requester=${encodeURIComponent(this.myUsername)}`, {
+              method: 'DELETE'
+            });
+            this.historyMessages = [];
+            this.redrawMessages();
+            alert('DM history cleared successfully!');
+          } catch (err) {
+            console.error('[CHAT-DM-CLEAR-ERROR] Failed to clear DM history:', err);
+            alert(`Failed to clear DM history: ${err.message || err}`);
+          }
+        };
+      } else {
+        // Group mode: only Admins / Product Owners can clear the board history
+        const role = localStorage.getItem('chat_role') || 'DEVELOPER';
+        if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
+          clearHistoryBtn.style.display = 'block';
+          clearHistoryBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const confirmClear = confirm("Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
+            if (!confirmClear) return;
+            
+            try {
+              console.log('[CHAT-CLEAR] Sending DELETE request to clear chat history...');
+              await api.request('/chat-messages', { method: 'DELETE' });
+              this.historyMessages = [];
+              this.redrawMessages();
+              alert('Chat history cleared successfully!');
+            } catch (err) {
+              console.error('[CHAT-CLEAR-ERROR] Failed to clear chat history:', err);
+              alert(`Failed to clear chat history: ${err.message || err}`);
+            }
+          };
+        } else {
+          clearHistoryBtn.style.display = 'none';
+          clearHistoryBtn.onclick = null;
+        }
+      }
+    }
     
     if (partner) {
       // Direct message (DM) tab active

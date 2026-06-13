@@ -18,6 +18,8 @@ export class VoiceCallController {
     this.isMuted = false;
     this.callTimerInterval = null;
     this.callStartTime = null;
+    this.isCaller = false;
+    this._popoverOutsideClickListener = null;
 
     // ICE servers — free public STUN servers for NAT traversal
     this.iceConfig = {
@@ -70,6 +72,23 @@ export class VoiceCallController {
     }
   }
 
+  /**
+   * Post direct message containing call log info on behalf of the caller
+   */
+  saveCallLog(logMessage) {
+    if (!this.isCaller) return; // Only caller records DM call log to prevent duplicates
+    if (!this.callPartner) return;
+    
+    const payload = {
+      username: this.myUsername,
+      avatarUrl: this.myAvatar,
+      message: `[DM:${this.callPartner}] 📞 ${logMessage}`
+    };
+    
+    console.log('[VOICECALL-LOG] Saving call log message to DM:', payload);
+    socket.send('/app/chat.send', payload);
+  }
+
   /* =========================================================================
      Outgoing Call Flow
      ========================================================================= */
@@ -89,6 +108,7 @@ export class VoiceCallController {
     this.callPartner = targetUsername;
     this.callPartnerAvatar = targetAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${targetUsername}`;
     this.state = 'OUTGOING_RING';
+    this.isCaller = true;
 
     try {
       // Request microphone access
@@ -124,6 +144,7 @@ export class VoiceCallController {
       this._ringTimeout = setTimeout(() => {
         if (this.state === 'OUTGOING_RING') {
           console.log('[VOICECALL] Call timed out — no answer.');
+          this.saveCallLog('Missed voice call');
           this.hangUp();
         }
       }, 30000);
@@ -161,6 +182,7 @@ export class VoiceCallController {
     this.callPartner = payload.caller;
     this.callPartnerAvatar = payload.callerAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.caller}`;
     this.state = 'INCOMING_RING';
+    this.isCaller = false;
     this._pendingOffer = payload;
 
     // Play incoming ringtone sound
@@ -289,6 +311,23 @@ export class VoiceCallController {
 
   handleRemoteHangup(payload) {
     console.log('[VOICECALL] Remote hangup from', payload.caller, '— reason:', payload.reason || 'normal');
+    
+    if (this.state === 'OUTGOING_RING') {
+      if (payload.reason === 'busy') {
+        this.saveCallLog('User is busy');
+        if (window.app) {
+          window.app.showNotificationToast('📞 Call Failed', `${this.callPartner} is busy on another call.`, 'UNASSIGNMENT');
+        }
+      } else if (payload.reason === 'declined') {
+        this.saveCallLog('Declined voice call');
+        if (window.app) {
+          window.app.showNotificationToast('📞 Call Declined', `${this.callPartner} declined your call.`, 'UNASSIGNMENT');
+        }
+      } else {
+        this.saveCallLog('Missed voice call');
+      }
+    }
+    
     this.endCall();
   }
 
@@ -353,6 +392,10 @@ export class VoiceCallController {
   hangUp() {
     console.log('[VOICECALL] Hanging up call with', this.callPartner);
 
+    if (this.state === 'OUTGOING_RING') {
+      this.saveCallLog('Missed voice call');
+    }
+
     if (this.callPartner) {
       socket.send('/app/call.hangup', {
         type: 'hangup',
@@ -369,6 +412,13 @@ export class VoiceCallController {
     if (this._ringTimeout) {
       clearTimeout(this._ringTimeout);
       this._ringTimeout = null;
+    }
+
+    if (this.state === 'CONNECTED' && this.callStartTime) {
+      const elapsed = Math.floor((Date.now() - this.callStartTime) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      this.saveCallLog(`Voice call ended • ${mins}:${secs}`);
     }
 
     this.state = 'IDLE';
@@ -489,6 +539,12 @@ export class VoiceCallController {
   cleanup() {
     this.stopRinging();
 
+    // Close settings popover
+    const popover = document.getElementById('callDevicePopover');
+    if (popover) {
+      popover.classList.add('hidden');
+    }
+
     // Stop local microphone tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
@@ -531,6 +587,128 @@ export class VoiceCallController {
     this.hideIncomingCallUI();
     this.hideOutgoingCallUI();
     this.showActiveCallUI();
+  }
+
+  /* =========================================================================
+     Audio Device Management
+     ========================================================================= */
+
+  async toggleDevicePopover() {
+    const popover = document.getElementById('callDevicePopover');
+    if (!popover) return;
+    
+    const isHidden = popover.classList.contains('hidden');
+    if (isHidden) {
+      popover.classList.remove('hidden');
+      await this.populateDeviceSelectors();
+    } else {
+      popover.classList.add('hidden');
+    }
+  }
+
+  async populateDeviceSelectors() {
+    const micSelect = document.getElementById('micSelect');
+    const speakerSelect = document.getElementById('speakerSelect');
+    if (!micSelect || !speakerSelect) return;
+    
+    micSelect.innerHTML = '';
+    speakerSelect.innerHTML = '';
+    
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+      
+      audioInputs.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Microphone ${index + 1}`;
+        if (this.localStream) {
+          const currentTrack = this.localStream.getAudioTracks()[0];
+          if (currentTrack && currentTrack.getSettings().deviceId === device.deviceId) {
+            option.selected = true;
+          }
+        }
+        micSelect.appendChild(option);
+      });
+      
+      audioOutputs.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Speaker ${index + 1}`;
+        if (this.remoteAudio && this.remoteAudio.sinkId === device.deviceId) {
+          option.selected = true;
+        }
+        speakerSelect.appendChild(option);
+      });
+      
+      micSelect.onchange = async () => {
+        await this.switchMicrophone(micSelect.value);
+      };
+      
+      speakerSelect.onchange = async () => {
+        await this.switchSpeaker(speakerSelect.value);
+      };
+      
+    } catch (err) {
+      console.error('[VOICECALL] Failed to enumerate audio devices:', err);
+    }
+  }
+
+  async switchMicrophone(deviceId) {
+    if (!this.localStream) return;
+    console.log('[VOICECALL] Switching microphone to device ID:', deviceId);
+    
+    try {
+      const currentTrack = this.localStream.getAudioTracks()[0];
+      if (currentTrack) {
+        currentTrack.stop();
+      }
+      
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: deviceId } }
+      });
+      
+      const newTrack = newStream.getAudioTracks()[0];
+      
+      if (this.peerConnection) {
+        const senders = this.peerConnection.getSenders();
+        const sender = senders.find(s => s.track && s.track.kind === 'audio');
+        if (sender) {
+          await sender.replaceTrack(newTrack);
+          console.log('[VOICECALL] WebRTC sender track successfully replaced.');
+        }
+      }
+      
+      this.localStream = newStream;
+      
+    } catch (err) {
+      console.error('[VOICECALL] Failed to switch microphone:', err);
+      alert('Failed to switch microphone: ' + (err.message || err));
+    }
+  }
+
+  async switchSpeaker(deviceId) {
+    this.remoteAudio = document.getElementById('remoteAudio');
+    if (!this.remoteAudio) {
+      console.warn('[VOICECALL] remoteAudio element not found.');
+      return;
+    }
+    
+    if (typeof this.remoteAudio.setSinkId === 'function') {
+      try {
+        console.log('[VOICECALL] Switching speaker/sinkId to:', deviceId);
+        await this.remoteAudio.setSinkId(deviceId);
+        console.log('[VOICECALL] Speaker sinkId successfully set.');
+      } catch (err) {
+        console.error('[VOICECALL] Failed to set sinkId on audio element:', err);
+        alert('Failed to switch speaker: ' + (err.message || err));
+      }
+    } else {
+      console.warn('[VOICECALL] setSinkId() is not supported in this browser.');
+      alert('Speaker switching is not supported by your browser.');
+    }
   }
 
   /* =========================================================================
@@ -628,9 +806,11 @@ export class VoiceCallController {
     const chatPanel = document.querySelector('#chatContainer .chat-panel');
     if (!chatPanel) return;
 
+    // Override active-call-bar overflow property dynamically when showing popover
     const bar = document.createElement('div');
     bar.id = 'activeCallBar';
     bar.className = 'active-call-bar';
+    bar.style.overflow = 'visible'; // Ensure settings popover doesn't clip
     bar.innerHTML = `
       <div class="active-call-bar__pulse"></div>
       <div class="active-call-bar__info">
@@ -641,9 +821,23 @@ export class VoiceCallController {
         <button class="call-control-btn call-control-btn--mute" id="muteCallBtn" title="Mute/Unmute">
           <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
         </button>
+        <button class="call-control-btn call-control-btn--settings" id="deviceSettingsBtn" title="Audio Settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
         <button class="call-control-btn call-control-btn--hangup" id="hangupCallBtn" title="End Call">
           <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
         </button>
+      </div>
+      <div class="call-device-popover hidden" id="callDevicePopover">
+        <div class="call-device-popover__title">Audio Settings</div>
+        <div class="call-device-popover__group">
+          <label for="micSelect">Microphone</label>
+          <select id="micSelect" class="call-device-popover__select"></select>
+        </div>
+        <div class="call-device-popover__group">
+          <label for="speakerSelect">Speaker</label>
+          <select id="speakerSelect" class="call-device-popover__select"></select>
+        </div>
       </div>
     `;
 
@@ -657,7 +851,23 @@ export class VoiceCallController {
 
     // Bind controls
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
+    document.getElementById('deviceSettingsBtn').onclick = (e) => {
+      e.stopPropagation();
+      this.toggleDevicePopover();
+    };
     document.getElementById('hangupCallBtn').onclick = () => this.hangUp();
+
+    // Bind document click to dismiss popover when clicking outside
+    this._popoverOutsideClickListener = (e) => {
+      const popover = document.getElementById('callDevicePopover');
+      const settingsBtn = document.getElementById('deviceSettingsBtn');
+      if (popover && !popover.classList.contains('hidden')) {
+        if (!popover.contains(e.target) && settingsBtn && !settingsBtn.contains(e.target)) {
+          popover.classList.add('hidden');
+        }
+      }
+    };
+    document.addEventListener('click', this._popoverOutsideClickListener);
 
     // Start call timer
     this.callTimerInterval = setInterval(() => {
@@ -679,6 +889,11 @@ export class VoiceCallController {
     if (this.callTimerInterval) {
       clearInterval(this.callTimerInterval);
       this.callTimerInterval = null;
+    }
+
+    if (this._popoverOutsideClickListener) {
+      document.removeEventListener('click', this._popoverOutsideClickListener);
+      this._popoverOutsideClickListener = null;
     }
   }
 

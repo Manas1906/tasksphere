@@ -497,3 +497,101 @@
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.06);
 }
+
+/* Audio Settings Popover */
+.call-device-popover {
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  width: 240px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: 6px;
+  animation: popoverFadeIn 0.2s ease-out;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.call-device-popover.hidden {
+  display: none !important;
+}
+
+.call-device-popover__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan);
+  margin-bottom: 2px;
+}
+
+.call-device-popover__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.call-device-popover__group label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.call-device-popover__select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 8px;
+  cursor: pointer;
+  width: 100%;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.call-device-popover__select:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-cyan);
+}
+
+.call-device-popover__select option {
+  background: #0f172a;
+  color: #fff;
+}
+
+.call-control-btn--settings {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-control-btn--settings:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.08);
+  color: var(--accent-cyan);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+.call-control-btn--settings:active {
+  transform: scale(0.94);
+}
+
