@@ -1,5 +1,7 @@
 package com.tasksphere.core.config;
 
+import com.tasksphere.core.model.UserSession;
+import com.tasksphere.core.repository.UserSessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -24,6 +26,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Broadcast prefix for outgoing messages from server to clients
@@ -43,9 +48,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     /**
-     * Intercept STOMP CONNECT frames to extract the JWT username and set it
-     * as the user principal. This enables convertAndSendToUser() to route
-     * private messages to specific users for voice call signaling.
+     * Intercept STOMP CONNECT frames to extract the JWT username (email) and set the actual
+     * database username as the user principal. This enables convertAndSendToUser() to route
+     * private messages to specific users for voice call signaling and alerts.
      */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
@@ -62,14 +67,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             String token = bearerToken.substring(7);
                             try {
                                 if (jwtTokenProvider.validateToken(token)) {
-                                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                                    String email = jwtTokenProvider.getUsernameFromToken(token);
+                                    
+                                    // Retrieve the database username using the email
+                                    String username = userSessionRepository.findByEmail(email)
+                                            .map(UserSession::getUsername)
+                                            .orElse(email); // Fallback to email if not found in db
+                                            
                                     accessor.setUser(new Principal() {
                                         @Override
                                         public String getName() {
                                             return username;
                                         }
                                     });
-                                    System.out.println("[WS-AUTH] STOMP principal set for user: " + username);
+                                    System.out.println("[WS-AUTH] STOMP principal set for user: " + username + " (resolved from email: " + email + ")");
                                 }
                             } catch (Exception e) {
                                 System.err.println("[WS-AUTH] Failed to authenticate STOMP connection: " + e.getMessage());

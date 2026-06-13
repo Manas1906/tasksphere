@@ -117,6 +117,7 @@ export class VoiceCallController {
       });
 
       console.log('[VOICECALL] SDP Offer sent to', targetUsername);
+      this.startOutgoingRing();
       this.showOutgoingCallUI();
 
       // Auto-timeout after 30 seconds of no answer
@@ -162,10 +163,8 @@ export class VoiceCallController {
     this.state = 'INCOMING_RING';
     this._pendingOffer = payload;
 
-    // Play notification sound
-    if (window.app && window.app.playNotificationSound) {
-      window.app.playNotificationSound();
-    }
+    // Play incoming ringtone sound
+    this.startIncomingRing();
 
     this.showIncomingCallUI();
   }
@@ -379,7 +378,117 @@ export class VoiceCallController {
     this.cleanup();
   }
 
+  /* =========================================================================
+     Audio Synthesis Ringback & Ringtone
+     ========================================================================= */
+
+  startOutgoingRing() {
+    this.stopRinging();
+    try {
+      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      const playRingCycle = () => {
+        if (this.state !== 'OUTGOING_RING') return;
+        const now = this.audioCtx.currentTime;
+        
+        // Standard US dual-frequency ringback: 440Hz + 480Hz
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const gainNode = this.audioCtx.createGain();
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(440, now);
+        
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(480, now);
+        
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.1);
+        gainNode.gain.setValueAtTime(0.08, now + 1.9);
+        gainNode.gain.linearRampToValueAtTime(0, now + 2.0);
+        
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(this.audioCtx.destination);
+        
+        osc1.start(now);
+        osc2.start(now);
+        
+        osc1.stop(now + 2.0);
+        osc2.stop(now + 2.0);
+      };
+      
+      playRingCycle();
+      this.ringInterval = setInterval(playRingCycle, 5000);
+    } catch (e) {
+      console.warn('[VOICECALL] Failed to play outgoing ring sound:', e);
+    }
+  }
+
+  startIncomingRing() {
+    this.stopRinging();
+    try {
+      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      const playMelodyCycle = () => {
+        if (this.state !== 'INCOMING_RING') return;
+        const now = this.audioCtx.currentTime;
+        
+        // Premium, futuristic pentatonic ascending arpeggio melody (Teams-like but distinct)
+        // E5 (659.25), A5 (880.00), B5 (987.77), E6 (1318.51)
+        const melody = [
+          { freq: 659.25, time: 0.0, dur: 0.12 },
+          { freq: 880.00, time: 0.12, dur: 0.12 },
+          { freq: 987.77, time: 0.24, dur: 0.12 },
+          { freq: 1318.51, time: 0.36, dur: 0.35 },
+          { freq: 987.77, time: 0.8, dur: 0.12 },
+          { freq: 1318.51, time: 0.92, dur: 0.35 }
+        ];
+        
+        melody.forEach(note => {
+          const osc = this.audioCtx.createOscillator();
+          const gainNode = this.audioCtx.createGain();
+          
+          osc.type = 'triangle'; // Warmer, bell-like tone
+          osc.frequency.setValueAtTime(note.freq, now + note.time);
+          
+          gainNode.gain.setValueAtTime(0, now + note.time);
+          gainNode.gain.linearRampToValueAtTime(0.12, now + note.time + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
+          
+          osc.connect(gainNode);
+          gainNode.connect(this.audioCtx.destination);
+          
+          osc.start(now + note.time);
+          osc.stop(now + note.time + note.dur);
+        });
+      };
+      
+      playMelodyCycle();
+      this.ringInterval = setInterval(playMelodyCycle, 2000);
+    } catch (e) {
+      console.warn('[VOICECALL] Failed to play incoming ring sound:', e);
+    }
+  }
+
+  stopRinging() {
+    if (this.ringInterval) {
+      clearInterval(this.ringInterval);
+      this.ringInterval = null;
+    }
+    if (this.audioCtx) {
+      try {
+        if (this.audioCtx.state !== 'closed') {
+          this.audioCtx.close();
+        }
+      } catch (e) {}
+      this.audioCtx = null;
+    }
+  }
+
   cleanup() {
+    this.stopRinging();
+
     // Stop local microphone tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
@@ -417,6 +526,7 @@ export class VoiceCallController {
 
   onCallConnected() {
     console.log('[VOICECALL] ✅ Call connected with', this.callPartner);
+    this.stopRinging();
     this.callStartTime = Date.now();
     this.hideIncomingCallUI();
     this.hideOutgoingCallUI();
