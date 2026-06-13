@@ -60,6 +60,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
                 if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+                    List<String> usernameHeaders = accessor.getNativeHeader("username");
+                    String clientUsername = (usernameHeaders != null && !usernameHeaders.isEmpty()) ? usernameHeaders.get(0) : null;
+
                     List<String> authHeaders = accessor.getNativeHeader("Authorization");
                     if (authHeaders != null && !authHeaders.isEmpty()) {
                         String bearerToken = authHeaders.get(0);
@@ -69,18 +72,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 if (jwtTokenProvider.validateToken(token)) {
                                     String email = jwtTokenProvider.getUsernameFromToken(token);
                                     
-                                    // Retrieve the database username using the email
-                                    String username = userSessionRepository.findByEmail(email)
-                                            .map(UserSession::getUsername)
-                                            .orElse(email); // Fallback to email if not found in db
+                                    String username = clientUsername;
+                                    if (username == null || username.trim().isEmpty()) {
+                                        // Retrieve the database username using the email
+                                        username = userSessionRepository.findByEmail(email)
+                                                .map(UserSession::getUsername)
+                                                .orElse(email); // Fallback to email if not found in db
+                                    }
                                             
+                                    final String finalUsername = username;
                                     accessor.setUser(new Principal() {
                                         @Override
                                         public String getName() {
-                                            return username;
+                                            return finalUsername;
                                         }
                                     });
-                                    System.out.println("[WS-AUTH] STOMP principal set for user: " + username + " (resolved from email: " + email + ")");
+                                    System.out.println("[WS-AUTH] STOMP principal set for user: " + finalUsername + " (resolved from email: " + email + ")");
                                 }
                             } catch (Exception e) {
                                 System.err.println("[WS-AUTH] Failed to authenticate STOMP connection: " + e.getMessage());

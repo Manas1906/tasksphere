@@ -34,7 +34,10 @@ class WebSocketManager {
     };
 
     const token = localStorage.getItem('tasksphere_jwt');
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const username = localStorage.getItem('chat_username');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (username) headers['username'] = username;
 
     this.stompClient.connect(headers, 
       (frame) => {
