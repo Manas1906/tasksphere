@@ -14,6 +14,7 @@
 @import "./components/auth.css";
 @import "./components/chatbot.css";
 @import "./components/cursors.css";
+@import "./components/voicecall.css";
 
 
 /* Utility classes - Day 6 Figma integration overlay specs */

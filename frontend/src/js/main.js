@@ -1219,6 +1219,9 @@ class TaskSphereApp {
     this.cursorSyncController = new CursorSyncController();
     this.cursorSyncController.init();
 
+    // Load feature toggles from backend (admin-controlled flags)
+    this.loadFeatureToggles();
+
     // Connect socket
     socket.connect(
       () => {
@@ -1260,6 +1263,18 @@ class TaskSphereApp {
 
         // Initialize Cursor WebSocket channel subscription
         this.cursorSyncController.subscribeChannel();
+
+        // Subscribe to real-time feature toggle changes from admin
+        socket.subscribe('/topic/features', (payload) => {
+          console.log('[APP-FEATURE-TOGGLE] Real-time feature toggle update received:', payload);
+          if (window.__featureToggles && payload.featureKey) {
+            window.__featureToggles[payload.featureKey] = payload.enabled;
+            // If the chat DM view is active, refresh the header to show/hide call button
+            if (this.chatController && this.chatController.activeChatPartner) {
+              this.chatController.switchChatPartner(this.chatController.activeChatPartner);
+            }
+          }
+        });
       },
       (err) => {
         console.error('[APP-SYNC-ERROR] Real-time broker connection dropped or unreachable. Running under degraded REST fallback sync.', err);
@@ -2027,6 +2042,21 @@ class TaskSphereApp {
     }
  
     await this.currentView.render();
+  }
+
+  /**
+   * Load feature toggles from the backend and store in global scope.
+   * These flags control which features are visible/enabled across the app.
+   */
+  async loadFeatureToggles() {
+    try {
+      const toggles = await api.getFeatureToggles();
+      window.__featureToggles = toggles || {};
+      console.log('[APP-FEATURES] Feature toggles loaded:', window.__featureToggles);
+    } catch (err) {
+      console.warn('[APP-FEATURES] Failed to load feature toggles, defaulting all to false:', err);
+      window.__featureToggles = {};
+    }
   }
 
   playNotificationSound() {

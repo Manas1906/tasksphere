@@ -113,6 +113,15 @@ class WebSocketManager {
     return true;
   }
 
+  /**
+   * Subscribe to a private user-scoped queue (e.g. /user/queue/call).
+   * Messages sent via convertAndSendToUser() on the backend are routed here.
+   */
+  subscribeUser(destination, onMessageCallback) {
+    const userTopic = `/user${destination}`;
+    return this.subscribe(userTopic, onMessageCallback);
+  }
+
   disconnect() {
     console.log('[WS-DISCONNECT] Manually terminating socket connection.');
     if (this.stompClient) {

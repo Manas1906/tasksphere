@@ -156,6 +156,58 @@ public class RealtimeController {
         return typingPayload;
     }
 
+    /* =========================================================================
+       WebRTC Voice Call Signaling Endpoints
+       Private user-to-user routing via /user/{username}/queue/call
+       ========================================================================= */
+
+    /**
+     * Caller sends an SDP offer to initiate a voice call with a target user.
+     */
+    @MessageMapping("/call.offer")
+    public void handleCallOffer(Map<String, Object> payload) {
+        String target = (String) payload.get("target");
+        if (target == null || target.trim().isEmpty()) return;
+
+        System.out.println("[CALL-SIGNAL] Call offer from " + payload.get("caller") + " → " + target);
+        messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+    }
+
+    /**
+     * Callee sends an SDP answer back to the caller.
+     */
+    @MessageMapping("/call.answer")
+    public void handleCallAnswer(Map<String, Object> payload) {
+        String target = (String) payload.get("target");
+        if (target == null || target.trim().isEmpty()) return;
+
+        System.out.println("[CALL-SIGNAL] Call answer from " + payload.get("caller") + " → " + target);
+        messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+    }
+
+    /**
+     * Exchange ICE candidates between peers for NAT traversal.
+     */
+    @MessageMapping("/call.ice")
+    public void handleIceCandidate(Map<String, Object> payload) {
+        String target = (String) payload.get("target");
+        if (target == null || target.trim().isEmpty()) return;
+
+        messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+    }
+
+    /**
+     * Either party hangs up the call, notifying the other user.
+     */
+    @MessageMapping("/call.hangup")
+    public void handleCallHangup(Map<String, Object> payload) {
+        String target = (String) payload.get("target");
+        if (target == null || target.trim().isEmpty()) return;
+
+        System.out.println("[CALL-SIGNAL] Hangup from " + payload.get("caller") + " → " + target);
+        messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+    }
+
     @Data
     public static class TaskMovePayload {
         private Long taskId;

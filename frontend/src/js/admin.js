@@ -53,6 +53,21 @@ export class AdminView {
           </table>
         </div>
       </div>
+
+      <!-- Feature Gates Section -->
+      <div class="admin-panel feature-gates-section">
+        <div class="admin-header">
+          <div>
+            <div class="admin-title" style="display: flex; align-items: center; gap: 6px;">
+              ${this.getIconSvg('status')} <span>Feature Gates</span>
+            </div>
+            <div class="admin-subtitle">Control platform-wide feature availability for all workspace members.</div>
+          </div>
+        </div>
+        <div id="featureGatesContainer" style="padding: var(--spacing-md);">
+          <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 12px;">Loading feature gates...</div>
+        </div>
+      </div>
     `;
 
     // Bind refresh button
@@ -63,6 +78,7 @@ export class AdminView {
 
     // Load actual content
     await this.loadDirectory();
+    await this.loadFeatureGates();
   }
 
   async loadDirectory() {
@@ -322,8 +338,95 @@ export class AdminView {
       'id': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`,
       'pending': `<svg style="width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M6 2h12v6l-4 4 4 4v6H6v-6l4-4-4-4V2zm10 14.5L12 13l-4 3.5V20h8v-3.5zm-4-5l4-3.5V4H8v3.5l4 3.5z"/></svg>`,
       'check': `<svg style="width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`,
-      'warning': `<svg style="width: 14px; height: 14px; fill: var(--accent-rose); display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`
+      'warning': `<svg style="width: 14px; height: 14px; fill: var(--accent-rose); display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`,
+      'phone': `<svg style="width: 14px; height: 14px; fill: currentColor; display: inline-block; vertical-align: middle;" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>`
     };
     return icons[name] || '';
+  }
+
+  /* =========================================================================
+     Feature Gates Management
+     ========================================================================= */
+
+  async loadFeatureGates() {
+    const container = document.getElementById('featureGatesContainer');
+    if (!container) return;
+
+    try {
+      const toggles = await api.getFeatureToggles() || {};
+
+      // Update global feature flags
+      window.__featureToggles = toggles;
+
+      const featureDescriptions = {
+        'voice_calling': {
+          name: 'Voice Calling',
+          description: 'Enable free peer-to-peer voice calls in personal DM conversations.',
+          icon: 'phone'
+        }
+      };
+
+      const keys = Object.keys(toggles);
+      if (keys.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 12px;">No feature gates configured.</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      keys.forEach(key => {
+        const enabled = toggles[key];
+        const meta = featureDescriptions[key] || { name: key, description: '', icon: 'status' };
+
+        const row = document.createElement('div');
+        row.className = 'feature-gate-row';
+        row.innerHTML = `
+          <div class="feature-gate-info">
+            <span class="feature-gate-name">
+              ${this.getIconSvg(meta.icon)} ${meta.name}
+              <span class="feature-gate-status ${enabled ? 'feature-gate-status--on' : 'feature-gate-status--off'}">
+                ${enabled ? 'Active' : 'Disabled'}
+              </span>
+            </span>
+            <span class="feature-gate-desc">${meta.description}</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${enabled ? 'checked' : ''} data-feature-key="${key}">
+            <span class="toggle-switch__slider"></span>
+          </label>
+        `;
+
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        checkbox.onchange = async () => {
+          await this.toggleFeature(key, checkbox.checked);
+        };
+
+        container.appendChild(row);
+      });
+
+    } catch (err) {
+      console.error('[ADMIN] Failed to load feature gates:', err);
+      container.innerHTML = `<div style="text-align: center; color: var(--accent-rose); font-size: 12px; padding: 12px;">Failed to load feature gates: ${err.message || err}</div>`;
+    }
+  }
+
+  async toggleFeature(key, enabled) {
+    try {
+      console.log(`[ADMIN] Toggling feature "${key}" to ${enabled} by admin "${this.myUsername}"`);
+      await api.updateFeatureToggle(key, enabled, this.myUsername);
+
+      // Update global flags immediately
+      if (window.__featureToggles) {
+        window.__featureToggles[key] = enabled;
+      }
+
+      // Re-render the feature gates section to update status badges
+      await this.loadFeatureGates();
+
+    } catch (err) {
+      console.error(`[ADMIN] Failed to toggle feature "${key}":`, err);
+      alert(`Failed to update feature: ${err.message || err}`);
+      // Revert the UI
+      await this.loadFeatureGates();
+    }
   }
 }

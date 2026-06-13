@@ -1,0 +1,499 @@
+/* ============================================================
+   Voice Call UI — Premium WebRTC Call Experience
+   ============================================================ */
+
+/* Call button in DM header */
+.dm-call-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.dm-call-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.dm-call-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.5);
+}
+
+.dm-call-btn:hover::before {
+  opacity: 1;
+}
+
+.dm-call-btn:active {
+  transform: scale(0.95);
+}
+
+.dm-call-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Incoming Call Overlay ── */
+.incoming-call-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(10, 12, 20, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  opacity: 0;
+  animation: callOverlayIn 0.4s ease-out forwards;
+}
+
+@keyframes callOverlayIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.incoming-call-overlay.closing {
+  animation: callOverlayOut 0.3s ease-in forwards;
+}
+
+@keyframes callOverlayOut {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.incoming-call__avatar-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.incoming-call__avatar-ring::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(34, 197, 94, 0.6);
+  animation: pulseRing 1.8s ease-out infinite;
+}
+
+.incoming-call__avatar-ring::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  animation: pulseRing 1.8s ease-out 0.4s infinite;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.incoming-call__avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.25);
+}
+
+.incoming-call__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.incoming-call__username {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  margin-top: -8px;
+}
+
+.incoming-call__actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 8px;
+}
+
+.call-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.call-action-btn:hover {
+  transform: scale(1.08);
+}
+
+.call-action-btn:active {
+  transform: scale(0.94);
+}
+
+.call-action-btn__circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.25s ease;
+}
+
+.call-action-btn__circle--accept {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.45);
+}
+
+.call-action-btn__circle--accept:hover {
+  box-shadow: 0 6px 28px rgba(34, 197, 94, 0.6);
+}
+
+.call-action-btn__circle--decline {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.45);
+}
+
+.call-action-btn__circle--decline:hover {
+  box-shadow: 0 6px 28px rgba(239, 68, 68, 0.6);
+}
+
+.call-action-btn__circle svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+}
+
+.call-action-btn__label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Active Call Bar ── */
+.active-call-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 163, 74, 0.08));
+  border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+  animation: callBarSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.active-call-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+  border-radius: 0 2px 2px 0;
+}
+
+@keyframes callBarSlideIn {
+  from {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    max-height: 60px;
+    opacity: 1;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
+.active-call-bar.closing {
+  animation: callBarSlideOut 0.3s ease-in forwards;
+}
+
+@keyframes callBarSlideOut {
+  to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.active-call-bar__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: callPulse 1.5s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes callPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+}
+
+.active-call-bar__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.active-call-bar__partner {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active-call-bar__timer {
+  font-size: 10px;
+  font-weight: 600;
+  color: #22c55e;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.active-call-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.call-control-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.call-control-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.call-control-btn--mute {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-control-btn--mute:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.08);
+}
+
+.call-control-btn--mute.muted {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.call-control-btn--mute.muted:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.call-control-btn--hangup {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+.call-control-btn--hangup:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5);
+}
+
+.call-control-btn--hangup:active {
+  transform: scale(0.94);
+}
+
+/* Muted strikethrough line on mic icon */
+.call-control-btn--mute.muted::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 2px;
+  background: #ef4444;
+  border-radius: 1px;
+  transform: rotate(-45deg);
+  top: 50%;
+  left: 50%;
+  margin-top: -1px;
+  margin-left: -10px;
+}
+
+/* ── Feature Toggle in Admin Panel ── */
+.feature-gates-section {
+  margin-top: var(--spacing-xl);
+}
+
+.feature-gate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.25s ease;
+}
+
+.feature-gate-row:hover {
+  border-color: var(--accent-purple);
+}
+
+.feature-gate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-gate-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feature-gate-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Premium toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch__slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-switch__slider::before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.toggle-switch input:checked + .toggle-switch__slider {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+}
+
+.toggle-switch input:checked + .toggle-switch__slider::before {
+  transform: translateX(20px);
+}
+
+.feature-gate-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.feature-gate-status--on {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.feature-gate-status--off {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+}

@@ -1,5 +1,6 @@
 import { socket } from './websocket';
 import { api } from './api';
+import { VoiceCallController } from './voicecall';
 
 /**
  * ChatController - Real-time Slack/Operations Chat & Direct Messaging coordinator
@@ -33,6 +34,9 @@ export class ChatController {
     this.typingTimeout = null;
     this.isCurrentlyTyping = false;
     this.typerTimers = {};
+
+    // Voice Call controller - WebRTC P2P calling
+    this.voiceCall = new VoiceCallController();
   }
 
   get myUsername() {
@@ -313,6 +317,12 @@ export class ChatController {
     socket.subscribe('/topic/chat.typing', (payload) => {
       this.handleIncomingTypingStatus(payload);
     });
+
+    // Subscribe to private call signaling queue for WebRTC voice calls
+    socket.subscribeUser('/queue/call', (payload) => {
+      console.log('[CHAT-CALL-SIGNAL] Received call signal:', payload.type);
+      this.voiceCall.handleSignal(payload);
+    });
   }
 
   syncMyPresence() {
@@ -357,6 +367,7 @@ export class ChatController {
       // Direct message (DM) tab active
       if (backLink) backLink.style.display = 'flex';
       if (chatTitle) {
+        const voiceCallEnabled = window.__featureToggles && window.__featureToggles.voice_calling === true;
         chatTitle.innerHTML = `
           <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: var(--accent-purple); font-weight: 700; text-transform: uppercase;">
             <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
@@ -364,7 +375,29 @@ export class ChatController {
             </svg>
             Chat with ${partner}
           </span>
+          ${voiceCallEnabled ? `
+            <button class="dm-call-btn" id="dmCallBtn" title="Voice call ${partner}">
+              <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </button>
+          ` : ''}
         `;
+
+        // Bind call button click
+        if (voiceCallEnabled) {
+          const callBtn = document.getElementById('dmCallBtn');
+          if (callBtn) {
+            // Find the partner avatar from cache
+            const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+            const partnerUser = cachedUsers.find(u => u.username === partner);
+            let partnerAvatar = partnerUser ? (partnerUser.avatarUrl || '').split('||')[0] : '';
+            if (!partnerAvatar) partnerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${partner}`;
+
+            callBtn.onclick = (e) => {
+              e.stopPropagation();
+              this.voiceCall.initiateCall(partner, partnerAvatar);
+            };
+          }
+        }
       }
       this.input.placeholder = `Send direct message to ${partner}...`;
     } else {

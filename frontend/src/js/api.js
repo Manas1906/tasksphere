@@ -205,6 +205,18 @@ class ApiService {
   unsubscribePush(username) { 
     return this.request(`/web-push/unsubscribe?username=${encodeURIComponent(username)}`, { method: 'POST' }); 
   }
+
+  /* ---- Feature Toggles (Phase: Voice Calling) ---- */
+  getFeatureToggles() {
+    return this.request('/features');
+  }
+
+  updateFeatureToggle(key, enabled, requester) {
+    return this.request(`/features/${encodeURIComponent(key)}?requester=${encodeURIComponent(requester)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled })
+    });
+  }
 }
 
 
