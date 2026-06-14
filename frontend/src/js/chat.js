@@ -3,7 +3,8 @@ import { api } from './api';
 import { VoiceCallController } from './voicecall';
 
 /**
- * ChatController - Real-time Slack/Operations Chat & Direct Messaging coordinator
+ * ChatController manages operations chat, threads, direct messages,
+ * typing indicators, mentions, and WebRTC calling.
  */
 export class ChatController {
   constructor() {
@@ -13,29 +14,23 @@ export class ChatController {
     this.activeUsersContainer = document.getElementById('activeUsersList');
     this.userCountSpan = document.getElementById('activeUserCount');
     
-    // Direct message tracking states
-    this.activeChatPartner = null; // null = Operations Group Chat, otherwise 'username'
-    this.historyMessages = [];     // In-memory cache of loaded DB messages
-    this.unreadDms = {};           // Track unread direct message counts
-    
-    // Thread replies tracking states - Phase 8
-    this.activeThreadMsg = null;   // msg object actively open in thread drawer
+    this.activeChatPartner = null; // null for Operations Group Chat, otherwise username
+    this.historyMessages = [];
+    this.unreadDms = {};
+    this.activeThreadMsg = null;
 
-    // Autocomplete mentions tracking states
     this.mentionsDropdown = null;
     this.mentionsActiveIdx = -1;
     this.mentionsFilteredUsers = [];
     this.mentionSearchQuery = '';
     this.mentionSearchStartIdx = -1;
 
-    // Typing Indicator tracking states - Phase 15
     this.typingIndicatorEl = document.getElementById('typingIndicator');
     this.activeTypers = new Set();
     this.typingTimeout = null;
     this.isCurrentlyTyping = false;
     this.typerTimers = {};
 
-    // Voice Call controller - WebRTC P2P calling
     this.voiceCall = new VoiceCallController();
   }
 
@@ -48,7 +43,6 @@ export class ChatController {
   }
 
   init() {
-    console.log('[CHAT-INIT] Initializing ChatController...');
     this.bindEvents();
     this.loadChatHistory();
     this.loadUserDirectory();
@@ -57,15 +51,10 @@ export class ChatController {
 
   async loadUserDirectory() {
     try {
-      console.log('[CHAT-DIRECTORY] Loading workspace member directory from database...');
       const users = await api.getUsers() || [];
-      
-      // Filter out pending users and current user
       const approvedTeammates = users.filter(u => u.status !== 'PENDING_APPROVAL' && u.username !== this.myUsername);
       
-      // Map database users directly using their database status (zero cache dependency!)
       const mappedMembers = approvedTeammates.map(dbUser => {
-        // Extract clean avatar URL
         let cleanAvatar = dbUser.avatarUrl || '';
         if (cleanAvatar.includes('||')) {
           cleanAvatar = cleanAvatar.split('||')[0];
@@ -87,20 +76,17 @@ export class ChatController {
       localStorage.setItem('cache_users', JSON.stringify(mappedMembers));
       this.drawAvatars(mappedMembers);
     } catch (err) {
-      console.warn('[CHAT-DIRECTORY-ERROR] Failed to load database user directory:', err);
-      // Fallback to drawing whatever is in localStorage
+      console.warn('Failed to load user directory:', err);
       let cachedMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
       this.drawAvatars(cachedMembers);
     }
   }
 
   bindEvents() {
-    // Send message action
     const handleSend = () => {
       let msgText = this.input.value.trim();
       if (!msgText) return;
 
-      // Prefix message body if we are in private DM mode
       if (this.activeChatPartner) {
         msgText = `[DM:${this.activeChatPartner}] ${msgText}`;
       }
@@ -111,28 +97,20 @@ export class ChatController {
         message: msgText
       };
 
-      console.log('[CHAT-SEND-CLICK] User initiated message dispatch:', payload);
-
-      // Broadcast via socket
       const sent = socket.send('/app/chat.send', payload);
       if (!sent) {
-        console.warn('[CHAT-OFFLINE] WebSocket send failed! Appending to local offline cache.');
-        // Add offline fallback
-        const offlineMsg = {
+        console.warn('Socket connection offline, adding to offline cache.');
+        this.historyMessages.push({
           ...payload,
           timestamp: new Date().toISOString(),
           offline: true
-        };
-        this.historyMessages.push(offlineMsg);
+        });
         this.redrawMessages();
-      } else {
-        console.log('[CHAT-SUCCESS] Message successfully dispatched over live socket broker!');
       }
       
       this.input.value = '';
       this.input.focus();
 
-      // Reset typing status instantly on message dispatch
       if (this.typingTimeout) {
         clearTimeout(this.typingTimeout);
         this.typingTimeout = null;
@@ -148,14 +126,10 @@ export class ChatController {
       if (e.key === 'Enter') handleSend();
     };
 
-    // Keystroke typing listener - Phase 15
     this.input.addEventListener('input', () => {
       this.handleTypingInput();
     });
 
-    // clearChatHistoryBtn visibility and bindings are handled dynamically in switchChatPartner()
-
-    // Bind DM Back Button switches
     const backLink = document.getElementById('chatModeBackLink');
     if (backLink) {
       backLink.onclick = () => {
@@ -163,33 +137,28 @@ export class ChatController {
       };
     }
 
-    // Bind chat panel header click to switch back to Teams Chat
     const chatHeader = document.querySelector('.chat-panel-header');
     if (chatHeader) {
       chatHeader.style.cursor = 'pointer';
       chatHeader.title = 'Switch back to Operations Group Chat';
       chatHeader.onclick = (e) => {
-        // Prevent triggering return if clicking on clear history button or mobile close cross
         if (e.target.id !== 'clearChatHistoryBtn' && !e.target.classList.contains('mobile-nav-close')) {
           this.switchChatPartner(null);
         }
       };
     }
 
-    // Bind Close Thread Drawer - Phase 8
     const closeThreadBtn = document.getElementById('closeThreadBtn');
     if (closeThreadBtn) {
       closeThreadBtn.onclick = () => {
         const drawer = document.getElementById('threadDrawer');
         if (drawer) {
-          drawer.classList.remove('visible');
-          drawer.classList.add('hidden');
+          drawer.classList.replace('visible', 'hidden');
         }
         this.activeThreadMsg = null;
       };
     }
 
-    // Bind Send Thread Reply - Phase 8
     const sendReplyBtn = document.getElementById('threadReplySendBtn');
     const replyInput = document.getElementById('threadReplyInput');
     
@@ -207,48 +176,31 @@ export class ChatController {
   }
 
   async loadChatHistory() {
-    console.log('[CHAT-HISTORY] Requesting recent chat thread history...');
     this.messagesContainer.innerHTML = '';
-    
     try {
-      // Fetch persisted history from new backend API endpoint
-      const messages = await api.request('/chat-messages') || [];
-      console.log(`[CHAT-HISTORY] Loaded ${messages.length} messages successfully from database.`);
-      this.historyMessages = messages;
-      this.redrawMessages();
+      this.historyMessages = await api.request('/chat-messages') || [];
     } catch (e) {
-      console.warn('[CHAT-HISTORY] REST call failed. Retrieving chat history from localstorage cache.', e);
-      // Offline fallback history loading
-      const cache = JSON.parse(localStorage.getItem('cache_chat') || '[]');
-      this.historyMessages = cache;
-      this.redrawMessages();
+      console.warn('Failed to load chat history, fallback to local storage:', e);
+      this.historyMessages = JSON.parse(localStorage.getItem('cache_chat') || '[]');
     }
+    this.redrawMessages();
   }
 
   subscribeChannels() {
-    console.log('[CHAT-SUBSCRIBE] Subscribing to chat and user presence topics...');
-    
-    // Subscribe to chat stream
     socket.subscribe('/topic/chat', (message) => {
-      console.log('[CHAT-BROADCAST-IN] Received incoming chat message from broker:', message);
-      
-      // Handle direct message clear notifications
       if (message && message.type === 'CLEAR_DM') {
         if (this.activeChatPartner === message.requester || this.activeChatPartner === message.partner) {
-          console.log('[CHAT-DM-CLEAR-LIVE] DM clear event received. Reloading history...');
           this.loadChatHistory();
         }
         return;
       }
       
-      // In-place edit replacement if message ID already exists
       const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
       if (existingIdx !== -1) {
         const oldMsg = this.historyMessages[existingIdx];
         const oldParsed = this.parseMessageMeta(oldMsg.message);
         const newParsed = this.parseMessageMeta(message.message);
         
-        // Play notification chime if a new thread reply was added by someone else
         if (newParsed.meta.replies && oldParsed.meta.replies && newParsed.meta.replies.length > oldParsed.meta.replies.length) {
           const lastReply = newParsed.meta.replies[newParsed.meta.replies.length - 1];
           if (lastReply && lastReply.username !== this.myUsername && window.app) {
@@ -258,20 +210,17 @@ export class ChatController {
 
         this.historyMessages[existingIdx] = message;
         
-        // Dynamically update active thread replies view if the open thread message is modified
         if (this.activeThreadMsg && this.activeThreadMsg.id === message.id) {
           this.activeThreadMsg = message;
           this.drawThreadReplies();
         }
       } else {
         this.historyMessages.push(message);
-        // Play notification chime on new message arrival
         if (window.app) {
           window.app.playNotificationSound();
         }
       }
       
-      // Parse direct message notifications
       const isDm = message.message && message.message.startsWith('[DM:');
       if (isDm) {
         const match = message.message.match(/^\[DM:([^\]]+)\]\s*(.*)$/);
@@ -280,7 +229,6 @@ export class ChatController {
           const sender = message.username;
           
           if (recipient === this.myUsername && this.activeChatPartner !== sender) {
-            // Increment unread count for this sender and update UI avatars
             this.unreadDms[sender] = (this.unreadDms[sender] || 0) + 1;
             this.updateActiveUsersList({ username: '', status: 'ONLINE' });
           }
@@ -290,49 +238,50 @@ export class ChatController {
       this.redrawMessages();
     });
 
-    // Subscribe to users presence mapping
     socket.subscribe('/topic/users', (presenceUpdate) => {
-      console.log('[CHAT-PRESENCE-IN] Received user presence update from broker:', presenceUpdate);
       this.updateActiveUsersList(presenceUpdate);
     });
 
-    // Subscribe to typing status channel - Phase 15
     socket.subscribe('/topic/chat.typing', (payload) => {
       this.handleIncomingTypingStatus(payload);
     });
 
-    // Subscribe to private call signaling queue for WebRTC voice calls
     socket.subscribeUser('/queue/call', (payload) => {
-      console.log('[CHAT-CALL-SIGNAL] Received call signal:', payload.type);
       this.voiceCall.handleSignal(payload);
     });
   }
 
   syncMyPresence() {
-    console.log('[CHAT-PRESENCE-SYNC] Preparing periodic presence registration...');
     const registerPresence = () => {
-      const presencePayload = {
+      socket.send('/app/user.presence', {
         username: this.myUsername,
         avatarUrl: this.myAvatar,
         role: localStorage.getItem('chat_role') || 'DEVELOPER',
         status: 'ONLINE'
-      };
-      
-      console.log('[CHAT-PRESENCE-SEND] Registering presence heartbeat:', presencePayload);
-      socket.send('/app/user.presence', presencePayload);
+      });
     };
 
-    // Initial register when connection completes
     setTimeout(registerPresence, 2000);
     
-    // Periodic presence ping every 20 seconds
     setInterval(() => {
       if (socket.connected) {
         registerPresence();
-      } else {
-        console.log('[CHAT-PRESENCE-SKIP] Socket is offline. Skipping presence heartbeat.');
       }
     }, 20000);
+  }
+
+  async clearChat(endpoint, confirmMsg) {
+    if (!confirm(confirmMsg)) return;
+    try {
+      console.log(`[CHAT-CLEAR] Sending DELETE request to ${endpoint}...`);
+      await api.request(endpoint, { method: 'DELETE' });
+      this.historyMessages = [];
+      this.redrawMessages();
+      alert('Chat history cleared successfully!');
+    } catch (err) {
+      console.error('[CHAT-CLEAR-ERROR] Failed to clear history:', err);
+      alert(`Failed to clear history: ${err.message || err}`);
+    }
   }
 
   switchChatPartner(partner) {
@@ -357,44 +306,24 @@ export class ChatController {
       if (partner) {
         // DM mode: both participants have authority to clear their own DM history
         clearHistoryBtn.style.display = 'block';
-        clearHistoryBtn.onclick = async (e) => {
+        clearHistoryBtn.onclick = (e) => {
           e.stopPropagation();
-          const confirmClear = confirm(`Are you sure you want to permanently delete your DM history with ${partner}?\n\nThis will delete it for both of you in the database.`);
-          if (!confirmClear) return;
-          
-          try {
-            console.log('[CHAT-DM-CLEAR] Requesting DM clear history...');
-            await api.request(`/chat-messages/dm?partner=${encodeURIComponent(partner)}&requester=${encodeURIComponent(this.myUsername)}`, {
-              method: 'DELETE'
-            });
-            this.historyMessages = [];
-            this.redrawMessages();
-            alert('DM history cleared successfully!');
-          } catch (err) {
-            console.error('[CHAT-DM-CLEAR-ERROR] Failed to clear DM history:', err);
-            alert(`Failed to clear DM history: ${err.message || err}`);
-          }
+          this.clearChat(
+            `/chat-messages/dm?partner=${encodeURIComponent(partner)}&requester=${encodeURIComponent(this.myUsername)}`,
+            `Are you sure you want to permanently delete your DM history with ${partner}?\n\nThis will delete it for both of you in the database.`
+          );
         };
       } else {
         // Group mode: only Admins / Product Owners can clear the board history
         const role = localStorage.getItem('chat_role') || 'DEVELOPER';
         if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
           clearHistoryBtn.style.display = 'block';
-          clearHistoryBtn.onclick = async (e) => {
+          clearHistoryBtn.onclick = (e) => {
             e.stopPropagation();
-            const confirmClear = confirm("Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.");
-            if (!confirmClear) return;
-            
-            try {
-              console.log('[CHAT-CLEAR] Sending DELETE request to clear chat history...');
-              await api.request('/chat-messages', { method: 'DELETE' });
-              this.historyMessages = [];
-              this.redrawMessages();
-              alert('Chat history cleared successfully!');
-            } catch (err) {
-              console.error('[CHAT-CLEAR-ERROR] Failed to clear chat history:', err);
-              alert(`Failed to clear chat history: ${err.message || err}`);
-            }
+            this.clearChat(
+              '/chat-messages',
+              'Are you sure you want to permanently delete the entire chat history from the database?\n\nThis action cannot be undone.'
+            );
           };
         } else {
           clearHistoryBtn.style.display = 'none';

@@ -1,11 +1,9 @@
 import { socket } from './websocket';
 
 /**
- * VoiceCallController — WebRTC Peer-to-Peer Voice Calling Engine
- * 
- * Manages the full call lifecycle: IDLE → RINGING → CONNECTED → ENDED
- * Uses browser WebRTC APIs for zero-cost audio transport.
- * Signaling is handled through the existing WebSocket/STOMP infrastructure.
+ * VoiceCallController manages the WebRTC peer-to-peer audio calling lifecycle
+ * (IDLE -> RINGING -> CONNECTED -> ENDED).
+ * Signaling is sent over the STOMP/WebSocket connection.
  */
 export class VoiceCallController {
   constructor() {
@@ -21,7 +19,7 @@ export class VoiceCallController {
     this.isCaller = false;
     this._popoverOutsideClickListener = null;
 
-    // ICE servers — free public STUN servers for NAT traversal
+    // Google public STUN servers for NAT traversal
     this.iceConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -30,7 +28,7 @@ export class VoiceCallController {
       ]
     };
 
-    console.log('[VOICECALL] VoiceCallController initialized.');
+    console.log('[VOICECALL] Controller initialized.');
   }
 
   get myUsername() {
@@ -41,20 +39,15 @@ export class VoiceCallController {
     return localStorage.getItem('chat_avatar') || `https://api.dicebear.com/7.x/bottts/svg?seed=${this.myUsername}`;
   }
 
-  /**
-   * Check if voice calling feature is enabled by admin
-   */
   isFeatureEnabled() {
     return window.__featureToggles && window.__featureToggles.voice_calling === true;
   }
 
   /**
-   * Handle incoming signaling messages from WebSocket
+   * Process signaling signals from the WebSocket topic
    */
   handleSignal(payload) {
-    const type = payload.type;
-
-    switch (type) {
+    switch (payload.type) {
       case 'offer':
         this.handleIncomingOffer(payload);
         break;
@@ -68,66 +61,53 @@ export class VoiceCallController {
         this.handleRemoteHangup(payload);
         break;
       default:
-        console.warn('[VOICECALL] Unknown signal type:', type);
+        console.warn('[VOICECALL] Unknown signal type:', payload.type);
     }
   }
 
   /**
-   * Post direct message containing call log info on behalf of the caller
+   * Save a call log message into the DM history (caller only)
    */
   saveCallLog(logMessage) {
-    if (!this.isCaller) return; // Only caller records DM call log to prevent duplicates
-    if (!this.callPartner) return;
+    if (!this.isCaller || !this.callPartner) return;
     
-    const payload = {
+    socket.send('/app/chat.send', {
       username: this.myUsername,
       avatarUrl: this.myAvatar,
       message: `[DM:${this.callPartner}] 📞 ${logMessage}`
-    };
-    
-    console.log('[VOICECALL-LOG] Saving call log message to DM:', payload);
-    socket.send('/app/chat.send', payload);
+    });
   }
 
-  /* =========================================================================
-     Outgoing Call Flow
-     ========================================================================= */
+  // --- Outgoing Call flow ---
 
   async initiateCall(targetUsername, targetAvatar) {
     if (!this.isFeatureEnabled()) {
-      console.warn('[VOICECALL] Voice calling is disabled by admin.');
+      console.warn('[VOICECALL] Calling features are disabled.');
       return;
     }
 
     if (this.state !== 'IDLE') {
-      console.warn('[VOICECALL] Cannot initiate call — already in state:', this.state);
+      console.warn('[VOICECALL] Cannot call, active state is:', this.state);
       return;
     }
 
-    console.log(`[VOICECALL] Initiating call to ${targetUsername}...`);
+    console.log(`[VOICECALL] Dialing ${targetUsername}...`);
     this.callPartner = targetUsername;
     this.callPartnerAvatar = targetAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${targetUsername}`;
     this.state = 'OUTGOING_RING';
     this.isCaller = true;
 
     try {
-      // Request microphone access
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('[VOICECALL] Microphone access granted.');
-
-      // Create RTCPeerConnection
       this.createPeerConnection();
 
-      // Add local audio tracks to the connection
       this.localStream.getTracks().forEach(track => {
         this.peerConnection.addTrack(track, this.localStream);
       });
 
-      // Create SDP offer
       const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
 
-      // Send offer to target via WebSocket
       socket.send('/app/call.offer', {
         type: 'offer',
         caller: this.myUsername,
@@ -136,39 +116,36 @@ export class VoiceCallController {
         sdp: offer.sdp
       });
 
-      console.log('[VOICECALL] SDP Offer sent to', targetUsername);
       this.startOutgoingRing();
       this.showOutgoingCallUI();
 
-      // Auto-timeout after 30 seconds of no answer
+      // 30 seconds ringback timeout
       this._ringTimeout = setTimeout(() => {
         if (this.state === 'OUTGOING_RING') {
-          console.log('[VOICECALL] Call timed out — no answer.');
+          console.log('[VOICECALL] Call timed out.');
           this.saveCallLog('Missed voice call');
           this.hangUp();
         }
       }, 30000);
 
     } catch (err) {
-      console.error('[VOICECALL] Failed to initiate call:', err);
+      console.error('[VOICECALL] Call failed to initialize:', err);
       this.state = 'IDLE';
       this.cleanup();
 
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Microphone access is required to make voice calls. Please allow microphone permission and try again.');
+        alert('Microphone access is required to make calls.');
       } else {
-        alert('Failed to start call: ' + (err.message || err));
+        alert('Could not start call: ' + (err.message || err));
       }
     }
   }
 
-  /* =========================================================================
-     Incoming Call Flow
-     ========================================================================= */
+  // --- Incoming Call flow ---
 
   async handleIncomingOffer(payload) {
     if (this.state !== 'IDLE') {
-      // Already in a call — send busy signal (hangup)
+      // Send busy signal if already in a call
       socket.send('/app/call.hangup', {
         type: 'hangup',
         caller: this.myUsername,
@@ -178,39 +155,32 @@ export class VoiceCallController {
       return;
     }
 
-    console.log(`[VOICECALL] Incoming call from ${payload.caller}`);
+    console.log(`[VOICECALL] Call from ${payload.caller}`);
     this.callPartner = payload.caller;
     this.callPartnerAvatar = payload.callerAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.caller}`;
     this.state = 'INCOMING_RING';
     this.isCaller = false;
     this._pendingOffer = payload;
 
-    // Play incoming ringtone sound
     this.startIncomingRing();
-
     this.showIncomingCallUI();
   }
 
   async acceptCall() {
     if (this.state !== 'INCOMING_RING' || !this._pendingOffer) return;
 
-    console.log('[VOICECALL] Accepting call from', this.callPartner);
-
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       this.createPeerConnection();
 
       this.localStream.getTracks().forEach(track => {
         this.peerConnection.addTrack(track, this.localStream);
       });
 
-      // Set the remote offer
       await this.peerConnection.setRemoteDescription(
         new RTCSessionDescription({ type: 'offer', sdp: this._pendingOffer.sdp })
       );
 
-      // Create and send answer
       const answer = await this.peerConnection.createAnswer();
       await this.peerConnection.setLocalDescription(answer);
 
@@ -221,7 +191,6 @@ export class VoiceCallController {
         sdp: answer.sdp
       });
 
-      // Flush any ICE candidates queued before remote description was set
       if (this._pendingIceCandidates) {
         for (const candidate of this._pendingIceCandidates) {
           await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -234,15 +203,13 @@ export class VoiceCallController {
       this.onCallConnected();
 
     } catch (err) {
-      console.error('[VOICECALL] Failed to accept call:', err);
+      console.error('[VOICECALL] Could not accept call:', err);
       this.hangUp();
     }
   }
 
   declineCall() {
     if (this.state !== 'INCOMING_RING') return;
-
-    console.log('[VOICECALL] Declining call from', this.callPartner);
 
     socket.send('/app/call.hangup', {
       type: 'hangup',
@@ -257,21 +224,16 @@ export class VoiceCallController {
     this.cleanup();
   }
 
-  /* =========================================================================
-     Signal Handlers
-     ========================================================================= */
+  // --- Signaling Handlers ---
 
   async handleIncomingAnswer(payload) {
     if (this.state !== 'OUTGOING_RING') return;
-
-    console.log('[VOICECALL] Received SDP answer from', payload.caller);
 
     try {
       await this.peerConnection.setRemoteDescription(
         new RTCSessionDescription({ type: 'answer', sdp: payload.sdp })
       );
 
-      // Flush queued ICE candidates
       if (this._pendingIceCandidates) {
         for (const candidate of this._pendingIceCandidates) {
           await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -288,7 +250,7 @@ export class VoiceCallController {
       this.onCallConnected();
 
     } catch (err) {
-      console.error('[VOICECALL] Failed to process answer:', err);
+      console.error('[VOICECALL] Error processing answer:', err);
       this.hangUp();
     }
   }
@@ -300,28 +262,25 @@ export class VoiceCallController {
       if (this.peerConnection && this.peerConnection.remoteDescription) {
         await this.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
       } else {
-        // Queue ICE candidates until remote description is set
         if (!this._pendingIceCandidates) this._pendingIceCandidates = [];
         this._pendingIceCandidates.push(payload.candidate);
       }
     } catch (err) {
-      console.warn('[VOICECALL] Failed to add ICE candidate:', err);
+      console.warn('[VOICECALL] Error adding ICE candidate:', err);
     }
   }
 
   handleRemoteHangup(payload) {
-    console.log('[VOICECALL] Remote hangup from', payload.caller, '— reason:', payload.reason || 'normal');
-    
     if (this.state === 'OUTGOING_RING') {
       if (payload.reason === 'busy') {
         this.saveCallLog('User is busy');
         if (window.app) {
-          window.app.showNotificationToast('📞 Call Failed', `${this.callPartner} is busy on another call.`, 'UNASSIGNMENT');
+          window.app.showNotificationToast('📞 Call Failed', `${this.callPartner} is busy.`, 'UNASSIGNMENT');
         }
       } else if (payload.reason === 'declined') {
         this.saveCallLog('Declined voice call');
         if (window.app) {
-          window.app.showNotificationToast('📞 Call Declined', `${this.callPartner} declined your call.`, 'UNASSIGNMENT');
+          window.app.showNotificationToast('📞 Call Declined', `${this.callPartner} declined.`, 'UNASSIGNMENT');
         }
       } else {
         this.saveCallLog('Missed voice call');
@@ -331,14 +290,11 @@ export class VoiceCallController {
     this.endCall();
   }
 
-  /* =========================================================================
-     RTCPeerConnection Setup
-     ========================================================================= */
+  // --- RTCPeerConnection Setup ---
 
   createPeerConnection() {
     this.peerConnection = new RTCPeerConnection(this.iceConfig);
 
-    // ICE candidate events — send to remote peer
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         socket.send('/app/call.ice', {
@@ -350,22 +306,16 @@ export class VoiceCallController {
       }
     };
 
-    // Connection state monitoring
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection.connectionState;
-      console.log('[VOICECALL] Connection state:', state);
-
       if (state === 'failed' || state === 'disconnected' || state === 'closed') {
         if (this.state === 'CONNECTED') {
-          console.log('[VOICECALL] Connection lost — ending call.');
           this.endCall();
         }
       }
     };
 
-    // Receive remote audio stream
     this.peerConnection.ontrack = (event) => {
-      console.log('[VOICECALL] Remote audio track received.');
       this.remoteAudio = document.getElementById('remoteAudio');
       if (this.remoteAudio && event.streams[0]) {
         this.remoteAudio.srcObject = event.streams[0];
@@ -373,9 +323,7 @@ export class VoiceCallController {
     };
   }
 
-  /* =========================================================================
-     Call Controls
-     ========================================================================= */
+  // --- Call Controls ---
 
   toggleMute() {
     if (!this.localStream) return;
@@ -384,14 +332,11 @@ export class VoiceCallController {
     if (audioTrack) {
       this.isMuted = !this.isMuted;
       audioTrack.enabled = !this.isMuted;
-      console.log('[VOICECALL] Mute toggled:', this.isMuted ? 'MUTED' : 'UNMUTED');
       this.updateMuteUI();
     }
   }
 
   hangUp() {
-    console.log('[VOICECALL] Hanging up call with', this.callPartner);
-
     if (this.state === 'OUTGOING_RING') {
       this.saveCallLog('Missed voice call');
     }
@@ -428,9 +373,7 @@ export class VoiceCallController {
     this.cleanup();
   }
 
-  /* =========================================================================
-     Audio Synthesis Ringback & Ringtone
-     ========================================================================= */
+  // --- Tone Synthesizers for Calling ---
 
   startOutgoingRing() {
     this.stopRinging();
@@ -441,15 +384,12 @@ export class VoiceCallController {
         if (this.state !== 'OUTGOING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        // Standard US dual-frequency ringback: 440Hz + 480Hz
+        // 440Hz + 480Hz US ringback tone
         const osc1 = this.audioCtx.createOscillator();
         const osc2 = this.audioCtx.createOscillator();
         const gainNode = this.audioCtx.createGain();
         
-        osc1.type = 'sine';
         osc1.frequency.setValueAtTime(440, now);
-        
-        osc2.type = 'sine';
         osc2.frequency.setValueAtTime(480, now);
         
         gainNode.gain.setValueAtTime(0, now);
@@ -463,7 +403,6 @@ export class VoiceCallController {
         
         osc1.start(now);
         osc2.start(now);
-        
         osc1.stop(now + 2.0);
         osc2.stop(now + 2.0);
       };
@@ -471,7 +410,7 @@ export class VoiceCallController {
       playRingCycle();
       this.ringInterval = setInterval(playRingCycle, 5000);
     } catch (e) {
-      console.warn('[VOICECALL] Failed to play outgoing ring sound:', e);
+      console.warn('[VOICECALL] Outgoing ring sound failed:', e);
     }
   }
 
@@ -484,8 +423,7 @@ export class VoiceCallController {
         if (this.state !== 'INCOMING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        // Premium, futuristic pentatonic ascending arpeggio melody (Teams-like but distinct)
-        // E5 (659.25), A5 (880.00), B5 (987.77), E6 (1318.51)
+        // Pentatonic ascending arpeggio melody
         const melody = [
           { freq: 659.25, time: 0.0, dur: 0.12 },
           { freq: 880.00, time: 0.12, dur: 0.12 },
@@ -499,7 +437,7 @@ export class VoiceCallController {
           const osc = this.audioCtx.createOscillator();
           const gainNode = this.audioCtx.createGain();
           
-          osc.type = 'triangle'; // Warmer, bell-like tone
+          osc.type = 'triangle';
           osc.frequency.setValueAtTime(note.freq, now + note.time);
           
           gainNode.gain.setValueAtTime(0, now + note.time);
@@ -517,7 +455,7 @@ export class VoiceCallController {
       playMelodyCycle();
       this.ringInterval = setInterval(playMelodyCycle, 2000);
     } catch (e) {
-      console.warn('[VOICECALL] Failed to play incoming ring sound:', e);
+      console.warn('[VOICECALL] Incoming ring sound failed:', e);
     }
   }
 
@@ -539,30 +477,25 @@ export class VoiceCallController {
   cleanup() {
     this.stopRinging();
 
-    // Close settings popover
     const popover = document.getElementById('callDevicePopover');
     if (popover) {
       popover.classList.add('hidden');
     }
 
-    // Stop local microphone tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
     }
 
-    // Close peer connection
     if (this.peerConnection) {
       this.peerConnection.close();
       this.peerConnection = null;
     }
 
-    // Clear remote audio
     if (this.remoteAudio) {
       this.remoteAudio.srcObject = null;
     }
 
-    // Stop timer
     if (this.callTimerInterval) {
       clearInterval(this.callTimerInterval);
       this.callTimerInterval = null;
@@ -576,12 +509,7 @@ export class VoiceCallController {
     this._pendingIceCandidates = [];
   }
 
-  /* =========================================================================
-     Call Connected Handler
-     ========================================================================= */
-
   onCallConnected() {
-    console.log('[VOICECALL] ✅ Call connected with', this.callPartner);
     this.stopRinging();
     this.callStartTime = Date.now();
     this.hideIncomingCallUI();
@@ -589,9 +517,7 @@ export class VoiceCallController {
     this.showActiveCallUI();
   }
 
-  /* =========================================================================
-     Audio Device Management
-     ========================================================================= */
+  // --- Audio Device Management ---
 
   async toggleDevicePopover() {
     const popover = document.getElementById('callDevicePopover');
@@ -616,14 +542,13 @@ export class VoiceCallController {
     
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      
       const audioInputs = devices.filter(device => device.kind === 'audioinput');
       const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
       
-      audioInputs.forEach((device, index) => {
+      audioInputs.forEach((device, idx) => {
         const option = document.createElement('option');
         option.value = device.deviceId;
-        option.textContent = device.label || `Microphone ${index + 1}`;
+        option.textContent = device.label || `Microphone ${idx + 1}`;
         if (this.localStream) {
           const currentTrack = this.localStream.getAudioTracks()[0];
           if (currentTrack && currentTrack.getSettings().deviceId === device.deviceId) {
@@ -633,32 +558,26 @@ export class VoiceCallController {
         micSelect.appendChild(option);
       });
       
-      audioOutputs.forEach((device, index) => {
+      audioOutputs.forEach((device, idx) => {
         const option = document.createElement('option');
         option.value = device.deviceId;
-        option.textContent = device.label || `Speaker ${index + 1}`;
+        option.textContent = device.label || `Speaker ${idx + 1}`;
         if (this.remoteAudio && this.remoteAudio.sinkId === device.deviceId) {
           option.selected = true;
         }
         speakerSelect.appendChild(option);
       });
       
-      micSelect.onchange = async () => {
-        await this.switchMicrophone(micSelect.value);
-      };
-      
-      speakerSelect.onchange = async () => {
-        await this.switchSpeaker(speakerSelect.value);
-      };
+      micSelect.onchange = () => this.switchMicrophone(micSelect.value);
+      speakerSelect.onchange = () => this.switchSpeaker(speakerSelect.value);
       
     } catch (err) {
-      console.error('[VOICECALL] Failed to enumerate audio devices:', err);
+      console.error('[VOICECALL] Error listing audio devices:', err);
     }
   }
 
   async switchMicrophone(deviceId) {
     if (!this.localStream) return;
-    console.log('[VOICECALL] Switching microphone to device ID:', deviceId);
     
     try {
       const currentTrack = this.localStream.getAudioTracks()[0];
@@ -677,127 +596,111 @@ export class VoiceCallController {
         const sender = senders.find(s => s.track && s.track.kind === 'audio');
         if (sender) {
           await sender.replaceTrack(newTrack);
-          console.log('[VOICECALL] WebRTC sender track successfully replaced.');
         }
       }
       
       this.localStream = newStream;
       
     } catch (err) {
-      console.error('[VOICECALL] Failed to switch microphone:', err);
-      alert('Failed to switch microphone: ' + (err.message || err));
+      console.error('[VOICECALL] Microphone switch failed:', err);
+      alert('Failed to switch microphone.');
     }
   }
 
   async switchSpeaker(deviceId) {
     this.remoteAudio = document.getElementById('remoteAudio');
-    if (!this.remoteAudio) {
-      console.warn('[VOICECALL] remoteAudio element not found.');
-      return;
-    }
+    if (!this.remoteAudio) return;
     
     if (typeof this.remoteAudio.setSinkId === 'function') {
       try {
-        console.log('[VOICECALL] Switching speaker/sinkId to:', deviceId);
         await this.remoteAudio.setSinkId(deviceId);
-        console.log('[VOICECALL] Speaker sinkId successfully set.');
       } catch (err) {
-        console.error('[VOICECALL] Failed to set sinkId on audio element:', err);
-        alert('Failed to switch speaker: ' + (err.message || err));
+        console.error('[VOICECALL] Speaker switch failed:', err);
+        alert('Failed to switch speaker.');
       }
     } else {
-      console.warn('[VOICECALL] setSinkId() is not supported in this browser.');
       alert('Speaker switching is not supported by your browser.');
     }
   }
 
-  /* =========================================================================
-     UI Rendering
-     ========================================================================= */
+  // --- UI Overlay Helpers ---
 
-  showIncomingCallUI() {
-    // Remove any existing overlay
-    this.hideIncomingCallUI();
+  removeUIElement(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('closing');
+      setTimeout(() => el.remove(), 300);
+    }
+  }
 
+  createCallOverlay(id, label, buttonsHtml, bindFn) {
     const container = document.getElementById('chatContainer');
     if (!container) return;
 
     const overlay = document.createElement('div');
-    overlay.id = 'incomingCallOverlay';
+    overlay.id = id;
     overlay.className = 'incoming-call-overlay';
     overlay.innerHTML = `
       <div class="incoming-call__avatar-ring">
         <img class="incoming-call__avatar" src="${this.callPartnerAvatar}" alt="${this.callPartner}">
       </div>
-      <span class="incoming-call__label">Incoming Voice Call</span>
+      <span class="incoming-call__label">${label}</span>
       <span class="incoming-call__username">${this.callPartner}</span>
       <div class="incoming-call__actions">
-        <button class="call-action-btn" id="acceptCallBtn">
-          <span class="call-action-btn__circle call-action-btn__circle--accept">
-            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-          </span>
-          <span class="call-action-btn__label">Accept</span>
-        </button>
-        <button class="call-action-btn" id="declineCallBtn">
-          <span class="call-action-btn__circle call-action-btn__circle--decline">
-            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
-          </span>
-          <span class="call-action-btn__label">Decline</span>
-        </button>
+        ${buttonsHtml}
       </div>
     `;
-
     container.appendChild(overlay);
+    bindFn();
+  }
 
-    // Bind button events
-    document.getElementById('acceptCallBtn').onclick = () => this.acceptCall();
-    document.getElementById('declineCallBtn').onclick = () => this.declineCall();
+  showIncomingCallUI() {
+    this.hideIncomingCallUI();
+    
+    const buttons = `
+      <button class="call-action-btn" id="acceptCallBtn">
+        <span class="call-action-btn__circle call-action-btn__circle--accept">
+          <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        </span>
+        <span class="call-action-btn__label">Accept</span>
+      </button>
+      <button class="call-action-btn" id="declineCallBtn">
+        <span class="call-action-btn__circle call-action-btn__circle--decline">
+          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
+        </span>
+        <span class="call-action-btn__label">Decline</span>
+      </button>
+    `;
+    
+    this.createCallOverlay('incomingCallOverlay', 'Incoming Voice Call', buttons, () => {
+      document.getElementById('acceptCallBtn').onclick = () => this.acceptCall();
+      document.getElementById('declineCallBtn').onclick = () => this.declineCall();
+    });
   }
 
   hideIncomingCallUI() {
-    const overlay = document.getElementById('incomingCallOverlay');
-    if (overlay) {
-      overlay.classList.add('closing');
-      setTimeout(() => overlay.remove(), 300);
-    }
+    this.removeUIElement('incomingCallOverlay');
   }
 
   showOutgoingCallUI() {
     this.hideOutgoingCallUI();
-
-    const container = document.getElementById('chatContainer');
-    if (!container) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'outgoingCallOverlay';
-    overlay.className = 'incoming-call-overlay';
-    overlay.innerHTML = `
-      <div class="incoming-call__avatar-ring">
-        <img class="incoming-call__avatar" src="${this.callPartnerAvatar}" alt="${this.callPartner}">
-      </div>
-      <span class="incoming-call__label">Calling...</span>
-      <span class="incoming-call__username">${this.callPartner}</span>
-      <div class="incoming-call__actions">
-        <button class="call-action-btn" id="cancelCallBtn">
-          <span class="call-action-btn__circle call-action-btn__circle--decline">
-            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
-          </span>
-          <span class="call-action-btn__label">Cancel</span>
-        </button>
-      </div>
+    
+    const buttons = `
+      <button class="call-action-btn" id="cancelCallBtn">
+        <span class="call-action-btn__circle call-action-btn__circle--decline">
+          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
+        </span>
+        <span class="call-action-btn__label">Cancel</span>
+      </button>
     `;
-
-    container.appendChild(overlay);
-
-    document.getElementById('cancelCallBtn').onclick = () => this.hangUp();
+    
+    this.createCallOverlay('outgoingCallOverlay', 'Calling...', buttons, () => {
+      document.getElementById('cancelCallBtn').onclick = () => this.hangUp();
+    });
   }
 
   hideOutgoingCallUI() {
-    const overlay = document.getElementById('outgoingCallOverlay');
-    if (overlay) {
-      overlay.classList.add('closing');
-      setTimeout(() => overlay.remove(), 300);
-    }
+    this.removeUIElement('outgoingCallOverlay');
   }
 
   showActiveCallUI() {
@@ -806,11 +709,10 @@ export class VoiceCallController {
     const chatPanel = document.querySelector('#chatContainer .chat-panel');
     if (!chatPanel) return;
 
-    // Override active-call-bar overflow property dynamically when showing popover
     const bar = document.createElement('div');
     bar.id = 'activeCallBar';
     bar.className = 'active-call-bar';
-    bar.style.overflow = 'visible'; // Ensure settings popover doesn't clip
+    bar.style.overflow = 'visible';
     bar.innerHTML = `
       <div class="active-call-bar__pulse"></div>
       <div class="active-call-bar__info">
@@ -841,7 +743,6 @@ export class VoiceCallController {
       </div>
     `;
 
-    // Insert after chat-panel-header
     const header = chatPanel.querySelector('.chat-panel-header');
     if (header && header.nextSibling) {
       chatPanel.insertBefore(bar, header.nextSibling);
@@ -849,7 +750,6 @@ export class VoiceCallController {
       chatPanel.appendChild(bar);
     }
 
-    // Bind controls
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
     document.getElementById('deviceSettingsBtn').onclick = (e) => {
       e.stopPropagation();
@@ -857,7 +757,6 @@ export class VoiceCallController {
     };
     document.getElementById('hangupCallBtn').onclick = () => this.hangUp();
 
-    // Bind document click to dismiss popover when clicking outside
     this._popoverOutsideClickListener = (e) => {
       const popover = document.getElementById('callDevicePopover');
       const settingsBtn = document.getElementById('deviceSettingsBtn');
@@ -869,7 +768,6 @@ export class VoiceCallController {
     };
     document.addEventListener('click', this._popoverOutsideClickListener);
 
-    // Start call timer
     this.callTimerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.callStartTime) / 1000);
       const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -880,11 +778,7 @@ export class VoiceCallController {
   }
 
   hideActiveCallUI() {
-    const bar = document.getElementById('activeCallBar');
-    if (bar) {
-      bar.classList.add('closing');
-      setTimeout(() => bar.remove(), 300);
-    }
+    this.removeUIElement('activeCallBar');
 
     if (this.callTimerInterval) {
       clearInterval(this.callTimerInterval);
@@ -900,13 +794,8 @@ export class VoiceCallController {
   updateMuteUI() {
     const muteBtn = document.getElementById('muteCallBtn');
     if (muteBtn) {
-      if (this.isMuted) {
-        muteBtn.classList.add('muted');
-        muteBtn.title = 'Unmute';
-      } else {
-        muteBtn.classList.remove('muted');
-        muteBtn.title = 'Mute';
-      }
+      muteBtn.classList.toggle('muted', this.isMuted);
+      muteBtn.title = this.isMuted ? 'Unmute' : 'Mute';
     }
   }
 }
