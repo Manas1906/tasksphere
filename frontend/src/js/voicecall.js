@@ -21,6 +21,7 @@ export class VoiceCallController {
     this._popoverOutsideClickListener = null;
     this._originalVideoTrack = null;
     this._screenStream = null;
+    this._connectionGraceTimeout = null;
 
     // ICE servers for NAT traversal — STUN + free public TURN fallback
     this.iceConfig = {
@@ -182,6 +183,32 @@ export class VoiceCallController {
   // --- Incoming Call flow ---
 
   async handleIncomingOffer(payload) {
+    if (this.state === 'CONNECTED' && this.callPartner === payload.caller) {
+      console.log('[VOICECALL] Received renegotiation offer from partner:', payload.callType);
+      try {
+        await this.peerConnection.setRemoteDescription(
+          new RTCSessionDescription({ type: 'offer', sdp: payload.sdp })
+        );
+        const answer = await this.peerConnection.createAnswer();
+        await this.peerConnection.setLocalDescription(answer);
+
+        socket.send('/app/call.answer', {
+          type: 'answer',
+          caller: this.myUsername,
+          target: this.callPartner,
+          sdp: answer.sdp
+        });
+
+        if (payload.callType) {
+          this.callType = payload.callType;
+          this.updateCallLayout();
+        }
+      } catch (err) {
+        console.error('[VOICECALL] Error processing renegotiation offer:', err);
+      }
+      return;
+    }
+
     if (this.state !== 'IDLE') {
       socket.send('/app/call.hangup', {
         type: 'hangup',
@@ -282,9 +309,10 @@ export class VoiceCallController {
   // --- Signaling Handlers ---
 
   async handleIncomingAnswer(payload) {
-    if (this.state !== 'OUTGOING_RING') return;
+    if (this.state !== 'OUTGOING_RING' && this.state !== 'CONNECTED') return;
 
     try {
+      console.log('[VOICECALL] Processing remote answer...');
       await this.peerConnection.setRemoteDescription(
         new RTCSessionDescription({ type: 'answer', sdp: payload.sdp })
       );
@@ -296,17 +324,23 @@ export class VoiceCallController {
         this._pendingIceCandidates = [];
       }
 
-      if (this._ringTimeout) {
-        clearTimeout(this._ringTimeout);
-        this._ringTimeout = null;
+      if (this.state === 'OUTGOING_RING') {
+        if (this._ringTimeout) {
+          clearTimeout(this._ringTimeout);
+          this._ringTimeout = null;
+        }
+        this.state = 'CONNECTED';
+        this.onCallConnected();
+      } else {
+        // Just update call layout if renegotiating during active call
+        this.updateCallLayout();
       }
-
-      this.state = 'CONNECTED';
-      this.onCallConnected();
 
     } catch (err) {
       console.error('[VOICECALL] Error processing answer:', err);
-      this.hangUp();
+      if (this.state === 'OUTGOING_RING') {
+        this.hangUp();
+      }
     }
   }
 
@@ -348,7 +382,11 @@ export class VoiceCallController {
   // --- RTCPeerConnection Setup ---
 
   createPeerConnection() {
-    this.peerConnection = new RTCPeerConnection(this.iceConfig);
+    this.peerConnection = new RTCPeerConnection({
+      ...this.iceConfig,
+      sdpSemantics: 'unified-plan',
+      iceCandidatePoolSize: 10
+    });
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -363,7 +401,30 @@ export class VoiceCallController {
 
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection.connectionState;
-      if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+      console.log(`[VOICECALL] Connection state changed: ${state}`);
+      
+      if (state === 'failed') {
+        console.warn('[VOICECALL] Connection state: failed. Waiting 5s grace period...');
+        this._connectionGraceTimeout = setTimeout(() => {
+          if (this.peerConnection && (this.peerConnection.connectionState === 'failed' || this.peerConnection.connectionState === 'disconnected')) {
+            console.error('[VOICECALL] Grace period expired. Connection failed, hanging up.');
+            this.endCall();
+          }
+        }, 5000);
+      } else if (state === 'disconnected') {
+        console.warn('[VOICECALL] Connection state: disconnected. Waiting 7s grace period...');
+        this._connectionGraceTimeout = setTimeout(() => {
+          if (this.peerConnection && this.peerConnection.connectionState === 'disconnected') {
+            console.error('[VOICECALL] Grace period expired. Connection disconnected, hanging up.');
+            this.endCall();
+          }
+        }, 7000);
+      } else if (state === 'connected') {
+        if (this._connectionGraceTimeout) {
+          clearTimeout(this._connectionGraceTimeout);
+          this._connectionGraceTimeout = null;
+        }
+      } else if (state === 'closed') {
         if (this.state === 'CONNECTED') {
           this.endCall();
         }
@@ -584,36 +645,39 @@ export class VoiceCallController {
     try {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      const playRingCycle = () => {
+      const playPulse = () => {
         if (this.state !== 'OUTGOING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        const osc1 = this.audioCtx.createOscillator();
-        const osc2 = this.audioCtx.createOscillator();
+        // E4, G4, C5 (C Major triad) for a warm sonar-like swell
+        const freqs = [329.63, 392.00, 523.25];
+        
         const gainNode = this.audioCtx.createGain();
-        
-        osc1.frequency.setValueAtTime(440, now);
-        osc2.frequency.setValueAtTime(480, now);
-        
         gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.1);
-        gainNode.gain.setValueAtTime(0.08, now + 1.9);
-        gainNode.gain.linearRampToValueAtTime(0, now + 2.0);
+        gainNode.gain.linearRampToValueAtTime(0.04, now + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
         
-        osc1.connect(gainNode);
-        osc2.connect(gainNode);
-        gainNode.connect(this.audioCtx.destination);
+        const filter = this.audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
         
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 2.0);
-        osc2.stop(now + 2.0);
+        freqs.forEach(freq => {
+          const osc = this.audioCtx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.connect(gainNode);
+          osc.start(now);
+          osc.stop(now + 2.0);
+        });
+        
+        gainNode.connect(filter);
+        filter.connect(this.audioCtx.destination);
       };
       
-      playRingCycle();
-      this.ringInterval = setInterval(playRingCycle, 5000);
+      playPulse();
+      this.ringInterval = setInterval(playPulse, 3000);
     } catch (e) {
-      console.warn('[VOICECALL] Outgoing ring sound failed:', e);
+      console.warn('[VOICECALL] Premium outgoing ring failed:', e);
     }
   }
 
@@ -622,42 +686,82 @@ export class VoiceCallController {
     try {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      const playMelodyCycle = () => {
+      const playPremiumMelody = () => {
         if (this.state !== 'INCOMING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        const melody = [
-          { freq: 659.25, time: 0.0, dur: 0.12 },
-          { freq: 880.00, time: 0.12, dur: 0.12 },
-          { freq: 987.77, time: 0.24, dur: 0.12 },
-          { freq: 1318.51, time: 0.36, dur: 0.35 },
-          { freq: 987.77, time: 0.8, dur: 0.12 },
-          { freq: 1318.51, time: 0.92, dur: 0.35 }
+        const playNote = (freq, time, duration) => {
+          // Fundamental sine wave
+          const osc1 = this.audioCtx.createOscillator();
+          const gain1 = this.audioCtx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(freq, now + time);
+          gain1.gain.setValueAtTime(0, now + time);
+          gain1.gain.linearRampToValueAtTime(0.08, now + time + 0.02);
+          gain1.gain.exponentialRampToValueAtTime(0.0001, now + time + duration);
+          
+          // Harmonic overtone 1 (1.5x frequency)
+          const osc2 = this.audioCtx.createOscillator();
+          const gain2 = this.audioCtx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(freq * 1.5, now + time);
+          gain2.gain.setValueAtTime(0, now + time);
+          gain2.gain.linearRampToValueAtTime(0.04, now + time + 0.01);
+          gain2.gain.exponentialRampToValueAtTime(0.0001, now + time + duration * 0.8);
+          
+          // Harmonic overtone 2 (2.0x frequency)
+          const osc3 = this.audioCtx.createOscillator();
+          const gain3 = this.audioCtx.createGain();
+          osc3.type = 'sine';
+          osc3.frequency.setValueAtTime(freq * 2.0, now + time);
+          gain3.gain.setValueAtTime(0, now + time);
+          gain3.gain.linearRampToValueAtTime(0.02, now + time + 0.01);
+          gain3.gain.exponentialRampToValueAtTime(0.0001, now + time + duration * 0.5);
+
+          // Lowpass filter for warmth
+          const filter = this.audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1500, now + time);
+          
+          osc1.connect(gain1);
+          osc2.connect(gain2);
+          osc3.connect(gain3);
+          
+          gain1.connect(filter);
+          gain2.connect(filter);
+          gain3.connect(filter);
+          
+          filter.connect(this.audioCtx.destination);
+          
+          osc1.start(now + time);
+          osc2.start(now + time);
+          osc3.start(now + time);
+          
+          osc1.stop(now + time + duration);
+          osc2.stop(now + time + duration);
+          osc3.stop(now + time + duration);
+        };
+        
+        // Pentatonic scale arpeggio (Am7/F-ish layout - E5, A5, B5, E6, D6, A5, B5, E6)
+        const notes = [
+          { freq: 659.25, time: 0.0, dur: 0.8 },
+          { freq: 880.00, time: 0.15, dur: 0.8 },
+          { freq: 987.77, time: 0.3, dur: 0.8 },
+          { freq: 1318.51, time: 0.45, dur: 1.2 },
+          
+          { freq: 1174.66, time: 0.8, dur: 0.8 },
+          { freq: 880.00, time: 0.95, dur: 0.8 },
+          { freq: 987.77, time: 1.1, dur: 0.8 },
+          { freq: 1318.51, time: 1.25, dur: 1.5 }
         ];
         
-        melody.forEach(note => {
-          const osc = this.audioCtx.createOscillator();
-          const gainNode = this.audioCtx.createGain();
-          
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(note.freq, now + note.time);
-          
-          gainNode.gain.setValueAtTime(0, now + note.time);
-          gainNode.gain.linearRampToValueAtTime(0.12, now + note.time + 0.02);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
-          
-          osc.connect(gainNode);
-          gainNode.connect(this.audioCtx.destination);
-          
-          osc.start(now + note.time);
-          osc.stop(now + note.time + note.dur);
-        });
+        notes.forEach(n => playNote(n.freq, n.time, n.dur));
       };
       
-      playMelodyCycle();
-      this.ringInterval = setInterval(playMelodyCycle, 2000);
+      playPremiumMelody();
+      this.ringInterval = setInterval(playPremiumMelody, 3500);
     } catch (e) {
-      console.warn('[VOICECALL] Incoming ring sound failed:', e);
+      console.warn('[VOICECALL] Premium incoming ring failed:', e);
     }
   }
 
@@ -678,6 +782,11 @@ export class VoiceCallController {
 
   cleanup() {
     this.stopRinging();
+
+    if (this._connectionGraceTimeout) {
+      clearTimeout(this._connectionGraceTimeout);
+      this._connectionGraceTimeout = null;
+    }
 
     const popover = document.getElementById('callDevicePopover');
     if (popover) {
@@ -934,8 +1043,8 @@ export class VoiceCallController {
     overlay.id = 'activeCallOverlay';
     overlay.className = 'active-call-overlay';
     
-    // Setup blurred background image of target user if available, fallback to dark blue gradient
-    overlay.style.backgroundImage = `radial-gradient(circle at center, rgba(15, 23, 42, 0.85) 0%, #0b0e14 100%)`;
+    // Microsoft Teams Signature Dark Slate Background
+    overlay.style.backgroundColor = '#111214';
 
     overlay.innerHTML = `
       <div class="active-call__header">
@@ -944,29 +1053,41 @@ export class VoiceCallController {
         <span class="active-call__timer" id="callTimer">00:00</span>
       </div>
       
-      <!-- Voice Call Centered Container -->
-      <div class="active-call__voice-content">
-        <div class="active-call__avatar-pulse">
-          <img src="${this.callPartnerAvatar}" alt="${this.callPartner}" class="active-call__avatar">
+      <!-- Teams-style Voice Call Layout -->
+      <div class="active-call__voice-content teams-voice-grid">
+        <div class="teams-user-card" id="localVoiceCard">
+          <div class="teams-user-avatar-wrap">
+            <img src="${this.myAvatar}" alt="${this.myUsername}" class="teams-user-avatar">
+            <div class="teams-speaking-halo"></div>
+          </div>
+          <span class="teams-user-name">You</span>
+        </div>
+        <div class="teams-user-card" id="remoteVoiceCard">
+          <div class="teams-user-avatar-wrap">
+            <img src="${this.callPartnerAvatar}" alt="${this.callPartner}" class="teams-user-avatar">
+            <div class="teams-speaking-halo"></div>
+          </div>
+          <span class="teams-user-name">${this.callPartner}</span>
         </div>
       </div>
 
-      <!-- Video Call Grid Layout -->
-      <div class="active-call__video-grid" id="activeCallVideoGrid" style="display: none;">
-        <!-- Remote Stream (Full Screen background inside the overlay) -->
-        <div class="active-call__video-box active-call__video-box--remote">
+      <!-- Teams-style Video Call Grid Layout -->
+      <div class="active-call__video-grid teams-video-grid" id="activeCallVideoGrid" style="display: none;">
+        <!-- Remote Stream Box -->
+        <div class="active-call__video-box active-call__video-box--remote" id="remoteVideoBox">
           <video id="remoteVideo" autoplay playsinline></video>
+          <div class="teams-video-label">${this.callPartner}</div>
         </div>
-        <!-- Local Stream (Small floating card in top-right) -->
-        <div class="active-call__video-box active-call__video-box--local">
+        <!-- Local Stream Box -->
+        <div class="active-call__video-box active-call__video-box--local" id="localVideoBox">
           <video id="localVideo" autoplay playsinline muted></video>
-          <div class="active-call__local-label">You</div>
+          <div class="teams-video-label">You</div>
         </div>
       </div>
 
-      <!-- Floating Glassmorphic Controls Pill -->
+      <!-- Teams-style Controls Dock -->
       <div class="active-call__controls-wrapper">
-        <div class="active-call__controls">
+        <div class="teams-controls-bar">
           <button class="call-control-btn call-control-btn--mute" id="muteCallBtn" title="Mute Microphone">
             <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
           </button>
@@ -979,8 +1100,10 @@ export class VoiceCallController {
           <button class="call-control-btn call-control-btn--settings" id="deviceSettingsBtn" title="Device Settings">
             <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
           </button>
-          <button class="call-control-btn call-control-btn--hangup" id="hangupCallBtn" title="End Call">
-            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
+          
+          <button class="teams-leave-btn" id="hangupCallBtn" title="Leave Call">
+            <svg style="width: 14px; height: 14px; margin-right: 6px;" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
+            Leave
           </button>
         </div>
         
@@ -1060,7 +1183,9 @@ export class VoiceCallController {
     // Show video layout if either user has active video feed
     if (isVideoActive || hasRemoteVideo) {
       if (voiceContent) voiceContent.style.display = 'none';
-      if (videoGrid) videoGrid.style.display = 'block';
+      if (videoGrid) {
+        videoGrid.style.display = 'grid'; // Changed to grid for Teams split view!
+      }
       if (statusText) statusText.textContent = this.isScreenSharing ? 'Sharing Screen' : 'Video Call';
 
       const camBtn = document.getElementById('videoToggleBtn');
@@ -1069,13 +1194,42 @@ export class VoiceCallController {
         camBtn.title = this.isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On';
       }
 
-      // Hide local card if camera is disabled and not screen sharing
-      const localCard = overlay.querySelector('.active-call__video-box--local');
-      if (localCard) {
-        localCard.style.display = isVideoActive ? 'block' : 'none';
+      // Update layout class based on which feeds are active
+      if (videoGrid) {
+        const localBox = document.getElementById('localVideoBox');
+        const remoteBox = document.getElementById('remoteVideoBox');
+        
+        if (isVideoActive && hasRemoteVideo) {
+          // Both feeds active: split screen
+          videoGrid.className = 'active-call__video-grid teams-video-grid teams-video-grid--split';
+          if (localBox) {
+            localBox.className = 'active-call__video-box active-call__video-box--local split';
+            localBox.style.display = 'block';
+          }
+          if (remoteBox) {
+            remoteBox.className = 'active-call__video-box active-call__video-box--remote split';
+            remoteBox.style.display = 'block';
+          }
+        } else if (hasRemoteVideo) {
+          // Only remote active: full screen remote, hide local
+          videoGrid.className = 'active-call__video-grid teams-video-grid teams-video-grid--remote-only';
+          if (localBox) localBox.style.display = 'none';
+          if (remoteBox) {
+            remoteBox.className = 'active-call__video-box active-call__video-box--remote full';
+            remoteBox.style.display = 'block';
+          }
+        } else {
+          // Only local active: full screen local, hide remote
+          videoGrid.className = 'active-call__video-grid teams-video-grid teams-video-grid--local-only';
+          if (remoteBox) remoteBox.style.display = 'none';
+          if (localBox) {
+            localBox.className = 'active-call__video-box active-call__video-box--local full';
+            localBox.style.display = 'block';
+          }
+        }
       }
     } else {
-      if (voiceContent) voiceContent.style.display = 'flex';
+      if (voiceContent) voiceContent.style.display = 'grid'; // Voice grid
       if (videoGrid) videoGrid.style.display = 'none';
       if (statusText) statusText.textContent = 'Voice Call';
 

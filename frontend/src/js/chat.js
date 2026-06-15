@@ -674,6 +674,17 @@ export class ChatController {
       `;
     }
 
+    // Check if the message is a call log
+    const isCallLog = textMsg.includes('📞') || textMsg.includes('Voice call ended') || textMsg.includes('Video call ended') || textMsg.includes('Missed call') || textMsg.includes('Declined call');
+    let callLogClass = '';
+    if (isCallLog) {
+      if (textMsg.includes('Missed') || textMsg.includes('declined') || textMsg.includes('Declined') || textMsg.includes('busy') || textMsg.includes('Busy')) {
+        callLogClass = 'missed';
+      } else {
+        callLogClass = 'connected';
+      }
+    }
+
     msgElement.innerHTML = `
       <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
       <div class="chat-msg__content-box" style="width: 100%;">
@@ -683,7 +694,7 @@ export class ChatController {
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble">${this.formatMessageMarkdown(textMsg)}</div>
+          <div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}">${this.formatMessageMarkdown(textMsg)}</div>
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">
