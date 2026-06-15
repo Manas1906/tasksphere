@@ -105,6 +105,29 @@ public class EmailService {
     }
 
     /**
+     * Dispatch group invitation notification email asynchronously.
+     */
+    @Async
+    public void sendGroupAddedEmail(String toEmail, String groupName, String addedByUsername) {
+        String cleanEmail = toEmail.toLowerCase().trim();
+        String htmlMessage = getGroupAddedTemplate(groupName, addedByUsername);
+        String subject = "You've been added to a new Group Chat: " + groupName;
+
+        log.info("[EMAIL-SERVICE] SENDING GROUP ADDED EMAIL - Deliver to: {}, GROUP: {}, BY: {}", cleanEmail, groupName, addedByUsername);
+
+        // Try enqueuing onto Redis first
+        boolean enqueued = redisQueueService.enqueueEmail("GROUP_ADD", cleanEmail, subject, htmlMessage);
+        if (enqueued) {
+            log.info("[EMAIL-SERVICE] Group Added EmailEvent successfully enqueued onto Redis.");
+            return;
+        }
+
+        // Fallback: Direct execution if Redis is offline
+        executeDirectEmailDispatch("GROUP_ADD", cleanEmail, subject, htmlMessage);
+    }
+
+
+    /**
      * Direct synchronous dispatch of transactional emails.
      * Bypasses the event queue (used by background consumers or offline fallback).
      */
@@ -310,6 +333,42 @@ public class EmailService {
              + "    <p style=\"color: #64748b; font-size: 11px; margin: 0; line-height: 1.6;\">"
              + "      This welcome transmission was securely generated and routed by TaskSphere. "
              + "      To connect, launch your web browser and access the active cluster environment."
+             + "    </p>"
+             + "  </div>"
+             + "</div>";
+    }
+
+    private String getGroupAddedTemplate(String groupName, String addedByUsername) {
+        return "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; background: #0c0f1d; padding: 40px; color: #f3f4f6; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5);\">"
+             + "  <div style=\"text-align: center; margin-bottom: 35px;\">"
+             + "    <div style=\"display: inline-block; padding: 8px 16px; background: rgba(59, 130, 246, 0.1); border-radius: 20px; margin-bottom: 12px; border: 1px solid rgba(59, 130, 246, 0.3);\">"
+             + "      <span style=\"color: #60a5fa; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;\">Group Invitation</span>"
+             + "    </div>"
+             + "    <h1 style=\"color: #ffffff; font-size: 32px; font-weight: 800; margin: 0; letter-spacing: 2px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;\">TASKSPHERE</h1>"
+             + "    <p style=\"color: #94a3b8; font-size: 14px; margin: 5px 0 0 0;\">Enterprise Agile Workspace</p>"
+             + "  </div>"
+             + "  "
+             + "  <div style=\"background: linear-gradient(135deg, #121832 0%, #080b19 100%); padding: 30px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px;\">"
+             + "    <h2 style=\"margin-top: 0; color: #ffffff; font-size: 20px; font-weight: 700; border-bottom: 1px solid #1e293b; padding-bottom: 15px;\">You've been added to a group! 🎉</h2>"
+             + "    <p style=\"color: #cbd5e1; font-size: 15px; line-height: 1.6; margin-bottom: 20px;\">"
+             + "      You have been successfully added to a new collaborative group chat in TaskSphere."
+             + "    </p>"
+             + "    "
+             + "    <div style=\"margin: 15px 0; display: grid; gap: 10px;\">"
+             + "      <div style=\"background: rgba(168, 85, 247, 0.05); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.15);\">"
+             + "        <div style=\"color: #c084fc; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;\">Group Name</div>"
+             + "        <div style=\"color: #ffffff; font-size: 16px; font-weight: 600; margin-top: 4px;\">👥 " + groupName + "</div>"
+             + "      </div>"
+             + "      <div style=\"background: rgba(0, 240, 255, 0.05); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.15);\">"
+             + "        <div style=\"color: #00f0ff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;\">Added By</div>"
+             + "        <div style=\"color: #ffffff; font-size: 16px; font-weight: 600; margin-top: 4px;\">👤 " + addedByUsername + "</div>"
+             + "      </div>"
+             + "    </div>"
+             + "  </div>"
+             + "  "
+             + "  <div style=\"text-align: center; margin-top: 35px; border-top: 1px solid #1e293b; padding-top: 25px;\">"
+             + "    <p style=\"color: #64748b; font-size: 11px; margin: 0; line-height: 1.6;\">"
+             + "      To join the conversation, open your TaskSphere app, log in to your account, and select the group from the groups bar."
              + "    </p>"
              + "  </div>"
              + "</div>";

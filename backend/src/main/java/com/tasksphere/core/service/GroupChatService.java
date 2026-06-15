@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.tasksphere.core.model.UserSession;
+import com.tasksphere.core.repository.UserSessionRepository;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -31,6 +33,12 @@ public class GroupChatService {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     public ChatGroup createGroup(String name, String iconUrl, List<String> memberUsernames, String creatorUsername) {
         ChatGroup group = ChatGroup.builder()
@@ -72,6 +80,13 @@ public class GroupChatService {
                 .timestamp(Instant.now())
                 .build();
         chatMessageRepository.save(sysMsg);
+
+        // Send email notifications to all members except the creator
+        for (String username : uniqueMembers) {
+            if (!username.equals(creatorUsername)) {
+                sendAddEmailQuietly(username, savedGroup.getName(), creatorUsername);
+            }
+        }
 
         return savedGroup;
     }
@@ -132,6 +147,9 @@ public class GroupChatService {
                                 .build();
                         chatMessageRepository.save(joinMsg);
                         messagingTemplate.convertAndSend("/topic/group." + groupId, joinMsg);
+
+                        // Send email notification to the newly added member
+                        sendAddEmailQuietly(trimmed, group.getName(), requesterUsername);
                     }
                 }
             }
@@ -191,5 +209,24 @@ public class GroupChatService {
         return chatGroupRepository.findById(groupId)
                 .map(ChatGroup::getName)
                 .orElse("Group");
+    }
+
+    private void sendAddEmailQuietly(String username, String groupName, String addedBy) {
+        try {
+            Optional<UserSession> userOpt = userSessionRepository.findByUsername(username);
+            if (userOpt.isPresent()) {
+                UserSession user = userOpt.get();
+                String email = user.getExtractedEmail();
+                if (email != null && !email.trim().isEmpty()) {
+                    emailService.sendGroupAddedEmail(email, groupName, addedBy);
+                } else {
+                    System.out.println("[GROUP-CHAT-EMAIL] User " + username + " has no email configured.");
+                }
+            } else {
+                System.out.println("[GROUP-CHAT-EMAIL] User " + username + " not found to send group added email.");
+            }
+        } catch (Exception e) {
+            System.err.println("[GROUP-CHAT-EMAIL] Failed to send group addition email to " + username + ": " + e.getMessage());
+        }
     }
 }
