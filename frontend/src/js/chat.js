@@ -131,13 +131,13 @@ export class ChatController {
             this.uploadPreviewName.textContent = `⚡ Uploading: ${this.selectedFile.name}...`;
           }
 
-          // Guard: refuse files > 10MB to keep messages reasonable
-          const MAX_BYTES = 10 * 1024 * 1024;
-          if (this.selectedFile.size > MAX_BYTES) {
-            throw new Error(`File too large (${Math.round(this.selectedFile.size / 1048576)}MB). Max allowed is 10MB.`);
-          }
-
           const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(this.selectedFile.name);
+          const fileSizeMB = Math.round(this.selectedFile.size / 1048576 * 10) / 10;
+
+          // Hard ceiling: refuse anything > 10MB at the browser level
+          if (this.selectedFile.size > 10 * 1024 * 1024) {
+            throw new Error(`File too large (${fileSizeMB}MB). Maximum is 10MB.`);
+          }
 
           // --- Tier 1: Try the backend /api/upload endpoint ---
           let uploadSucceeded = false;
@@ -149,7 +149,7 @@ export class ChatController {
             const hasValidToken = token && token !== 'null' && token !== 'undefined';
 
             const controller = new AbortController();
-            const uploadTimeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+            const uploadTimeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
             const response = await fetch(`${api.baseUrl}/upload`, {
               method: 'POST',
@@ -162,23 +162,34 @@ export class ChatController {
             if (response.ok) {
               const uploadRes = await response.json();
               if (uploadRes.success && uploadRes.fileUrl) {
-                // Build absolute URL so it works from any host
+                // Build absolute URL so images render from any host
                 const fileUrl = uploadRes.fileUrl.startsWith('http')
                   ? uploadRes.fileUrl
                   : `${api.baseUrl.replace('/api', '')}${uploadRes.fileUrl}`;
                 attachmentMarkdown = isImage
                   ? `![${this.selectedFile.name}](${fileUrl})`
-                  : `[${this.selectedFile.name}](${fileUrl})`;
+                  : `[📎 ${this.selectedFile.name}](${fileUrl})`;
                 uploadSucceeded = true;
               }
+            } else {
+              console.warn('[CHAT-UPLOAD] Backend returned non-OK status:', response.status, response.statusText);
             }
           } catch (uploadErr) {
             // Network failure or timeout — will fall through to Tier 2
-            console.warn('[CHAT-UPLOAD] Backend upload failed, falling back to base64 embed:', uploadErr.message);
+            console.warn('[CHAT-UPLOAD] Backend upload failed, attempting base64 embed:', uploadErr.message);
           }
 
-          // --- Tier 2: Inline base64 data URL fallback (works on any deployment) ---
+          // --- Tier 2: Inline base64 data URL fallback ---
+          // IMPORTANT: Cap at 400KB because base64 adds ~37% overhead (400KB → ~548KB)
+          // The STOMP server is now configured for 10MB messages but we stay conservative.
           if (!uploadSucceeded) {
+            const BASE64_LIMIT = 400 * 1024; // 400 KB
+            if (this.selectedFile.size > BASE64_LIMIT) {
+              throw new Error(
+                `File upload failed and file is too large to embed inline (${fileSizeMB}MB > 400KB limit).\n\n` +
+                `Please ensure the backend is reachable or use a smaller file.`
+              );
+            }
             if (this.uploadPreviewName) {
               this.uploadPreviewName.textContent = `⚡ Embedding: ${this.selectedFile.name}...`;
             }
@@ -186,15 +197,12 @@ export class ChatController {
               const reader = new FileReader();
               reader.onload = (e) => {
                 const dataUrl = e.target.result;
-                if (isImage) {
-                  attachmentMarkdown = `![${this.selectedFile.name}](${dataUrl})`;
-                } else {
-                  // For non-images, embed as a downloadable data link
-                  attachmentMarkdown = `[📎 ${this.selectedFile.name}](${dataUrl})`;
-                }
+                attachmentMarkdown = isImage
+                  ? `![${this.selectedFile.name}](${dataUrl})`
+                  : `[📎 ${this.selectedFile.name}](${dataUrl})`;
                 resolve();
               };
-              reader.onerror = () => reject(new Error('Failed to read file'));
+              reader.onerror = () => reject(new Error('Could not read file from disk.'));
               reader.readAsDataURL(this.selectedFile);
             });
           }
@@ -204,6 +212,8 @@ export class ChatController {
           if (this.fileInput) this.fileInput.value = '';
           if (this.uploadPreview) this.uploadPreview.classList.add('hidden');
         }
+
+
 
 
         let finalMessage = msgText;
@@ -386,32 +396,17 @@ export class ChatController {
       this.handleIncomingTypingStatus(payload);
     });
 
-    // Primary channel: user-queue (requires matching STOMP principal)
-    socket.subscribeUser('/queue/call', (payload) => {
-      const sigKey = `${payload.caller}:${payload.type}:${payload.callerTimestamp || ''}`;
-      if (this._seenCallSignals && this._seenCallSignals.has(sigKey)) return;
-      if (!this._seenCallSignals) this._seenCallSignals = new Set();
-      this._seenCallSignals.add(sigKey);
-      setTimeout(() => this._seenCallSignals && this._seenCallSignals.delete(sigKey), 5000);
-      this.voiceCall.handleSignal(payload);
-    });
-
-    // Fallback channel: topic-based delivery guaranteed by username in path
-    // This ensures calls work even if STOMP principal resolution fails
+    // Call signaling: subscribe exclusively to the deterministic topic channel.
+    // Using a single channel prevents the ICE-candidate dedup bug where all
+    // candidates shared the same key (caller:ice:) and all but the first were dropped.
     const myUser = this.myUsername;
     if (myUser && myUser !== 'CTO Guest') {
       socket.subscribe(`/topic/call/${myUser}`, (payload) => {
-        // Deduplicate: only handle if not already processed by the user-queue subscription
-        // (detected via a short TTL seen-signal cache keyed by caller+type+timestamp)
-        const sigKey = `${payload.caller}:${payload.type}:${payload.callerTimestamp || ''}`;
-        if (this._seenCallSignals && this._seenCallSignals.has(sigKey)) return;
-        if (!this._seenCallSignals) this._seenCallSignals = new Set();
-        this._seenCallSignals.add(sigKey);
-        setTimeout(() => this._seenCallSignals && this._seenCallSignals.delete(sigKey), 5000);
         this.voiceCall.handleSignal(payload);
       });
     }
   }
+
 
   syncMyPresence() {
     const registerPresence = () => {

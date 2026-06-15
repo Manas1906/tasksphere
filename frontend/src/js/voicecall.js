@@ -208,24 +208,13 @@ export class VoiceCallController {
   async acceptCall() {
     if (this.state !== 'INCOMING_RING' || !this._pendingOffer) return;
 
-    // Show connecting status or overlay update if needed
     console.log('[VOICECALL] Accepting call...');
 
     try {
-      if (this.callType === 'VIDEO') {
-        try {
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-          this.isVideoEnabled = true;
-        } catch (videoErr) {
-          console.warn('[VOICECALL] Camera unavailable, accepting with audio only:', videoErr);
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          this.isVideoEnabled = false;
-          this.callType = 'VOICE';
-        }
-      } else {
-        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        this.isVideoEnabled = false;
-      }
+      // Always accept with audio-only first — avoids camera permission failures breaking the accept.
+      // The callee can turn on their camera after connecting using the video toggle button.
+      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      this.isVideoEnabled = false;
 
       this.createPeerConnection();
 
@@ -260,9 +249,19 @@ export class VoiceCallController {
 
     } catch (err) {
       console.error('[VOICECALL] Could not accept call:', err);
+
+      // Show user a clear reason instead of silently dismissing the UI
+      let reason = err.message || String(err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        reason = 'Microphone access denied. Please allow microphone in your browser settings and try again.';
+      } else if (err.name === 'NotFoundError') {
+        reason = 'No microphone found. Please connect a microphone and try again.';
+      }
+      alert('Could not accept call: ' + reason);
       this.hangUp();
     }
   }
+
 
   declineCall() {
     if (this.state !== 'INCOMING_RING') return;

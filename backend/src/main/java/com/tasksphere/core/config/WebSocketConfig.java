@@ -40,6 +40,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
+    public void configureWebSocketTransport(org.springframework.web.socket.config.annotation.WebSocketTransportRegistration registration) {
+        // Increase limits to accommodate base64-encoded file attachments in chat messages.
+        // Default inbound limit is 64KB which is too small for inline image embeds.
+        registration.setMessageSizeLimit(10 * 1024 * 1024);      // 10 MB inbound per STOMP frame
+        registration.setSendBufferSizeLimit(10 * 1024 * 1024);    // 10 MB outbound send buffer
+        registration.setSendTimeLimit(30 * 1000);                  // 30s send timeout
+    }
+
+    @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Handshake endpoint for WebSocket clients
         registry.addEndpoint("/ws-tasksphere")
