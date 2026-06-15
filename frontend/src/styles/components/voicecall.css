@@ -613,3 +613,15 @@
   border-color: #201f1f transparent transparent transparent;
 }
 
+@media (max-width: 1024px) {
+  .dm-call-btn {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .dm-call-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
+
+

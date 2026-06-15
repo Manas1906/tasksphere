@@ -22,6 +22,7 @@ export class VoiceCallController {
     this._originalVideoTrack = null;
     this._screenStream = null;
     this._connectionGraceTimeout = null;
+    this._facingMode = 'user'; // 'user' (front camera) or 'environment' (back camera)
 
     // ICE servers for NAT traversal — STUN + free public TURN fallback
     this.iceConfig = {
@@ -510,6 +511,60 @@ export class VoiceCallController {
     this.updateCallLayout();
   }
 
+  async switchCamera() {
+    if (!this.localStream || !this.isVideoEnabled) return;
+    
+    // Toggle facing mode between front (user) and back (environment)
+    this._facingMode = this._facingMode === 'user' ? 'environment' : 'user';
+    console.log('[VOICECALL] Switching camera facing mode to:', this._facingMode);
+    
+    try {
+      // Get the existing video track to stop it
+      const oldVideoTrack = this.localStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+      }
+      
+      // Request new stream with the new facingMode constraint, keeping audio unchanged
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: this._facingMode }
+      });
+      
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      if (newVideoTrack) {
+        // Remove old track and add new track to localStream
+        if (oldVideoTrack) {
+          this.localStream.removeTrack(oldVideoTrack);
+        }
+        this.localStream.addTrack(newVideoTrack);
+        
+        // Replace track in RTCRtpSender for the PeerConnection so the remote user sees it
+        if (this.peerConnection) {
+          const senders = this.peerConnection.getSenders();
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(newVideoTrack);
+          }
+        }
+        
+        // Update local video element
+        const localVideo = document.getElementById('localVideo');
+        if (localVideo) {
+          localVideo.srcObject = this.localStream;
+        }
+        
+        console.log('[VOICECALL] Camera switched successfully.');
+      }
+    } catch (err) {
+      console.error('[VOICECALL] Failed to switch camera:', err);
+      // Revert facingMode
+      this._facingMode = this._facingMode === 'user' ? 'environment' : 'user';
+      alert('Could not switch camera: ' + (err.message || err));
+    }
+  }
+
   async toggleScreenShare() {
     if (!this.peerConnection) return;
 
@@ -826,6 +881,7 @@ export class VoiceCallController {
     this._pendingOffer = null;
     this._pendingIceCandidates = [];
     this._originalVideoTrack = null;
+    this._facingMode = 'user';
     this.state = 'IDLE';
   }
 
@@ -1096,6 +1152,9 @@ export class VoiceCallController {
           <button class="call-control-btn" id="videoToggleBtn" title="Toggle Camera">
             <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
           </button>
+          <button class="call-control-btn call-control-btn--switch-camera" id="switchCameraBtn" title="Switch Camera" style="display: none;">
+            <svg viewBox="0 0 24 24"><path d="M9 3L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
           <button class="call-control-btn" id="screenShareBtn" title="Share Screen">
             <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
           </button>
@@ -1127,6 +1186,15 @@ export class VoiceCallController {
 
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
     document.getElementById('videoToggleBtn').onclick = () => this.toggleVideo();
+    
+    // Auto-detect mobile devices to display and bind Switch Camera button
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const switchBtn = document.getElementById('switchCameraBtn');
+    if (isMobileDevice && switchBtn) {
+      switchBtn.style.display = 'inline-flex';
+      switchBtn.onclick = () => this.switchCamera();
+    }
+
     document.getElementById('screenShareBtn').onclick = () => this.toggleScreenShare();
     document.getElementById('deviceSettingsBtn').onclick = (e) => {
       e.stopPropagation();

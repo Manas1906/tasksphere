@@ -776,3 +776,55 @@ body.light-theme .thread-parent-container {
   from { transform: translateY(0) scale(1); }
   to { transform: translateY(-2px) scale(1.05); }
 }
+
+/* Responsive Direct Message Header layout */
+.chat-header-title-text {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-purple);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.chat-header-title-icon {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.chat-header-title-prefix {
+  display: inline;
+}
+
+.chat-header-title-partner {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+@media (max-width: 1024px) {
+  .chat-panel-header {
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+  }
+  
+  .chat-header-title-prefix {
+    display: none; /* Hide 'Chat with ' on mobile screen sizes */
+  }
+  
+  .chat-header-title-partner {
+    max-width: 80px;
+  }
+  
+  #chatHeaderControls {
+    gap: 4px !important;
+  }
+  
+  #clearChatHistoryBtn .btn-text {
+    display: none; /* Hide 'Clear' text on mobile, showing only the trash icon */
+  }
+}
+
