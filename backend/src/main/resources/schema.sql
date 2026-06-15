@@ -17,13 +17,4 @@ CREATE TABLE IF NOT EXISTS chat_group_members (
 );
 
 -- Add group_id column to chat_messages if it doesn't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 
-        FROM information_schema.columns 
-        WHERE table_name='chat_messages' AND column_name='group_id'
-    ) THEN
-        ALTER TABLE chat_messages ADD COLUMN group_id BIGINT;
-    END IF;
-END $$;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS group_id BIGINT;
