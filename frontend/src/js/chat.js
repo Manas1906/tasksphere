@@ -391,11 +391,11 @@ export class ChatController {
     
     const backLink = document.getElementById('chatModeBackLink');
     const chatTitle = document.querySelector('#chatContainer .chat-panel-header__title');
-    const controls = document.getElementById('chatHeaderControls');
-    
-    // Always clear existing call button to avoid duplicates
+    const controls = document.getElementById('chatHeaderControls');    // Always clear existing call buttons to avoid duplicates
     const oldCallBtn = document.getElementById('dmCallBtn');
     if (oldCallBtn) oldCallBtn.remove();
+    const oldVideoCallBtn = document.getElementById('dmVideoCallBtn');
+    if (oldVideoCallBtn) oldVideoCallBtn.remove();
     
     // Dynamic binding and visibility for clearing history
     const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
@@ -445,25 +445,37 @@ export class ChatController {
       
       const voiceCallEnabled = window.__featureToggles && window.__featureToggles.voice_calling === true;
       if (voiceCallEnabled && controls) {
-        const callBtn = document.createElement('button');
-        callBtn.className = 'dm-call-btn';
-        callBtn.id = 'dmCallBtn';
-        callBtn.title = `Voice call ${partner}`;
-        callBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>`;
-        
-        // Prepend to header controls (to the left of Clear / Close buttons)
-        controls.insertBefore(callBtn, controls.firstChild);
-        
         // Find the partner avatar from cache
         const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
         const partnerUser = cachedUsers.find(u => u.username === partner);
         let partnerAvatar = partnerUser ? (partnerUser.avatarUrl || '').split('||')[0] : '';
         if (!partnerAvatar) partnerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${partner}`;
 
+        // Create Video Call Button (Purple Accent)
+        const videoCallBtn = document.createElement('button');
+        videoCallBtn.className = 'dm-call-btn dm-call-btn--video';
+        videoCallBtn.id = 'dmVideoCallBtn';
+        videoCallBtn.title = `Video call ${partner}`;
+        videoCallBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
+        videoCallBtn.onclick = (e) => {
+          e.stopPropagation();
+          this.voiceCall.initiateCall(partner, partnerAvatar, 'VIDEO');
+        };
+
+        // Create Voice Call Button (Green Accent)
+        const callBtn = document.createElement('button');
+        callBtn.className = 'dm-call-btn dm-call-btn--voice';
+        callBtn.id = 'dmCallBtn';
+        callBtn.title = `Voice call ${partner}`;
+        callBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>`;
         callBtn.onclick = (e) => {
           e.stopPropagation();
-          this.voiceCall.initiateCall(partner, partnerAvatar);
+          this.voiceCall.initiateCall(partner, partnerAvatar, 'VOICE');
         };
+
+        // Prepend to header controls (video call first, then voice call on the left)
+        controls.insertBefore(videoCallBtn, controls.firstChild);
+        controls.insertBefore(callBtn, controls.firstChild);
       }
       
       this.input.placeholder = `Send direct message to ${partner}...`;

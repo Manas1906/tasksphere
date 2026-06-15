@@ -174,7 +174,7 @@ export class WhiteboardView {
     if (!this.isDrawing) return;
 
     const currentPos = this.getRelativePos(e);
-    const drawColor = this.currentTool === 'eraser' ? 'var(--bg-primary)' : this.currentColor;
+    const drawColor = this.currentTool === 'eraser' ? 'eraser' : this.currentColor;
     const drawSize = this.currentSize;
 
     this.drawSegment(this.lastPos.x, this.lastPos.y, currentPos.x, currentPos.y, drawColor, drawSize);
@@ -196,18 +196,28 @@ export class WhiteboardView {
   }
 
   drawSegment(x0, y0, x1, y1, color, size) {
+    this.ctx.beginPath();
+    
+    if (color === 'eraser') {
+      this.ctx.globalCompositeOperation = 'destination-out';
+    } else {
+      this.ctx.globalCompositeOperation = 'source-over';
+    }
+
     let finalColor = color;
     if (color.startsWith('var(')) {
       finalColor = getComputedStyle(document.documentElement).getPropertyValue(color.substring(4, color.length - 1).trim());
     }
 
-    this.ctx.beginPath();
     this.ctx.strokeStyle = finalColor;
     this.ctx.lineWidth = size;
     this.ctx.moveTo(x0, y0);
     this.ctx.lineTo(x1, y1);
     this.ctx.stroke();
     this.ctx.closePath();
+
+    // Restore standard drawing mode
+    this.ctx.globalCompositeOperation = 'source-over';
   }
 
   clearLocalCanvas() {

@@ -82,8 +82,8 @@ export class VoiceCallController {
   }
 
   // --- Outgoing Call flow ---
-
-  async initiateCall(targetUsername, targetAvatar) {
+ 
+  async initiateCall(targetUsername, targetAvatar, callType = 'VOICE') {
     if (!this.isFeatureEnabled()) {
       console.warn('[VOICECALL] Calling features are disabled.');
       return;
@@ -94,20 +94,41 @@ export class VoiceCallController {
       return;
     }
 
-    console.log(`[VOICECALL] Dialing ${targetUsername}...`);
+    console.log(`[VOICECALL] Dialing ${targetUsername} via ${callType}...`);
     this.callPartner = targetUsername;
     this.callPartnerAvatar = targetAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${targetUsername}`;
     this.state = 'OUTGOING_RING';
     this.isCaller = true;
+    this.callType = callType;
+
+    // Show Outgoing UI and start ringtone immediately for zero visual latency
+    this.showOutgoingCallUI();
+    this.startOutgoingRing();
+
+    // 30 seconds ringback timeout
+    this._ringTimeout = setTimeout(() => {
+      if (this.state === 'OUTGOING_RING') {
+        console.log('[VOICECALL] Call timed out.');
+        this.saveCallLog(`Missed ${this.callType.toLowerCase()} call`);
+        this.hangUp();
+      }
+    }, 30000);
 
     try {
-      // Request audio and video with fallback to audio-only if camera is absent/denied
-      try {
-        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        this.isVideoEnabled = true;
-      } catch (videoErr) {
-        console.warn('[VOICECALL] Camera unavailable, falling back to audio only:', videoErr);
-        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request media stream based on call type
+      if (callType === 'VIDEO') {
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+          this.isVideoEnabled = true;
+        } catch (videoErr) {
+          console.warn('[VOICECALL] Camera unavailable, falling back to audio only:', videoErr);
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          this.isVideoEnabled = false;
+          this.callType = 'VOICE';
+        }
+      } else {
+        // Voice Call: only request audio to avoid slow camera spin up
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         this.isVideoEnabled = false;
       }
 
@@ -125,20 +146,9 @@ export class VoiceCallController {
         caller: this.myUsername,
         callerAvatar: this.myAvatar,
         target: targetUsername,
-        sdp: offer.sdp
+        sdp: offer.sdp,
+        callType: this.callType
       });
-
-      this.startOutgoingRing();
-      this.showOutgoingCallUI();
-
-      // 30 seconds ringback timeout
-      this._ringTimeout = setTimeout(() => {
-        if (this.state === 'OUTGOING_RING') {
-          console.log('[VOICECALL] Call timed out.');
-          this.saveCallLog('Missed voice call');
-          this.hangUp();
-        }
-      }, 30000);
 
     } catch (err) {
       console.error('[VOICECALL] Call failed to initialize:', err);
@@ -166,27 +176,38 @@ export class VoiceCallController {
       return;
     }
 
-    console.log(`[VOICECALL] Call from ${payload.caller}`);
+    console.log(`[VOICECALL] Incoming call from ${payload.caller} (${payload.callType})`);
     this.callPartner = payload.caller;
     this.callPartnerAvatar = payload.callerAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.caller}`;
     this.state = 'INCOMING_RING';
     this.isCaller = false;
+    this.callType = payload.callType || 'VOICE';
     this._pendingOffer = payload;
 
-    this.startIncomingRing();
+    // Show Incoming UI and play ringtone immediately for zero visual latency
     this.showIncomingCallUI();
+    this.startIncomingRing();
   }
 
   async acceptCall() {
     if (this.state !== 'INCOMING_RING' || !this._pendingOffer) return;
 
+    // Show connecting status or overlay update if needed
+    console.log('[VOICECALL] Accepting call...');
+
     try {
-      try {
-        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        this.isVideoEnabled = true;
-      } catch (videoErr) {
-        console.warn('[VOICECALL] Camera unavailable, accepting with audio only:', videoErr);
-        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (this.callType === 'VIDEO') {
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+          this.isVideoEnabled = true;
+        } catch (videoErr) {
+          console.warn('[VOICECALL] Camera unavailable, accepting with audio only:', videoErr);
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          this.isVideoEnabled = false;
+          this.callType = 'VOICE';
+        }
+      } else {
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         this.isVideoEnabled = false;
       }
 
@@ -344,6 +365,8 @@ export class VoiceCallController {
       if (this.remoteAudio && event.streams[0]) {
         this.remoteAudio.srcObject = event.streams[0];
       }
+
+      this.updateCallLayout();
     };
   }
 
@@ -360,21 +383,55 @@ export class VoiceCallController {
     }
   }
 
-  toggleVideo() {
+  async toggleVideo() {
     if (!this.localStream) return;
 
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (videoTrack) {
+    let videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      // Upgrading Voice Call to Video Call
+      try {
+        console.log('[VOICECALL] Requesting camera for voice-to-video call upgrade...');
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoTrack = videoStream.getVideoTracks()[0];
+        
+        if (videoTrack) {
+          this.localStream.addTrack(videoTrack);
+          this.isVideoEnabled = true;
+          this.callType = 'VIDEO';
+          
+          if (this.peerConnection) {
+            this.peerConnection.addTrack(videoTrack, this.localStream);
+            
+            // Renegotiate Peer Connection offer
+            const offer = await this.peerConnection.createOffer();
+            await this.peerConnection.setLocalDescription(offer);
+            
+            socket.send('/app/call.offer', {
+              type: 'offer',
+              caller: this.myUsername,
+              callerAvatar: this.myAvatar,
+              target: this.callPartner,
+              sdp: offer.sdp,
+              callType: 'VIDEO'
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[VOICECALL] Upgrade to video failed:', err);
+        alert('Could not enable camera: ' + (err.message || err));
+        return;
+      }
+    } else {
       this.isVideoEnabled = !this.isVideoEnabled;
       videoTrack.enabled = this.isVideoEnabled;
-      
-      const btn = document.getElementById('videoToggleBtn');
-      if (btn) {
-        btn.classList.toggle('muted', !this.isVideoEnabled);
-        btn.textContent = this.isVideoEnabled ? '📹 Cam' : '❌ Cam';
-        btn.title = this.isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On';
-      }
     }
+
+    const localVideo = document.getElementById('localVideo');
+    if (localVideo && this.localStream && !localVideo.srcObject) {
+      localVideo.srcObject = this.localStream;
+    }
+
+    this.updateCallLayout();
   }
 
   async toggleScreenShare() {
@@ -863,69 +920,75 @@ export class VoiceCallController {
     const chatPanel = document.querySelector('#chatContainer .chat-panel');
     if (!chatPanel) return;
 
-    const bar = document.createElement('div');
-    bar.id = 'activeCallBar';
-    bar.className = 'active-call-bar';
-    bar.style.overflow = 'visible';
-    bar.innerHTML = `
-      <div class="active-call-bar__pulse"></div>
-      <div class="active-call-bar__info">
-        <span class="active-call-bar__partner">${this.callPartner}</span>
-        <span class="active-call-bar__timer" id="callTimer">00:00</span>
+    const overlay = document.createElement('div');
+    overlay.id = 'activeCallOverlay';
+    overlay.className = 'active-call-overlay';
+    
+    // Setup blurred background image of target user if available, fallback to dark blue gradient
+    overlay.style.backgroundImage = `radial-gradient(circle at center, rgba(15, 23, 42, 0.85) 0%, #0b0e14 100%)`;
+
+    overlay.innerHTML = `
+      <div class="active-call__header">
+        <span class="active-call__partner-name">${this.callPartner}</span>
+        <span class="active-call__status" id="callStatusText">${this.callType === 'VIDEO' ? 'Video Call' : 'Voice Call'}</span>
+        <span class="active-call__timer" id="callTimer">00:00</span>
       </div>
-      <div class="active-call-bar__controls">
-        <button class="call-control-btn call-control-btn--mute" id="muteCallBtn" title="Mute/Unmute">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-        </button>
-        <button class="call-control-btn" id="videoToggleBtn" title="Camera On/Off" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 10px; font-weight: bold;">
-          📹 Cam
-        </button>
-        <button class="call-control-btn" id="screenShareBtn" title="Share Screen" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 10px; font-weight: bold;">
-          🖥️ Screen
-        </button>
-        <button class="call-control-btn call-control-btn--settings" id="deviceSettingsBtn" title="Audio Settings">
-          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-        </button>
-        <button class="call-control-btn call-control-btn--hangup" id="hangupCallBtn" title="End Call">
-          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
-        </button>
-      </div>
-      <div class="call-device-popover hidden" id="callDevicePopover">
-        <div class="call-device-popover__title">Audio Settings</div>
-        <div class="call-device-popover__group">
-          <label for="micSelect">Microphone</label>
-          <select id="micSelect" class="call-device-popover__select"></select>
+      
+      <!-- Voice Call Centered Container -->
+      <div class="active-call__voice-content">
+        <div class="active-call__avatar-pulse">
+          <img src="${this.callPartnerAvatar}" alt="${this.callPartner}" class="active-call__avatar">
         </div>
-        <div class="call-device-popover__group">
-          <label for="speakerSelect">Speaker</label>
-          <select id="speakerSelect" class="call-device-popover__select"></select>
+      </div>
+
+      <!-- Video Call Grid Layout -->
+      <div class="active-call__video-grid" id="activeCallVideoGrid" style="display: none;">
+        <!-- Remote Stream (Full Screen background inside the overlay) -->
+        <div class="active-call__video-box active-call__video-box--remote">
+          <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+        <!-- Local Stream (Small floating card in top-right) -->
+        <div class="active-call__video-box active-call__video-box--local">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div class="active-call__local-label">You</div>
+        </div>
+      </div>
+
+      <!-- Floating Glassmorphic Controls Pill -->
+      <div class="active-call__controls-wrapper">
+        <div class="active-call__controls">
+          <button class="call-control-btn call-control-btn--mute" id="muteCallBtn" title="Mute Microphone">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          </button>
+          <button class="call-control-btn" id="videoToggleBtn" title="Toggle Camera">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          </button>
+          <button class="call-control-btn" id="screenShareBtn" title="Share Screen">
+            <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+          </button>
+          <button class="call-control-btn call-control-btn--settings" id="deviceSettingsBtn" title="Device Settings">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+          <button class="call-control-btn call-control-btn--hangup" id="hangupCallBtn" title="End Call">
+            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7s.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71s-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C14.15 9.25 12.6 9 12 9z"/></svg>
+          </button>
+        </div>
+        
+        <div class="call-device-popover hidden" id="callDevicePopover">
+          <div class="call-device-popover__title">Audio Settings</div>
+          <div class="call-device-popover__group">
+            <label for="micSelect">Microphone</label>
+            <select id="micSelect" class="call-device-popover__select"></select>
+          </div>
+          <div class="call-device-popover__group">
+            <label for="speakerSelect">Speaker</label>
+            <select id="speakerSelect" class="call-device-popover__select"></select>
+          </div>
         </div>
       </div>
     `;
 
-    // Create Call Video Grid elements for local/remote streams rendering
-    const videoGrid = document.createElement('div');
-    videoGrid.id = 'callVideoGrid';
-    videoGrid.className = 'call-video-grid';
-    videoGrid.innerHTML = `
-      <div class="call-video-box call-video-box--remote">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div class="call-video-label">${this.callPartner}</div>
-      </div>
-      <div class="call-video-box call-video-box--local">
-        <video id="localVideo" autoplay playsinline muted></video>
-        <div class="call-video-label">You</div>
-      </div>
-    `;
-
-    const header = chatPanel.querySelector('.chat-panel-header');
-    if (header && header.nextSibling) {
-      chatPanel.insertBefore(bar, header.nextSibling);
-      chatPanel.insertBefore(videoGrid, bar.nextSibling);
-    } else {
-      chatPanel.appendChild(bar);
-      chatPanel.appendChild(videoGrid);
-    }
+    chatPanel.appendChild(overlay);
 
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
     document.getElementById('videoToggleBtn').onclick = () => this.toggleVideo();
@@ -954,11 +1017,12 @@ export class VoiceCallController {
       const timerEl = document.getElementById('callTimer');
       if (timerEl) timerEl.textContent = `${mins}:${secs}`;
     }, 1000);
+
+    this.updateCallLayout();
   }
 
   hideActiveCallUI() {
-    this.removeUIElement('activeCallBar');
-    this.removeUIElement('callVideoGrid');
+    this.removeUIElement('activeCallOverlay');
 
     if (this.callTimerInterval) {
       clearInterval(this.callTimerInterval);
@@ -971,11 +1035,55 @@ export class VoiceCallController {
     }
   }
 
+  updateCallLayout() {
+    const overlay = document.getElementById('activeCallOverlay');
+    if (!overlay) return;
+
+    const voiceContent = overlay.querySelector('.active-call__voice-content');
+    const videoGrid = overlay.querySelector('.active-call__video-grid');
+    const statusText = document.getElementById('callStatusText');
+
+    const isVideoActive = this.isVideoEnabled || this.isScreenSharing;
+    const hasRemoteVideo = this.peerConnection && 
+      this.peerConnection.getReceivers().some(r => r.track && r.track.kind === 'video' && r.track.enabled);
+
+    // Show video layout if either user has active video feed
+    if (isVideoActive || hasRemoteVideo) {
+      if (voiceContent) voiceContent.style.display = 'none';
+      if (videoGrid) videoGrid.style.display = 'block';
+      if (statusText) statusText.textContent = this.isScreenSharing ? 'Sharing Screen' : 'Video Call';
+
+      const camBtn = document.getElementById('videoToggleBtn');
+      if (camBtn) {
+        camBtn.classList.toggle('muted', !this.isVideoEnabled);
+        camBtn.title = this.isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On';
+      }
+
+      // Hide local card if camera is disabled and not screen sharing
+      const localCard = overlay.querySelector('.active-call__video-box--local');
+      if (localCard) {
+        localCard.style.display = isVideoActive ? 'block' : 'none';
+      }
+    } else {
+      if (voiceContent) voiceContent.style.display = 'flex';
+      if (videoGrid) videoGrid.style.display = 'none';
+      if (statusText) statusText.textContent = 'Voice Call';
+
+      const camBtn = document.getElementById('videoToggleBtn');
+      if (camBtn) {
+        camBtn.classList.add('muted');
+        camBtn.title = 'Turn Camera On';
+      }
+    }
+
+    this.updateMuteUI();
+  }
+
   updateMuteUI() {
     const muteBtn = document.getElementById('muteCallBtn');
     if (muteBtn) {
       muteBtn.classList.toggle('muted', this.isMuted);
-      muteBtn.title = this.isMuted ? 'Unmute' : 'Mute';
+      muteBtn.title = this.isMuted ? 'Unmute microphone' : 'Mute microphone';
     }
   }
 }
