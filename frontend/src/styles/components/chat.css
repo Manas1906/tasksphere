@@ -828,3 +828,120 @@ body.light-theme .thread-parent-container {
   }
 }
 
+/* ============================================================
+   Groups Bar and Rounded-Square Item Styles (Solid Themes)
+   ============================================================ */
+.groups-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0f131a; /* Solid background */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+body.light-theme .groups-bar {
+  background: #fafafa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.groups-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.group-item-wrap {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px; /* Rounded square design (premium Slack/Discord feel) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background-color: #1c2533;
+}
+
+body.light-theme .group-item-wrap {
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+}
+
+.group-item-wrap:hover {
+  transform: translateY(-2px) scale(1.05);
+  border-color: var(--accent-cyan, #06b6d4);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+}
+
+.group-item-wrap.selected {
+  border-color: var(--accent-purple, #a855f7);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+  transform: scale(1.05);
+}
+
+.group-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.create-group-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+body.light-theme .create-group-btn {
+  border: 1.5px dashed rgba(0, 0, 0, 0.25);
+  color: #71717a;
+}
+
+.create-group-btn:hover {
+  border-color: var(--accent-cyan, #06b6d4);
+  color: var(--accent-cyan, #06b6d4);
+  background: rgba(6, 182, 212, 0.05);
+  transform: scale(1.05);
+}
+
+/* System Message Bubble Style */
+.chat-msg-system {
+  align-self: center;
+  max-width: 90%;
+  text-align: center;
+  margin: var(--spacing-xs) 0;
+  animation: msgFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.chat-msg-system__bubble {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+body.light-theme .chat-msg-system__bubble {
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #71717a;
+}
+
+

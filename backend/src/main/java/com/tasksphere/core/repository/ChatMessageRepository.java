@@ -18,4 +18,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             "(m.username = :user1 AND m.message LIKE CONCAT('[DM:', :user2, ']%')) OR " +
             "(m.username = :user2 AND m.message LIKE CONCAT('[DM:', :user1, ']%'))")
     void deleteDirectMessagesBetween(@Param("user1") String user1, @Param("user2") String user2);
+
+    List<ChatMessage> findByGroupIdOrderByTimestampAsc(Long groupId);
+
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteByGroupId(Long groupId);
 }
+

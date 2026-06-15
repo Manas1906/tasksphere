@@ -204,8 +204,14 @@
           <!-- Avatars injected dynamically -->
         </div>
 
+        <!-- Horizontal group chats scrolling bar -->
+        <div class="groups-bar" id="groupsList">
+          <!-- Groups and "+" button injected dynamically -->
+        </div>
+
         <!-- Chat messages thread -->
         <div class="chat-messages-container" id="chatMessages">
+
           <!-- Message bubbles injected dynamically -->
         </div>
 
@@ -437,6 +443,79 @@
       </form>
     </div>
   </div>
+
+  <!-- Create Group Modal -->
+  <div id="createGroupModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px; max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 class="modal-header__title" style="display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 18px; height: 18px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+          <span>Create Group Chat</span>
+        </h2>
+        <button id="closeCreateGroupModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form class="enterprise-form" id="createGroupForm" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="groupName">Group Name</label>
+          <input type="text" id="groupName" required class="form-input" placeholder="e.g. Frontend Sync, Architecture Board" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="groupIconUrl">Group Icon URL (Optional)</label>
+          <input type="text" id="groupIconUrl" class="form-input" placeholder="https://example.com/icon.png" autocomplete="off">
+          <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">If left blank, a default geometric avatar will be generated.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Select Members</label>
+          <div id="groupMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: var(--spacing-sm); display: flex; flex-direction: column; gap: var(--spacing-xs); background: rgba(0, 0, 0, 0.2);">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+        <div class="form-actions" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
+          <button type="button" id="cancelCreateGroupBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Cancel</button>
+          <button type="submit" id="submitCreateGroupBtn" class="btn btn--submit">Create Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Group Settings Modal -->
+  <div id="groupSettingsModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px; max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 class="modal-header__title" style="display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 18px; height: 18px; fill: var(--accent-purple)" viewBox="0 0 24 24">
+            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+          </svg>
+          <span>Group Settings</span>
+        </h2>
+        <button id="closeGroupSettingsModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form class="enterprise-form" id="groupSettingsForm" onsubmit="return false;">
+        <input type="hidden" id="settingsGroupId">
+        <div class="form-group">
+          <label class="form-label" for="settingsGroupName">Group Name</label>
+          <input type="text" id="settingsGroupName" required class="form-input" placeholder="e.g. Frontend Sync" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settingsGroupIconUrl">Group Icon URL</label>
+          <input type="text" id="settingsGroupIconUrl" class="form-input" placeholder="https://example.com/icon.png" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Add Members</label>
+          <div id="settingsGroupAddMembersList" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: var(--spacing-sm); display: flex; flex-direction: column; gap: var(--spacing-xs); background: rgba(0, 0, 0, 0.2);">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+        <div class="form-actions" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
+          <button type="button" id="cancelGroupSettingsBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Cancel</button>
+          <button type="submit" id="submitGroupSettingsBtn" class="btn btn--submit">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <!-- Drawer Backdrops for mobile -->
   <div id="sidebarBackdrop" class="drawer-backdrop"></div>

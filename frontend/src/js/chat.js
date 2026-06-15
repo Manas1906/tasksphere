@@ -19,6 +19,24 @@ export class ChatController {
     this.unreadDms = {};
     this.activeThreadMsg = null;
 
+    // Group chats state
+    this.groups = [];
+    this.activeGroupId = null;
+    this.unreadGroups = {};
+    this.groupsListContainer = document.getElementById('groupsList');
+    
+    // Group Modals & Controls
+    this.createGroupModal = document.getElementById('createGroupModal');
+    this.groupSettingsModal = document.getElementById('groupSettingsModal');
+    this.createGroupForm = document.getElementById('createGroupForm');
+    this.groupSettingsForm = document.getElementById('groupSettingsForm');
+    this.closeCreateGroupModal = document.getElementById('closeCreateGroupModal');
+    this.closeGroupSettingsModal = document.getElementById('closeGroupSettingsModal');
+    this.cancelCreateGroupBtn = document.getElementById('cancelCreateGroupBtn');
+    this.cancelGroupSettingsBtn = document.getElementById('cancelGroupSettingsBtn');
+    this.groupMembersList = document.getElementById('groupMembersList');
+    this.settingsGroupAddMembersList = document.getElementById('settingsGroupAddMembersList');
+
     this.mentionsDropdown = null;
     this.mentionsActiveIdx = -1;
     this.mentionsFilteredUsers = [];
@@ -41,6 +59,7 @@ export class ChatController {
     this.voiceCall = new VoiceCallController();
   }
 
+
   get myUsername() {
     return localStorage.getItem('chat_username') || 'CTO Guest';
   }
@@ -51,10 +70,12 @@ export class ChatController {
 
   init() {
     this.bindEvents();
+    this.loadGroups();
     this.loadChatHistory();
     this.loadUserDirectory();
     this.setupMentionsAutocomplete();
   }
+
 
   async loadUserDirectory() {
     try {
@@ -220,8 +241,8 @@ export class ChatController {
           finalMessage = msgText ? `${msgText}\n\n${attachmentMarkdown}` : attachmentMarkdown;
         }
 
-        // Intercept /review command in Operations Group Chat
-        if (!this.activeChatPartner && finalMessage.startsWith('/review')) {
+        // Intercept /review command in Operations Group Chat (only if not in a group)
+        if (!this.activeChatPartner && !this.activeGroupId && finalMessage.startsWith('/review')) {
           this.handleAICodeReview(finalMessage);
         } else {
           if (this.activeChatPartner) {
@@ -231,7 +252,8 @@ export class ChatController {
           const payload = {
             username: this.myUsername,
             avatarUrl: this.myAvatar,
-            message: finalMessage
+            message: finalMessage,
+            groupId: this.activeGroupId
           };
 
           const sent = socket.send('/app/chat.send', payload);
@@ -322,7 +344,104 @@ export class ChatController {
         }
       };
     }
+
+    // Group Modals Event Bindings
+    if (this.closeCreateGroupModal) {
+      this.closeCreateGroupModal.onclick = () => this.createGroupModal.classList.remove('modal-overlay--active');
+    }
+    if (this.cancelCreateGroupBtn) {
+      this.cancelCreateGroupBtn.onclick = () => this.createGroupModal.classList.remove('modal-overlay--active');
+    }
+    if (this.closeGroupSettingsModal) {
+      this.closeGroupSettingsModal.onclick = () => this.groupSettingsModal.classList.remove('modal-overlay--active');
+    }
+    if (this.cancelGroupSettingsBtn) {
+      this.cancelGroupSettingsBtn.onclick = () => this.groupSettingsModal.classList.remove('modal-overlay--active');
+    }
+
+    if (this.createGroupForm) {
+      this.createGroupForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('groupName');
+        const iconInput = document.getElementById('groupIconUrl');
+        
+        if (!nameInput || !nameInput.value.trim()) return;
+        
+        const checkedBoxes = this.groupMembersList.querySelectorAll('input[type="checkbox"]:checked');
+        const memberUsernames = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        try {
+          const payload = {
+            name: nameInput.value.trim(),
+            iconUrl: iconInput ? iconInput.value.trim() : '',
+            members: memberUsernames
+          };
+          
+          console.log('[GROUP-CREATE] Posting group payload:', payload);
+          const newGroup = await api.request('/groups', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          
+          if (newGroup && newGroup.id) {
+            this.groups.push(newGroup);
+            this.subscribeToGroup(newGroup.id);
+            this.createGroupModal.classList.remove('modal-overlay--active');
+            nameInput.value = '';
+            if (iconInput) iconInput.value = '';
+            
+            // Switch to the newly created group chat immediately!
+            this.switchGroup(newGroup.id);
+          }
+        } catch (err) {
+          console.error('[GROUP-CREATE-ERROR] Failed to create group:', err);
+          alert(`Failed to create group: ${err.message || err}`);
+        }
+      };
+    }
+
+    if (this.groupSettingsForm) {
+      this.groupSettingsForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const groupId = document.getElementById('settingsGroupId').value;
+        const nameInput = document.getElementById('settingsGroupName');
+        const iconInput = document.getElementById('settingsGroupIconUrl');
+        
+        if (!nameInput || !nameInput.value.trim()) return;
+        
+        const checkedBoxes = this.settingsGroupAddMembersList.querySelectorAll('input[type="checkbox"]:checked:not([disabled])');
+        const newMemberUsernames = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        try {
+          const payload = {
+            name: nameInput.value.trim(),
+            iconUrl: iconInput ? iconInput.value.trim() : '',
+            newMembers: newMemberUsernames
+          };
+          
+          console.log('[GROUP-UPDATE] Putting group update payload:', payload);
+          const updatedGroup = await api.request(`/groups/${groupId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          
+          if (updatedGroup) {
+            // Update local group list item
+            const idx = this.groups.findIndex(g => g.id === updatedGroup.id);
+            if (idx !== -1) {
+              this.groups[idx] = updatedGroup;
+            }
+            this.groupSettingsModal.classList.remove('modal-overlay--active');
+            this.switchGroup(updatedGroup.id);
+          }
+        } catch (err) {
+          console.error('[GROUP-UPDATE-ERROR] Failed to update group settings:', err);
+          alert(`Failed to update group settings: ${err.message || err}`);
+        }
+      };
+    }
   }
+
 
   async loadChatHistory() {
     this.messagesContainer.innerHTML = '';
@@ -404,7 +523,46 @@ export class ChatController {
         this.voiceCall.handleSignal(payload);
       });
     }
+
+    // Subscribe to all user-joined groups
+    this.groups.forEach(group => {
+      this.subscribeToGroup(group.id);
+    });
   }
+
+  subscribeToGroup(groupId) {
+    const topic = `/topic/group.${groupId}`;
+    console.log(`[GROUP-WS-SUBSCRIBE] Registering WebSocket listener for group: ${groupId}`);
+    socket.subscribe(topic, (message) => {
+      this.handleIncomingGroupMessage(message);
+    });
+  }
+
+  handleIncomingGroupMessage(message) {
+    console.log(`[GROUP-WS-MESSAGE-IN] Received message for group ID: ${message.groupId}`, message);
+    
+    const existingIdx = this.historyMessages.findIndex(m => m.id === message.id);
+    if (existingIdx !== -1) {
+      this.historyMessages[existingIdx] = message;
+      if (this.activeThreadMsg && this.activeThreadMsg.id === message.id) {
+        this.activeThreadMsg = message;
+        this.drawThreadReplies();
+      }
+    } else {
+      this.historyMessages.push(message);
+      if (window.app) {
+        window.app.playNotificationSound();
+      }
+    }
+
+    if (this.activeGroupId === message.groupId) {
+      this.redrawMessages();
+    } else {
+      this.unreadGroups[message.groupId] = (this.unreadGroups[message.groupId] || 0) + 1;
+      this.drawGroups();
+    }
+  }
+
 
 
   syncMyPresence() {
@@ -442,6 +600,9 @@ export class ChatController {
 
   switchChatPartner(partner) {
     this.activeChatPartner = partner;
+    if (partner) {
+      this.activeGroupId = null;
+    }
     
     // Clear unread count when opening a DM session
     if (partner) {
@@ -450,11 +611,17 @@ export class ChatController {
     
     const backLink = document.getElementById('chatModeBackLink');
     const chatTitle = document.querySelector('#chatContainer .chat-panel-header__title');
-    const controls = document.getElementById('chatHeaderControls');    // Always clear existing call buttons to avoid duplicates
+    const controls = document.getElementById('chatHeaderControls');
+    
+    // Always clear existing call & group buttons to avoid duplicates
     const oldCallBtn = document.getElementById('dmCallBtn');
     if (oldCallBtn) oldCallBtn.remove();
     const oldVideoCallBtn = document.getElementById('dmVideoCallBtn');
     if (oldVideoCallBtn) oldVideoCallBtn.remove();
+    const oldGroupSettingsBtn = document.getElementById('groupSettingsBtn');
+    if (oldGroupSettingsBtn) oldGroupSettingsBtn.remove();
+    const oldLeaveGroupBtn = document.getElementById('leaveGroupBtn');
+    if (oldLeaveGroupBtn) oldLeaveGroupBtn.remove();
     
     // Dynamic binding and visibility for clearing history
     const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
@@ -470,9 +637,9 @@ export class ChatController {
           );
         };
       } else {
-        // Group mode: only Admins / Product Owners can clear the board history
+        // Group mode: only Admins / Product Owners can clear the board history (only if not in a custom group chat)
         const role = localStorage.getItem('chat_role') || 'DEVELOPER';
-        if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
+        if ((role === 'PRODUCT_OWNER' || role === 'MANAGER') && !this.activeGroupId) {
           clearHistoryBtn.style.display = 'block';
           clearHistoryBtn.onclick = (e) => {
             e.stopPropagation();
@@ -510,7 +677,7 @@ export class ChatController {
         const partnerUser = cachedUsers.find(u => u.username === partner);
         let partnerAvatar = partnerUser ? (partnerUser.avatarUrl || '').split('||')[0] : '';
         if (!partnerAvatar) partnerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${partner}`;
-
+ 
         // Create Video Call Button (Purple Accent)
         const videoCallBtn = document.createElement('button');
         videoCallBtn.className = 'dm-call-btn dm-call-btn--video';
@@ -521,7 +688,7 @@ export class ChatController {
           e.stopPropagation();
           this.voiceCall.initiateCall(partner, partnerAvatar, 'VIDEO');
         };
-
+ 
         // Create Voice Call Button (Green Accent)
         const callBtn = document.createElement('button');
         callBtn.className = 'dm-call-btn dm-call-btn--voice';
@@ -532,7 +699,7 @@ export class ChatController {
           e.stopPropagation();
           this.voiceCall.initiateCall(partner, partnerAvatar, 'VOICE');
         };
-
+ 
         // Prepend to header controls (video call first, then voice call on the left)
         controls.insertBefore(videoCallBtn, controls.firstChild);
         controls.insertBefore(callBtn, controls.firstChild);
@@ -540,7 +707,7 @@ export class ChatController {
       
       this.input.placeholder = `Send direct message to ${partner}...`;
     } else {
-      // Group room active
+      // Group room active (Operations Chat)
       if (backLink) backLink.style.display = 'none';
       if (chatTitle) {
         chatTitle.innerHTML = `
@@ -550,22 +717,33 @@ export class ChatController {
       }
       this.input.placeholder = `Send team message...`;
     }
-
+ 
     // Refresh active members display to update partner selected outline state
     this.updateActiveUsersList({ username: '', status: 'ONLINE' });
-
+ 
     // Rerender chat bubbles matching current active channel
     this.redrawMessages();
+    this.drawGroups();
   }
+
 
   redrawMessages() {
     this.messagesContainer.innerHTML = '';
     
     const filtered = this.historyMessages.filter(msg => {
+      // 1. Filter by group chat if activeGroupId is selected or message belongs to a group
+      if (msg.groupId !== undefined && msg.groupId !== null) {
+        return this.activeGroupId === msg.groupId;
+      }
+      if (this.activeGroupId !== null) {
+        return false;
+      }
+
+      // 2. Otherwise apply DM or general Operations Chat filters
       const isDm = msg.message && msg.message.startsWith('[DM:');
       
       if (this.activeChatPartner === null) {
-        // General group room: show only public non-prefixed messages
+        // General public Operations Chat: show only non-DM messages
         return !isDm;
       } else {
         // Direct private message tab: show only DM conversation matches
@@ -586,6 +764,7 @@ export class ChatController {
     filtered.forEach(msg => this.renderSingleMessage(msg));
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
   }
+
 
   parseMessageMeta(rawMessage) {
     if (!rawMessage) return { text: '', meta: { reactions: {}, replies: [] } };
@@ -627,8 +806,22 @@ export class ChatController {
   }
 
   renderSingleMessage(msg) {
+    if (msg.username === 'System') {
+      const sysMsgElement = document.createElement('div');
+      sysMsgElement.className = 'chat-msg-system';
+      sysMsgElement.setAttribute('data-msg-id', msg.id);
+      
+      const parsed = this.parseMessageMeta(msg.message);
+      sysMsgElement.innerHTML = `
+        <div class="chat-msg-system__bubble">${parsed.text}</div>
+      `;
+      this.messagesContainer.appendChild(sysMsgElement);
+      return;
+    }
+
     const isSelf = msg.username === this.myUsername;
     const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+
 
     const parsed = this.parseMessageMeta(msg.message);
     const textMsg = parsed.text;
@@ -1492,4 +1685,278 @@ export class ChatController {
   getEmojiSvg(emoji) {
     return emoji;
   }
+
+  // ============================================================
+  // Group Chat System Operations (Slack/Teams Premium Redesign)
+  // ============================================================
+  async loadGroups() {
+    try {
+      const groups = await api.request('/groups') || [];
+      this.groups = groups;
+      console.log('[GROUP-CHAT] Loaded user groups:', groups);
+      this.drawGroups();
+      
+      // Auto subscribe to all groups on load
+      groups.forEach(group => {
+        this.subscribeToGroup(group.id);
+      });
+    } catch (err) {
+      console.error('[GROUP-CHAT] Failed to load user groups:', err);
+    }
+  }
+
+  drawGroups() {
+    if (!this.groupsListContainer) return;
+    this.groupsListContainer.innerHTML = '';
+
+    // Create Group "+" Button
+    const createBtn = document.createElement('button');
+    createBtn.className = 'create-group-btn';
+    createBtn.title = 'Create Group Chat';
+    createBtn.innerHTML = '+';
+    createBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.populateMembersList('groupMembersList');
+      if (this.createGroupModal) {
+        this.createGroupModal.classList.add('modal-overlay--active');
+      }
+    };
+    this.groupsListContainer.appendChild(createBtn);
+
+    // Operations Chat (General Room - fallback)
+    const generalWrap = document.createElement('div');
+    generalWrap.className = `group-item-wrap ${this.activeGroupId === null && this.activeChatPartner === null ? 'selected' : ''}`;
+    generalWrap.title = 'Operations Group Chat';
+    generalWrap.style.marginRight = '8px';
+    generalWrap.onclick = () => {
+      this.switchChatPartner(null);
+    };
+
+    generalWrap.innerHTML = `
+      <svg style="width: 20px; height: 20px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+      </svg>
+    `;
+    this.groupsListContainer.appendChild(generalWrap);
+
+    // Dynamic User Groups
+    this.groups.forEach(group => {
+      const wrap = document.createElement('div');
+      wrap.className = `group-item-wrap ${this.activeGroupId === group.id ? 'selected' : ''}`;
+      wrap.title = group.name;
+      
+      let cleanIcon = group.iconUrl ? group.iconUrl.trim() : '';
+      if (!cleanIcon) {
+        cleanIcon = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(group.name)}`;
+      }
+
+      wrap.onclick = () => {
+        this.switchGroup(group.id);
+      };
+
+      const unreadCount = this.unreadGroups[group.id] || 0;
+      const badgeHtml = unreadCount > 0 
+        ? `<span class="active-user-unread-badge" style="top: -6px; right: -6px;">${unreadCount}</span>` 
+        : '';
+
+      wrap.innerHTML = `
+        <img src="${cleanIcon}" class="group-icon" alt="${group.name}">
+        ${badgeHtml}
+      `;
+      
+      this.groupsListContainer.appendChild(wrap);
+    });
+  }
+
+  async switchGroup(groupId) {
+    this.activeGroupId = groupId;
+    this.activeChatPartner = null;
+    this.unreadGroups[groupId] = 0;
+
+    const backLink = document.getElementById('chatModeBackLink');
+    const chatTitle = document.querySelector('#chatContainer .chat-panel-header__title');
+    const controls = document.getElementById('chatHeaderControls');
+    
+    // Always clear existing call & group buttons to avoid duplicates
+    const oldCallBtn = document.getElementById('dmCallBtn');
+    if (oldCallBtn) oldCallBtn.remove();
+    const oldVideoCallBtn = document.getElementById('dmVideoCallBtn');
+    if (oldVideoCallBtn) oldVideoCallBtn.remove();
+    const oldGroupSettingsBtn = document.getElementById('groupSettingsBtn');
+    if (oldGroupSettingsBtn) oldGroupSettingsBtn.remove();
+    const oldLeaveGroupBtn = document.getElementById('leaveGroupBtn');
+    if (oldLeaveGroupBtn) oldLeaveGroupBtn.remove();
+    
+    // Hide default clear chat history button inside private groups
+    const clearHistoryBtn = document.getElementById('clearChatHistoryBtn');
+    if (clearHistoryBtn) {
+      clearHistoryBtn.style.display = 'none';
+    }
+
+    const group = this.groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    if (backLink) backLink.style.display = 'flex';
+    if (chatTitle) {
+      let cleanIcon = group.iconUrl ? group.iconUrl.trim() : '';
+      if (!cleanIcon) {
+        cleanIcon = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(group.name)}`;
+      }
+      chatTitle.innerHTML = `
+        <span class="chat-header-title-text" style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+          <img src="${cleanIcon}" style="width: 20px; height: 20px; border-radius: 4px; object-fit: cover;">
+          <span class="chat-header-title-partner">${group.name}</span>
+        </span>
+      `;
+    }
+
+    // Append Group Settings (Cog icon) & Leave Group (logout icon) buttons
+    if (controls) {
+      // Group Settings Cog Button
+      const settingsBtn = document.createElement('button');
+      settingsBtn.className = 'dm-call-btn dm-call-btn--voice';
+      settingsBtn.id = 'groupSettingsBtn';
+      settingsBtn.title = 'Group Settings';
+      settingsBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      `;
+      settingsBtn.onclick = async (e) => {
+        e.stopPropagation();
+        document.getElementById('settingsGroupId').value = groupId;
+        document.getElementById('settingsGroupName').value = group.name;
+        document.getElementById('settingsGroupIconUrl').value = group.iconUrl || '';
+        
+        try {
+          const members = await api.request(`/groups/${groupId}/members`) || [];
+          this.populateMembersList('settingsGroupAddMembersList', members);
+        } catch (err) {
+          console.error('[GROUP-MEMBERS-FETCH] Failed to load members:', err);
+          this.populateMembersList('settingsGroupAddMembersList', []);
+        }
+
+        if (this.groupSettingsModal) {
+          this.groupSettingsModal.classList.add('modal-overlay--active');
+        }
+      };
+
+      // Leave Group Exit Button
+      const leaveBtn = document.createElement('button');
+      leaveBtn.className = 'dm-call-btn dm-call-btn--video';
+      leaveBtn.id = 'leaveGroupBtn';
+      leaveBtn.title = 'Leave Group';
+      leaveBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+          <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+        </svg>
+      `;
+      leaveBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm(`Are you sure you want to leave group "${group.name}"?`)) return;
+        
+        try {
+          console.log(`[GROUP-LEAVE] Leaving group ID: ${groupId}...`);
+          await api.request(`/groups/${groupId}/leave`, { method: 'POST' });
+          socket.unsubscribe(`/topic/group.${groupId}`);
+          
+          this.groups = this.groups.filter(g => g.id !== groupId);
+          this.switchChatPartner(null);
+        } catch (err) {
+          console.error('[GROUP-LEAVE-ERROR] Failed to leave group:', err);
+          alert(`Failed to leave group: ${err.message || err}`);
+        }
+      };
+
+      controls.insertBefore(leaveBtn, controls.firstChild);
+      controls.insertBefore(settingsBtn, controls.firstChild);
+    }
+
+    this.input.placeholder = `Send message to ${group.name}...`;
+
+    // Load group messages history
+    try {
+      console.log(`[GROUP-CHAT-HISTORY] Fetching messages for group: ${groupId}...`);
+      const groupMsgs = await api.request(`/groups/${groupId}/messages`) || [];
+      
+      // Merge group messages into our history
+      groupMsgs.forEach(msg => {
+        const idx = this.historyMessages.findIndex(m => m.id === msg.id);
+        if (idx !== -1) {
+          this.historyMessages[idx] = msg;
+        } else {
+          this.historyMessages.push(msg);
+        }
+      });
+
+      this.redrawMessages();
+    } catch (err) {
+      console.error('[GROUP-CHAT-HISTORY-ERROR] Failed to load messages:', err);
+    }
+
+    this.drawGroups();
+    this.updateActiveUsersList({ username: '', status: 'ONLINE' });
+  }
+
+  populateMembersList(containerId, currentMemberNames = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+    const otherUsers = cachedUsers.filter(u => u.username !== this.myUsername);
+    
+    if (otherUsers.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; padding: 4px;">No other members available in workspace.</div>';
+      return;
+    }
+    
+    otherUsers.forEach(user => {
+      const isAlreadyMember = currentMemberNames.includes(user.username);
+      
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.gap = '8px';
+      div.style.padding = '4px 6px';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = user.username;
+      checkbox.id = `${containerId}_user_${user.username}`;
+      checkbox.style.accentColor = 'var(--accent-cyan)';
+      checkbox.style.cursor = 'pointer';
+      
+      if (isAlreadyMember) {
+        checkbox.checked = true;
+        checkbox.disabled = true; // cannot remove from settings
+      }
+      
+      const label = document.createElement('label');
+      label.htmlFor = checkbox.id;
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '8px';
+      label.style.cursor = 'pointer';
+      label.style.fontSize = '12px';
+      label.style.color = '#e4e4e7';
+      label.style.userSelect = 'none';
+      label.style.flex = '1';
+      
+      let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar) {
+        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+      }
+      
+      label.innerHTML = `
+        <img src="${cleanAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
+        <span>${user.username} <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 2px;">${(user.role || 'DEVELOPER').replace(/_/g, ' ')}</span></span>
+      `;
+      
+      div.appendChild(checkbox);
+      div.appendChild(label);
+      container.appendChild(div);
+    });
+  }
 }
+

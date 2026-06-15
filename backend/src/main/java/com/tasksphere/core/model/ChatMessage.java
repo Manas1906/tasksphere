@@ -28,4 +28,8 @@ public class ChatMessage {
     @Column(name = "timestamp")
     @Builder.Default
     private Instant timestamp = Instant.now();
+
+    @Column(name = "group_id")
+    private Long groupId;
 }
+

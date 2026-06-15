@@ -13,7 +13,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+
 
 @Controller
 public class RealtimeController {
@@ -36,13 +38,37 @@ public class RealtimeController {
     @Autowired
     private com.tasksphere.core.service.WebPushService webPushService;
 
+    @Autowired
+    private com.tasksphere.core.service.GroupChatService groupChatService;
+
     /**
      * Receives a chat message from a user, saves it, and broadcasts it to all listeners.
      */
     @MessageMapping("/chat.send")
-    @SendTo("/topic/chat")
-    public ChatMessage sendMessage(ChatMessage message) {
+    public void sendMessage(ChatMessage message) {
         message.setTimestamp(Instant.now());
+
+        // Handle Group Chat messages
+        if (message.getGroupId() != null) {
+            if (!groupChatService.isMember(message.getGroupId(), message.getUsername())) {
+                System.out.println("[WS-GROUP-CHAT] Unauthorized group message attempt by: " + message.getUsername() + " in group ID: " + message.getGroupId());
+                return;
+            }
+            ChatMessage saved = chatService.saveMessage(message);
+            messagingTemplate.convertAndSend("/topic/group." + message.getGroupId(), saved);
+
+            // Notify group members in the background
+            List<String> members = groupChatService.getGroupMemberNames(message.getGroupId());
+            String groupName = groupChatService.getGroupName(message.getGroupId());
+            for (String member : members) {
+                if (!member.equalsIgnoreCase(saved.getUsername())) {
+                    webPushService.sendNotification(member, "👥 " + groupName + ": " + saved.getUsername(), saved.getMessage(), "/");
+                }
+            }
+            return;
+        }
+
+        // Handle Public & DM messages
         ChatMessage saved = chatService.saveMessage(message);
         
         // Cache the newly saved message in Redis capped list
@@ -80,8 +106,9 @@ public class RealtimeController {
             }
         }
         
-        return saved;
+        messagingTemplate.convertAndSend("/topic/chat", saved);
     }
+
 
     @Autowired
     private com.tasksphere.core.service.RedisQueueService redisQueueService;
