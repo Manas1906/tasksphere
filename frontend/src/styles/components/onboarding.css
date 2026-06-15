@@ -3,9 +3,7 @@
 .onboarding-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(11, 15, 23, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(11, 15, 23, 0.75); /* Darker backdrop to hide dashboard clearly */
   z-index: 99998;
   display: flex;
   align-items: center;
@@ -17,9 +15,7 @@
 .onboarding-welcome-card {
   width: 90%;
   max-width: 520px;
-  background: rgba(19, 26, 38, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #131a26; /* Solid background secondary */
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
@@ -45,9 +41,7 @@
 .onboarding-guide-card {
   position: absolute;
   z-index: 99999;
-  background: rgba(19, 26, 38, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #131a26; /* Solid background secondary */
   border: 1.5px solid rgba(99, 102, 241, 0.25);
   border-radius: var(--radius-md);
   width: 320px;
@@ -82,28 +76,28 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: rgba(19, 26, 38, 0.88);
+  border-top-color: #131a26;
 }
 
 .onboarding-guide-card--bottom::after {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-bottom-color: rgba(19, 26, 38, 0.88);
+  border-bottom-color: #131a26;
 }
 
 .onboarding-guide-card--left::after {
   left: 100%;
   top: 50%;
   transform: translateY(-50%);
-  border-left-color: rgba(19, 26, 38, 0.88);
+  border-left-color: #131a26;
 }
 
 .onboarding-guide-card--right::after {
   right: 100%;
   top: 50%;
   transform: translateY(-50%);
-  border-right-color: rgba(19, 26, 38, 0.88);
+  border-right-color: #131a26;
 }
 
 /* Spotlight Glowing Stencil Ring */

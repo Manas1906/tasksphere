@@ -1,8 +1,7 @@
 /* Premium Glassmorphic Admin Panel and Blocker Styles */
 
 .admin-panel {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
+  background: var(--bg-secondary); /* Solid background secondary */
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
@@ -174,8 +173,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 15, 28, 0.85);
-  backdrop-filter: blur(20px);
+  background: rgba(10, 15, 28, 0.95); /* Solid-looking dark overlay */
   display: flex;
   align-items: center;
   justify-content: center;

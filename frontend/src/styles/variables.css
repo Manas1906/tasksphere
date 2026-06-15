@@ -4,7 +4,7 @@
   --bg-primary: #0B0F17;
   --bg-secondary: #131A26;
   --bg-tertiary: #1E293B;
-  --bg-card: rgba(26, 36, 54, 0.6);
+  --bg-card: #1a2436; /* Solid background card */
   
   --border-color: rgba(255, 255, 255, 0.06);
   --border-color-glow: rgba(0, 240, 255, 0.25);
@@ -47,9 +47,9 @@
   --chat-panel-width: clamp(300px, 18vw, 380px);
   --header-height: 70px;
   
-  /* Glassmorphism & Visual Effects - Day 6 Curriculum */
-  --glass-bg: rgba(19, 26, 38, 0.75);
-  --glass-blur: blur(12px);
+  /* Solid theme visual effects */
+  --glass-bg: #131A26; /* Solid background */
+  --glass-blur: none;
   --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --cyan-glow: 0 0 15px rgba(0, 240, 255, 0.2);
   --purple-glow: 0 0 15px rgba(99, 102, 241, 0.2); /* Calming Indigo glow */
@@ -92,8 +92,8 @@ body.light-theme {
   --text-muted: #64748B;
   --text-light: #334155;
   
-  /* Glassmorphism overrides for Light Mode */
-  --glass-bg: rgba(255, 255, 255, 0.85);
+  /* Solid theme overrides for Light Mode */
+  --glass-bg: #FFFFFF;
   --card-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05); /* Soft premium shadow matching mockup */
   --cyan-glow: 0 0 15px rgba(2, 132, 199, 0.15);
   --purple-glow: 0 0 15px rgba(79, 70, 229, 0.15);

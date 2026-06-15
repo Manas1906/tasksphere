@@ -974,13 +974,15 @@ export class VoiceCallController {
     overlay.id = id;
     overlay.className = 'incoming-call-overlay';
     overlay.innerHTML = `
-      <div class="incoming-call__avatar-ring">
-        <img class="incoming-call__avatar" src="${this.callPartnerAvatar}" alt="${this.callPartner}">
-      </div>
-      <span class="incoming-call__label">${label}</span>
-      <span class="incoming-call__username">${this.callPartner}</span>
-      <div class="incoming-call__actions">
-        ${buttonsHtml}
+      <div class="incoming-call-card">
+        <div class="incoming-call__avatar-ring">
+          <img class="incoming-call__avatar" src="${this.callPartnerAvatar}" alt="${this.callPartner}">
+        </div>
+        <span class="incoming-call__label">${label}</span>
+        <span class="incoming-call__username">${this.callPartner}</span>
+        <div class="incoming-call__actions">
+          ${buttonsHtml}
+        </div>
       </div>
     `;
     document.body.appendChild(overlay);

@@ -245,9 +245,7 @@
 .auth-card {
   width: 100%;
   max-width: 420px;
-  background: rgba(15, 22, 38, 0.65);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: #0f1626; /* Solid background */
   border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: 
     0 30px 60px rgba(0, 0, 0, 0.6), 
@@ -540,8 +538,8 @@ select.auth-input option {
   top: 48px;
   right: 0;
   width: 260px;
-  background: linear-gradient(135deg, rgba(20, 24, 46, 0.96) 0%, rgba(10, 13, 30, 0.99) 100%);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: #1c2533; /* Solid background */
+  border: 1px solid rgba(168, 85, 247, 0.4);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(168, 85, 247, 0.15);
   z-index: 999;
@@ -694,7 +692,6 @@ select.auth-input option {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  backdrop-filter: blur(8px);
 }
 
 .social-btn:hover {
@@ -725,7 +722,7 @@ select.auth-input option {
 
 /* Light Theme Overrides for User Profile Dropdown Card */
 body.light-theme .profile-dropdown {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%) !important;
+  background: #ffffff !important; /* Solid background */
   border: 1px solid rgba(79, 70, 229, 0.15) !important;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 0 15px rgba(79, 70, 229, 0.05) !important;
 }

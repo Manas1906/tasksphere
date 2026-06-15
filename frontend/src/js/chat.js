@@ -180,13 +180,12 @@ export class ChatController {
           }
 
           // --- Tier 2: Inline base64 data URL fallback ---
-          // IMPORTANT: Cap at 400KB because base64 adds ~37% overhead (400KB → ~548KB)
-          // The STOMP server is now configured for 10MB messages but we stay conservative.
+          // Cap at 5MB as a fallback for REST upload issues. STOMP is configured for 10MB frames.
           if (!uploadSucceeded) {
-            const BASE64_LIMIT = 400 * 1024; // 400 KB
+            const BASE64_LIMIT = 5 * 1024 * 1024; // 5 MB
             if (this.selectedFile.size > BASE64_LIMIT) {
               throw new Error(
-                `File upload failed and file is too large to embed inline (${fileSizeMB}MB > 400KB limit).\n\n` +
+                `File upload failed and file is too large to embed inline (${fileSizeMB}MB > 5MB limit).\n\n` +
                 `Please ensure the backend is reachable or use a smaller file.`
               );
             }
