@@ -181,8 +181,10 @@ public class RealtimeController {
         String caller = (String) payload.get("caller");
         System.out.println("[CALL-SIGNAL] Call offer from " + caller + " → " + target);
         
-        // Dispatch live WebSocket signal
+        // Primary delivery: user-specific private queue (requires matching STOMP principal)
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+        // Fallback delivery: topic-based channel the callee is always subscribed to
+        messagingTemplate.convertAndSend("/topic/call/" + target, payload);
         
         // Dispatch background Web Push notification for mobile / lock screen alerts
         try {
@@ -203,6 +205,7 @@ public class RealtimeController {
 
         System.out.println("[CALL-SIGNAL] Call answer from " + payload.get("caller") + " → " + target);
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+        messagingTemplate.convertAndSend("/topic/call/" + target, payload);
     }
 
     /**
@@ -214,6 +217,7 @@ public class RealtimeController {
         if (target == null || target.trim().isEmpty()) return;
 
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+        messagingTemplate.convertAndSend("/topic/call/" + target, payload);
     }
 
     /**
@@ -226,6 +230,7 @@ public class RealtimeController {
 
         System.out.println("[CALL-SIGNAL] Hangup from " + payload.get("caller") + " → " + target);
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
+        messagingTemplate.convertAndSend("/topic/call/" + target, payload);
     }
 
     @Data
