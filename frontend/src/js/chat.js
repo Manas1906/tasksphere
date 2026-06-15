@@ -31,6 +31,13 @@ export class ChatController {
     this.isCurrentlyTyping = false;
     this.typerTimers = {};
 
+    this.attachBtn = document.getElementById('chatAttachBtn');
+    this.fileInput = document.getElementById('chatFileInput');
+    this.uploadPreview = document.getElementById('chatUploadPreview');
+    this.uploadPreviewName = document.getElementById('chatUploadPreviewName');
+    this.uploadCancelBtn = document.getElementById('chatUploadCancelBtn');
+    this.selectedFile = null;
+
     this.voiceCall = new VoiceCallController();
   }
 
@@ -83,41 +90,131 @@ export class ChatController {
   }
 
   bindEvents() {
-    const handleSend = () => {
-      let msgText = this.input.value.trim();
-      if (!msgText) return;
-
-      if (this.activeChatPartner) {
-        msgText = `[DM:${this.activeChatPartner}] ${msgText}`;
-      }
-
-      const payload = {
-        username: this.myUsername,
-        avatarUrl: this.myAvatar,
-        message: msgText
+    // Attachments actions
+    if (this.attachBtn && this.fileInput) {
+      this.attachBtn.onclick = () => this.fileInput.click();
+      this.fileInput.onchange = () => {
+        const file = this.fileInput.files[0];
+        if (file) {
+          this.selectedFile = file;
+          if (this.uploadPreviewName) {
+            this.uploadPreviewName.textContent = `📎 Selected: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+          }
+          if (this.uploadPreview) {
+            this.uploadPreview.classList.remove('hidden');
+          }
+        }
       };
+    }
 
-      const sent = socket.send('/app/chat.send', payload);
-      if (!sent) {
-        console.warn('Socket connection offline, adding to offline cache.');
-        this.historyMessages.push({
-          ...payload,
-          timestamp: new Date().toISOString(),
-          offline: true
-        });
-        this.redrawMessages();
-      }
+    if (this.uploadCancelBtn) {
+      this.uploadCancelBtn.onclick = () => {
+        this.selectedFile = null;
+        if (this.fileInput) this.fileInput.value = '';
+        if (this.uploadPreview) this.uploadPreview.classList.add('hidden');
+      };
+    }
+
+    const handleSend = async () => {
+      let msgText = this.input.value.trim();
       
-      this.input.value = '';
-      this.input.focus();
+      // Exit if empty and no file
+      if (!msgText && !this.selectedFile) return;
 
-      if (this.typingTimeout) {
-        clearTimeout(this.typingTimeout);
-        this.typingTimeout = null;
-      }
-      if (this.isCurrentlyTyping) {
-        this.isCurrentlyTyping = false;
-        this.publishTypingStatus(false);
+      this.input.disabled = true;
+      this.sendBtn.disabled = true;
+
+      try {
+        let attachmentMarkdown = '';
+        if (this.selectedFile) {
+          if (this.uploadPreviewName) {
+            this.uploadPreviewName.textContent = `⚡ Uploading: ${this.selectedFile.name}...`;
+          }
+
+          const formData = new FormData();
+          formData.append('file', this.selectedFile);
+
+          const token = localStorage.getItem('tasksphere_jwt');
+          const response = await fetch(`${api.baseUrl}/upload`, {
+            method: 'POST',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+          }
+
+          const uploadRes = await response.json();
+          if (uploadRes.success && uploadRes.fileUrl) {
+            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(this.selectedFile.name);
+            if (isImage) {
+              attachmentMarkdown = `![${this.selectedFile.name}](${uploadRes.fileUrl})`;
+            } else {
+              attachmentMarkdown = `[${this.selectedFile.name}](${uploadRes.fileUrl})`;
+            }
+          } else {
+            throw new Error(uploadRes.error || 'Server upload failure');
+          }
+
+          // Clear attachment fields
+          this.selectedFile = null;
+          if (this.fileInput) this.fileInput.value = '';
+          if (this.uploadPreview) this.uploadPreview.classList.add('hidden');
+        }
+
+        let finalMessage = msgText;
+        if (attachmentMarkdown) {
+          finalMessage = msgText ? `${msgText}\n\n${attachmentMarkdown}` : attachmentMarkdown;
+        }
+
+        // Intercept /review command in Operations Group Chat
+        if (!this.activeChatPartner && finalMessage.startsWith('/review')) {
+          this.handleAICodeReview(finalMessage);
+        } else {
+          if (this.activeChatPartner) {
+            finalMessage = `[DM:${this.activeChatPartner}] ${finalMessage}`;
+          }
+
+          const payload = {
+            username: this.myUsername,
+            avatarUrl: this.myAvatar,
+            message: finalMessage
+          };
+
+          const sent = socket.send('/app/chat.send', payload);
+          if (!sent) {
+            console.warn('Socket connection offline, adding to offline cache.');
+            this.historyMessages.push({
+              ...payload,
+              timestamp: new Date().toISOString(),
+              offline: true
+            });
+            this.redrawMessages();
+          }
+        }
+
+        this.input.value = '';
+        this.input.focus();
+
+        if (this.typingTimeout) {
+          clearTimeout(this.typingTimeout);
+          this.typingTimeout = null;
+        }
+        if (this.isCurrentlyTyping) {
+          this.isCurrentlyTyping = false;
+          this.publishTypingStatus(false);
+        }
+
+      } catch (err) {
+        console.error('[CHAT-SEND-ERROR] Failed to send/upload:', err);
+        alert(`Failed to send message: ${err.message || err}`);
+        if (this.uploadPreviewName && this.selectedFile) {
+          this.uploadPreviewName.textContent = `❌ Upload failed: ${this.selectedFile.name}`;
+        }
+      } finally {
+        this.input.disabled = false;
+        this.sendBtn.disabled = false;
       }
     };
 
@@ -142,7 +239,7 @@ export class ChatController {
       chatHeader.style.cursor = 'pointer';
       chatHeader.title = 'Switch back to Operations Group Chat';
       chatHeader.onclick = (e) => {
-        if (e.target.id !== 'clearChatHistoryBtn' && !e.target.classList.contains('mobile-nav-close')) {
+        if (e.target.id !== 'clearChatHistoryBtn' && !e.target.closest('#chatHeaderControls')) {
           this.switchChatPartner(null);
         }
       };
@@ -514,7 +611,7 @@ export class ChatController {
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble">${this.formatMessageMentions(textMsg)}</div>
+          <div class="chat-msg__bubble">${this.formatMessageMarkdown(textMsg)}</div>
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">
@@ -762,7 +859,7 @@ export class ChatController {
             <span class="chat-msg__sender">${reply.username}</span>
             <span>${time}</span>
           </div>
-          <div class="chat-msg__bubble">${this.formatMessageMentions(reply.message)}</div>
+          <div class="chat-msg__bubble">${this.formatMessageMarkdown(reply.message)}</div>
         </div>
       `;
       repliesList.appendChild(replyEl);
@@ -930,11 +1027,134 @@ export class ChatController {
      User Tagging & Autocomplete Engine Methods
      ======================================================= */
 
-  formatMessageMentions(text) {
+  formatMessageMarkdown(text) {
     if (!text) return '';
-    return text.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
+    let html = text;
+    
+    // Escape HTML first to prevent XSS
+    html = html
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+      
+    // Handle images: ![caption](url)
+    html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => {
+      return `<div class="chat-image-wrap"><img class="chat-embedded-image" src="${url}" alt="${alt}" style="max-width: 250px; max-height: 200px; border-radius: 8px; margin-top: 6px; cursor: pointer; display: block; border: 1px solid rgba(255, 255, 255, 0.1);" onclick="window.open('${url}', '_blank')"></div>`;
+    });
+
+    // Handle files/links: [label](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
+      return `<a class="chat-file-link" href="${url}" target="_blank" style="color: var(--accent-cyan); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;" download>📎 ${label}</a>`;
+    });
+
+    // Handle code blocks: ```lang ... ``` or ``` ... ```
+    html = html.replace(/```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)\n```/g, (match, code) => {
+      return `<pre class="chat-code-block"><code>${code}</code></pre>`;
+    });
+
+    // Handle inline code: `code`
+    html = html.replace(/`([^`\n]+)`/g, (match, code) => {
+      return `<code class="chat-inline-code">${code}</code>`;
+    });
+
+    // Handle bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
+      return `<strong>${content}</strong>`;
+    });
+
+    // Handle headers: ### text or ## text
+    html = html.replace(/^(?:###|##|#)\s+(.+)$/gm, (match, content) => {
+      return `<h4 class="chat-review-header">${content}</h4>`;
+    });
+
+    // Handle bullet points: * text or - text
+    html = html.replace(/^[*\-]\s+(.+)$/gm, (match, content) => {
+      return `<li class="chat-review-bullet">${content}</li>`;
+    });
+
+    // Handle line breaks: \n -> <br> (but not inside <pre> tags)
+    const parts = html.split(/(<pre[\s\S]*?<\/pre>)/g);
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i].startsWith('<pre')) {
+        parts[i] = parts[i].replace(/\n/g, '<br>');
+      }
+    }
+    html = parts.join('');
+
+    // Format mentions
+    html = html.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
       return `<span class="chat-mention" data-mention-username="${username}">@${username}</span>`;
     });
+
+    return html;
+  }
+
+  async handleAICodeReview(msgText) {
+    const codeSnippet = msgText.substring(7).trim();
+    if (!codeSnippet) {
+      alert('Please provide some code to review. Format: /review <code>');
+      return;
+    }
+
+    const tempId = 'ai-review-' + Date.now();
+    const tempMsg = {
+      id: tempId,
+      username: 'AI Reviewer 🤖',
+      avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=AIReviewer',
+      message: 'Analyzing your code snippet... Please stand by. ⚡',
+      timestamp: new Date().toISOString()
+    };
+
+    // Push local notification toast
+    if (window.app) {
+      window.app.showNotificationToast('🤖 Code Analysis Triggered', 'AI Reviewer is analyzing your code snippet...', 'UPDATE');
+    }
+
+    this.historyMessages.push(tempMsg);
+    this.redrawMessages();
+
+    const activeKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!activeKey) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      this.updateLocalAiReview(tempId, `### AI Code Review Report\n\nNo Gemini API Key found in \`VITE_GEMINI_API_KEY\`. Here is a local simulated review:\n\n1. **Complexity**: O(N) linear performance checked.\n2. **Security**: Ensure credentials are not hardcoded.\n3. **Refactoring**: Looks clean, human-written feel is present!`);
+      return;
+    }
+
+    try {
+      console.log('[AI-REVIEWER] Contacting Gemini stable v1 API (gemini-2.5-flash)...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${activeKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are an expert Senior Software Engineer and Architect. Perform a strict, highly technical, and concise code review of the following code snippet. Focus on code quality, security vulnerabilities, latency or performance issues, and readability. Do not output conversational preamble; start directly with the critique. Provide clean markdown output with clear headings, bullet points, and code block corrections if applicable:\n\n\`\`\`\n${codeSnippet}\n\`\`\``
+            }]
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        const reviewText = resData.candidates[0].content.parts[0].text.trim();
+        this.updateLocalAiReview(tempId, reviewText);
+      } else {
+        throw new Error(`HTTP Error ${response.status}`);
+      }
+    } catch (err) {
+      console.error('[AI-REVIEWER-FAILURE]', err);
+      this.updateLocalAiReview(tempId, `❌ **AI Code Review failed**: ${err.message || err}`);
+    }
+  }
+
+  updateLocalAiReview(tempId, finalReviewText) {
+    const msg = this.historyMessages.find(m => m.id === tempId);
+    if (msg) {
+      msg.message = `🤖 **AI CODE REVIEW REPORT**\n\n${finalReviewText}`;
+      this.redrawMessages();
+    }
   }
 
   setupMentionsAutocomplete() {

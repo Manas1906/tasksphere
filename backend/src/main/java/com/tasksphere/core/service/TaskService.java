@@ -92,7 +92,7 @@ public class TaskService {
                 task.getChecklist().add(newItem);
             });
         }
-
+        
         Task savedTask = taskRepository.save(task);
 
         // Trigger STOMP user queue alerts on ticket assignee update/assignment

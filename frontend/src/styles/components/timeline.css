@@ -1,0 +1,286 @@
+/* ============================================================
+   Interactive Sprint Gantt Timeline Styling — Premium UI
+   ============================================================ */
+
+.timeline-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  padding: var(--spacing-md);
+  gap: var(--spacing-md);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.timeline-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-title {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff, var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.timeline-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.timeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeline-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.timeline-btn--active {
+  background: var(--accent-purple);
+  border-color: var(--accent-purple);
+  box-shadow: var(--purple-glow);
+}
+
+.timeline-btn--active:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.timeline-workspace {
+  display: flex;
+  flex: 1;
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sidebar for Task Info */
+.timeline-sidebar {
+  width: 250px;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 15, 30, 0.45);
+  flex-shrink: 0;
+}
+
+.timeline-sidebar-header {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-cyan);
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.timeline-sidebar-rows {
+  flex: 1;
+  overflow-y: hidden; /* Will be synced with canvas scroll */
+}
+
+.timeline-sidebar-row {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background var(--transition-fast) ease;
+}
+
+.timeline-sidebar-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Main Timeline Grid / Scroll Area */
+.timeline-grid-wrapper {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* Header with days */
+.timeline-grid-header {
+  height: 50px;
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.timeline-header-cell {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.timeline-header-cell--today {
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.timeline-header-cell .day-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.timeline-header-cell--today .day-num {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+/* Dynamic SVG Canvas */
+.timeline-svg-container {
+  position: relative;
+  background: rgba(10, 15, 30, 0.15);
+}
+
+.timeline-svg {
+  display: block;
+}
+
+/* Interactive SVG Rect styles */
+.gantt-bar {
+  cursor: grab;
+  rx: 6px;
+  ry: 6px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+  transition: stroke-width 0.15s ease, filter 0.15s ease;
+}
+
+.gantt-bar:active {
+  cursor: grabbing;
+}
+
+.gantt-bar:hover {
+  filter: drop-shadow(0 6px 15px rgba(0, 0, 0, 0.4)) brightness(1.1);
+  stroke-width: 1.5px;
+}
+
+/* Status specific gradient fills via CSS */
+.gantt-bar--todo {
+  fill: url(#grad-todo);
+  stroke: rgba(99, 102, 241, 0.6);
+}
+
+.gantt-bar--inprogress {
+  fill: url(#grad-inprogress);
+  stroke: rgba(16, 185, 129, 0.6);
+}
+
+.gantt-bar--review {
+  fill: url(#grad-review);
+  stroke: rgba(245, 158, 11, 0.6);
+}
+
+.gantt-bar--done {
+  fill: url(#grad-done);
+  stroke: rgba(59, 130, 246, 0.6);
+}
+
+/* Resize handles */
+.gantt-handle {
+  cursor: ew-resize;
+  fill: rgba(255, 255, 255, 0.01);
+  transition: fill 0.15s ease;
+}
+
+.gantt-handle:hover {
+  fill: rgba(255, 255, 255, 0.25);
+}
+
+/* Vertical grid lines */
+.gantt-grid-line {
+  stroke: rgba(255, 255, 255, 0.03);
+  stroke-width: 1;
+}
+
+.gantt-grid-line--today {
+  stroke: rgba(0, 240, 255, 0.25);
+  stroke-width: 1.5;
+  stroke-dasharray: 4, 4;
+}
+
+.gantt-grid-line--weekend {
+  fill: rgba(255, 255, 255, 0.01);
+}
+
+/* Task labels */
+.gantt-text {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  fill: #fff;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Empty state styling */
+.timeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: var(--spacing-md);
+  color: var(--text-muted);
+}

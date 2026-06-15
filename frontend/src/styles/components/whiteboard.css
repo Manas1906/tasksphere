@@ -1,0 +1,149 @@
+.whiteboard-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: var(--spacing-lg);
+  gap: var(--spacing-md);
+  background: var(--bg-secondary);
+}
+
+.whiteboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.whiteboard-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.whiteboard-title {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.whiteboard-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.whiteboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  background: var(--bg-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.whiteboard-tool-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.whiteboard-tool-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast) ease;
+}
+
+.whiteboard-tool-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-muted);
+}
+
+.whiteboard-tool-btn--active {
+  background: var(--accent-purple);
+  color: var(--bg-primary);
+  border-color: var(--accent-purple);
+}
+
+.whiteboard-tool-btn--active:hover {
+  background: var(--accent-purple);
+  color: var(--bg-primary);
+  border-color: var(--accent-purple);
+}
+
+.whiteboard-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.whiteboard-slider {
+  width: 100px;
+  accent-color: var(--accent-purple);
+  cursor: pointer;
+}
+
+.whiteboard-slider-val {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 30px;
+}
+
+.whiteboard-color-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.whiteboard-color-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition-fast) ease;
+}
+
+.whiteboard-color-btn:hover {
+  transform: scale(1.15);
+}
+
+.whiteboard-color-btn--active {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.whiteboard-canvas-wrapper {
+  flex: 1;
+  width: 100%;
+  background: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: inset var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+#whiteboardCanvas {
+  display: block;
+  cursor: crosshair;
+  background: transparent;
+}

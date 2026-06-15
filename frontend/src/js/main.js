@@ -8,6 +8,8 @@ import { AIChatbot } from './chatbot';
 import { AdminView } from './admin';
 import { CursorSyncController } from './cursors';
 import { OnboardingTour } from './onboarding';
+import { WhiteboardView } from './whiteboard';
+import { TimelineView } from './timeline';
 
 /**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
@@ -1286,23 +1288,31 @@ class TaskSphereApp {
     const dashboardBtn = document.getElementById('navDashboard');
     const boardBtn = document.getElementById('navBoard');
     const teamBtn = document.getElementById('navTeam');
+    const whiteboardBtn = document.getElementById('navWhiteboard');
+    const timelineBtn = document.getElementById('navTimeline');
     const adminBtn = document.getElementById('navAdmin');
  
     const clearActive = () => {
       dashboardBtn.classList.remove('sidebar-nav-btn--active');
       boardBtn.classList.remove('sidebar-nav-btn--active');
       teamBtn.classList.remove('sidebar-nav-btn--active');
+      if (whiteboardBtn) whiteboardBtn.classList.remove('sidebar-nav-btn--active');
+      if (timelineBtn) timelineBtn.classList.remove('sidebar-nav-btn--active');
       if (adminBtn) adminBtn.classList.remove('sidebar-nav-btn--active');
     };
  
     dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('DASHBOARD'); };
     boardBtn.onclick = () => { clearActive(); boardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('BOARD'); };
     teamBtn.onclick = () => { clearActive(); teamBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('AI_LAB'); };
+    if (whiteboardBtn) {
+      whiteboardBtn.onclick = () => { clearActive(); whiteboardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('WHITEBOARD'); };
+    }
+    if (timelineBtn) {
+      timelineBtn.onclick = () => { clearActive(); timelineBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('TIMELINE'); };
+    }
     if (adminBtn) {
       adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('ADMIN_PANEL'); };
     }
-
-
   }
 
   setupModals() {
@@ -2023,6 +2033,11 @@ class TaskSphereApp {
     if (this.cursorSyncController) {
       this.cursorSyncController.clearAllCursors();
     }
+
+    // Clean up current view resources if any (e.g. whiteboard socket subscription)
+    if (this.currentView && typeof this.currentView.destroy === 'function') {
+      this.currentView.destroy();
+    }
  
     if (route === 'DASHBOARD') {
       this.currentView = new DashboardView('mainContainer');
@@ -2030,6 +2045,10 @@ class TaskSphereApp {
       this.currentView = new BoardView('mainContainer');
     } else if (route === 'AI_LAB') {
       this.currentView = new AICopilot('mainContainer');
+    } else if (route === 'WHITEBOARD') {
+      this.currentView = new WhiteboardView();
+    } else if (route === 'TIMELINE') {
+      this.currentView = new TimelineView();
     } else if (route === 'ADMIN_PANEL') {
       const role = localStorage.getItem('chat_role') || 'DEVELOPER';
       if (role !== 'PRODUCT_OWNER' && role !== 'MANAGER') {

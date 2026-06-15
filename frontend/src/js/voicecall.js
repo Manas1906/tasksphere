@@ -1,8 +1,7 @@
 import { socket } from './websocket';
 
 /**
- * VoiceCallController manages the WebRTC peer-to-peer audio calling lifecycle
- * (IDLE -> RINGING -> CONNECTED -> ENDED).
+ * VoiceCallController manages the WebRTC peer-to-peer audio and video calling lifecycle.
  * Signaling is sent over the STOMP/WebSocket connection.
  */
 export class VoiceCallController {
@@ -14,10 +13,14 @@ export class VoiceCallController {
     this.callPartner = null;
     this.callPartnerAvatar = null;
     this.isMuted = false;
+    this.isVideoEnabled = false;
+    this.isScreenSharing = false;
     this.callTimerInterval = null;
     this.callStartTime = null;
     this.isCaller = false;
     this._popoverOutsideClickListener = null;
+    this._originalVideoTrack = null;
+    this._screenStream = null;
 
     // Google public STUN servers for NAT traversal
     this.iceConfig = {
@@ -98,7 +101,16 @@ export class VoiceCallController {
     this.isCaller = true;
 
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request audio and video with fallback to audio-only if camera is absent/denied
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        this.isVideoEnabled = true;
+      } catch (videoErr) {
+        console.warn('[VOICECALL] Camera unavailable, falling back to audio only:', videoErr);
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.isVideoEnabled = false;
+      }
+
       this.createPeerConnection();
 
       this.localStream.getTracks().forEach(track => {
@@ -134,7 +146,7 @@ export class VoiceCallController {
       this.cleanup();
 
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Microphone access is required to make calls.');
+        alert('Microphone/Camera access is required to make calls.');
       } else {
         alert('Could not start call: ' + (err.message || err));
       }
@@ -145,7 +157,6 @@ export class VoiceCallController {
 
   async handleIncomingOffer(payload) {
     if (this.state !== 'IDLE') {
-      // Send busy signal if already in a call
       socket.send('/app/call.hangup', {
         type: 'hangup',
         caller: this.myUsername,
@@ -170,7 +181,15 @@ export class VoiceCallController {
     if (this.state !== 'INCOMING_RING' || !this._pendingOffer) return;
 
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        this.isVideoEnabled = true;
+      } catch (videoErr) {
+        console.warn('[VOICECALL] Camera unavailable, accepting with audio only:', videoErr);
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.isVideoEnabled = false;
+      }
+
       this.createPeerConnection();
 
       this.localStream.getTracks().forEach(track => {
@@ -316,6 +335,11 @@ export class VoiceCallController {
     };
 
     this.peerConnection.ontrack = (event) => {
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo && event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+      }
+      
       this.remoteAudio = document.getElementById('remoteAudio');
       if (this.remoteAudio && event.streams[0]) {
         this.remoteAudio.srcObject = event.streams[0];
@@ -333,6 +357,114 @@ export class VoiceCallController {
       this.isMuted = !this.isMuted;
       audioTrack.enabled = !this.isMuted;
       this.updateMuteUI();
+    }
+  }
+
+  toggleVideo() {
+    if (!this.localStream) return;
+
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      this.isVideoEnabled = !this.isVideoEnabled;
+      videoTrack.enabled = this.isVideoEnabled;
+      
+      const btn = document.getElementById('videoToggleBtn');
+      if (btn) {
+        btn.classList.toggle('muted', !this.isVideoEnabled);
+        btn.textContent = this.isVideoEnabled ? '📹 Cam' : '❌ Cam';
+        btn.title = this.isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On';
+      }
+    }
+  }
+
+  async toggleScreenShare() {
+    if (!this.peerConnection) return;
+
+    if (this.isScreenSharing) {
+      await this.stopScreenShare();
+    } else {
+      await this.startScreenShare();
+    }
+  }
+
+  async startScreenShare() {
+    try {
+      console.log('[VOICECALL] Initiating screen share...');
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      const senders = this.peerConnection.getSenders();
+      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+
+      if (videoSender) {
+        await videoSender.replaceTrack(screenTrack);
+      }
+
+      const localVideo = document.getElementById('localVideo');
+      if (localVideo) {
+        localVideo.srcObject = screenStream;
+      }
+
+      this._originalVideoTrack = this.localStream.getVideoTracks()[0];
+      this._screenStream = screenStream;
+      this.isScreenSharing = true;
+
+      const btn = document.getElementById('screenShareBtn');
+      if (btn) {
+        btn.classList.add('active');
+        btn.textContent = '🛑 Screen';
+        btn.title = 'Stop Screen Sharing';
+      }
+
+      screenTrack.onended = () => this.stopScreenShare();
+
+    } catch (err) {
+      console.error('[VOICECALL] Screen share failed:', err);
+    }
+  }
+
+  async stopScreenShare() {
+    if (!this.isScreenSharing) return;
+
+    console.log('[VOICECALL] Stopping screen share...');
+    if (this._screenStream) {
+      this._screenStream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      let cameraTrack = this._originalVideoTrack;
+      if (!cameraTrack || cameraTrack.readyState === 'ended') {
+        const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraTrack = camStream.getVideoTracks()[0];
+        const oldTrack = this.localStream.getVideoTracks()[0];
+        if (oldTrack) this.localStream.removeTrack(oldTrack);
+        this.localStream.addTrack(cameraTrack);
+      }
+
+      const senders = this.peerConnection.getSenders();
+      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+
+      if (videoSender && cameraTrack) {
+        await videoSender.replaceTrack(cameraTrack);
+      }
+
+      const localVideo = document.getElementById('localVideo');
+      if (localVideo) {
+        localVideo.srcObject = this.localStream;
+      }
+
+      this.isScreenSharing = false;
+      this._screenStream = null;
+
+      const btn = document.getElementById('screenShareBtn');
+      if (btn) {
+        btn.classList.remove('active');
+        btn.textContent = '🖥️ Screen';
+        btn.title = 'Share Screen';
+      }
+
+    } catch (err) {
+      console.error('[VOICECALL] Failed to restore camera track:', err);
     }
   }
 
@@ -384,7 +516,6 @@ export class VoiceCallController {
         if (this.state !== 'OUTGOING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        // 440Hz + 480Hz US ringback tone
         const osc1 = this.audioCtx.createOscillator();
         const osc2 = this.audioCtx.createOscillator();
         const gainNode = this.audioCtx.createGain();
@@ -423,7 +554,6 @@ export class VoiceCallController {
         if (this.state !== 'INCOMING_RING') return;
         const now = this.audioCtx.currentTime;
         
-        // Pentatonic ascending arpeggio melody
         const melody = [
           { freq: 659.25, time: 0.0, dur: 0.12 },
           { freq: 880.00, time: 0.12, dur: 0.12 },
@@ -487,6 +617,11 @@ export class VoiceCallController {
       this.localStream = null;
     }
 
+    if (this._screenStream) {
+      this._screenStream.getTracks().forEach(track => track.stop());
+      this._screenStream = null;
+    }
+
     if (this.peerConnection) {
       this.peerConnection.close();
       this.peerConnection = null;
@@ -504,9 +639,12 @@ export class VoiceCallController {
     this.callPartner = null;
     this.callPartnerAvatar = null;
     this.isMuted = false;
+    this.isVideoEnabled = false;
+    this.isScreenSharing = false;
     this.callStartTime = null;
     this._pendingOffer = null;
     this._pendingIceCandidates = [];
+    this._originalVideoTrack = null;
   }
 
   onCallConnected() {
@@ -515,6 +653,22 @@ export class VoiceCallController {
     this.hideIncomingCallUI();
     this.hideOutgoingCallUI();
     this.showActiveCallUI();
+
+    // Bind local video stream to local view box
+    const localVideo = document.getElementById('localVideo');
+    if (localVideo && this.localStream) {
+      localVideo.srcObject = this.localStream;
+    }
+
+    // Bind remote video stream dynamically if tracks are already active
+    if (this.peerConnection) {
+      const remoteVideo = document.getElementById('remoteVideo');
+      const receivers = this.peerConnection.getReceivers();
+      const remoteStream = receivers.length > 0 ? new MediaStream(receivers.map(r => r.track)) : null;
+      if (remoteVideo && remoteStream) {
+        remoteVideo.srcObject = remoteStream;
+      }
+    }
   }
 
   // --- Audio Device Management ---
@@ -672,7 +826,7 @@ export class VoiceCallController {
       </button>
     `;
     
-    this.createCallOverlay('incomingCallOverlay', 'Incoming Voice Call', buttons, () => {
+    this.createCallOverlay('incomingCallOverlay', 'Incoming Call', buttons, () => {
       document.getElementById('acceptCallBtn').onclick = () => this.acceptCall();
       document.getElementById('declineCallBtn').onclick = () => this.declineCall();
     });
@@ -723,6 +877,12 @@ export class VoiceCallController {
         <button class="call-control-btn call-control-btn--mute" id="muteCallBtn" title="Mute/Unmute">
           <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
         </button>
+        <button class="call-control-btn" id="videoToggleBtn" title="Camera On/Off" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 10px; font-weight: bold;">
+          📹 Cam
+        </button>
+        <button class="call-control-btn" id="screenShareBtn" title="Share Screen" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 10px; font-weight: bold;">
+          🖥️ Screen
+        </button>
         <button class="call-control-btn call-control-btn--settings" id="deviceSettingsBtn" title="Audio Settings">
           <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
         </button>
@@ -743,14 +903,33 @@ export class VoiceCallController {
       </div>
     `;
 
+    // Create Call Video Grid elements for local/remote streams rendering
+    const videoGrid = document.createElement('div');
+    videoGrid.id = 'callVideoGrid';
+    videoGrid.className = 'call-video-grid';
+    videoGrid.innerHTML = `
+      <div class="call-video-box call-video-box--remote">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="call-video-label">${this.callPartner}</div>
+      </div>
+      <div class="call-video-box call-video-box--local">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div class="call-video-label">You</div>
+      </div>
+    `;
+
     const header = chatPanel.querySelector('.chat-panel-header');
     if (header && header.nextSibling) {
       chatPanel.insertBefore(bar, header.nextSibling);
+      chatPanel.insertBefore(videoGrid, bar.nextSibling);
     } else {
       chatPanel.appendChild(bar);
+      chatPanel.appendChild(videoGrid);
     }
 
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
+    document.getElementById('videoToggleBtn').onclick = () => this.toggleVideo();
+    document.getElementById('screenShareBtn').onclick = () => this.toggleScreenShare();
     document.getElementById('deviceSettingsBtn').onclick = (e) => {
       e.stopPropagation();
       this.toggleDevicePopover();
@@ -779,6 +958,7 @@ export class VoiceCallController {
 
   hideActiveCallUI() {
     this.removeUIElement('activeCallBar');
+    this.removeUIElement('callVideoGrid');
 
     if (this.callTimerInterval) {
       clearInterval(this.callTimerInterval);

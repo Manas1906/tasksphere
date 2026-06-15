@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="/src/styles/main.css">
   <link rel="stylesheet" href="/src/styles/components/admin.css">
   <link rel="stylesheet" href="/src/styles/components/onboarding.css">
+  <link rel="stylesheet" href="/src/styles/components/whiteboard.css">
+  <link rel="stylesheet" href="/src/styles/components/timeline.css">
   <script>
     if (typeof global === 'undefined') {
       window.global = window;
@@ -108,6 +110,27 @@
             <span>Resource Directory</span>
           </button>
         </li>
+        <li>
+          <button id="navWhiteboard" class="sidebar-nav-btn">
+            <svg viewBox="0 0 24 24" style="fill: none; stroke: currentColor; stroke-width: 2;">
+              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Collaborative Canvas</span>
+          </button>
+        </li>
+        <li>
+          <button id="navTimeline" class="sidebar-nav-btn">
+            <svg viewBox="0 0 24 24" style="fill: none; stroke: currentColor; stroke-width: 2;">
+              <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="3" y1="10" x2="21" y2="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="7" y1="14" x2="11" y2="14" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="7" y1="17" x2="17" y2="17" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Gantt Timeline</span>
+          </button>
+        </li>
         <li id="navAdminItem" style="display: none;">
           <button id="navAdmin" class="sidebar-nav-btn">
             <svg viewBox="0 0 24 24">
@@ -193,8 +216,20 @@
           <span style="margin-left: var(--spacing-xs)">someone is typing...</span>
         </div>
 
+        <!-- Upload preview bar -->
+        <div id="chatUploadPreview" class="chat-upload-preview hidden" style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+          <span id="chatUploadPreviewName" style="color: var(--accent-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;"></span>
+          <button id="chatUploadCancelBtn" style="background: none; border: none; color: var(--accent-rose); cursor: pointer; font-size: 16px; line-height: 1; padding: 0;">&times;</button>
+        </div>
+
         <!-- Message input bar -->
         <div class="chat-input-area">
+          <button id="chatAttachBtn" class="chat-attach-btn" title="Upload File" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); transition: all var(--transition-fast); flex-shrink: 0;">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-3.31 2.69-6 6-6s6 2.69 6 6v10c0 4.42-3.58 8-8 8s-8-3.58-8-8V6h2v9c0 3.31 2.69 6 6 6s6-2.69 6-6V5c0-2.21-1.79-4-4-4s-4 1.79-4 4v11.5c0 1.1.9 2 2 2s2-.9 2-2V6h2z"/>
+            </svg>
+          </button>
+          <input type="file" id="chatFileInput" style="display: none;">
           <div class="chat-input-wrapper">
             <input type="text" id="chatInput" placeholder="Send team message..." class="chat-input" autocomplete="off">
           </div>

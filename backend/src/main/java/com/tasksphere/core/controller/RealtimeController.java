@@ -156,6 +156,15 @@ public class RealtimeController {
         return typingPayload;
     }
 
+    /**
+     * Receives collaborative whiteboard updates and broadcasts them to all other active session listeners.
+     */
+    @MessageMapping("/whiteboard.draw")
+    @SendTo("/topic/whiteboard")
+    public Map<String, Object> syncWhiteboardDraw(Map<String, Object> drawPayload) {
+        return drawPayload;
+    }
+
     /* =========================================================================
        WebRTC Voice Call Signaling Endpoints
        Private user-to-user routing via /user/{username}/queue/call
