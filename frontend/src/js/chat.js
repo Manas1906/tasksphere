@@ -131,31 +131,72 @@ export class ChatController {
             this.uploadPreviewName.textContent = `⚡ Uploading: ${this.selectedFile.name}...`;
           }
 
-          const formData = new FormData();
-          formData.append('file', this.selectedFile);
-
-          const token = localStorage.getItem('tasksphere_jwt');
-          const hasValidToken = token && token !== 'null' && token !== 'undefined';
-          const response = await fetch(`${api.baseUrl}/upload`, {
-            method: 'POST',
-            headers: hasValidToken ? { 'Authorization': `Bearer ${token}` } : {},
-            body: formData
-          });
-
-          if (!response.ok) {
-            throw new Error(`Upload failed: ${response.statusText}`);
+          // Guard: refuse files > 10MB to keep messages reasonable
+          const MAX_BYTES = 10 * 1024 * 1024;
+          if (this.selectedFile.size > MAX_BYTES) {
+            throw new Error(`File too large (${Math.round(this.selectedFile.size / 1048576)}MB). Max allowed is 10MB.`);
           }
 
-          const uploadRes = await response.json();
-          if (uploadRes.success && uploadRes.fileUrl) {
-            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(this.selectedFile.name);
-            if (isImage) {
-              attachmentMarkdown = `![${this.selectedFile.name}](${uploadRes.fileUrl})`;
-            } else {
-              attachmentMarkdown = `[${this.selectedFile.name}](${uploadRes.fileUrl})`;
+          const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(this.selectedFile.name);
+
+          // --- Tier 1: Try the backend /api/upload endpoint ---
+          let uploadSucceeded = false;
+          try {
+            const formData = new FormData();
+            formData.append('file', this.selectedFile);
+
+            const token = localStorage.getItem('tasksphere_jwt');
+            const hasValidToken = token && token !== 'null' && token !== 'undefined';
+
+            const controller = new AbortController();
+            const uploadTimeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+            const response = await fetch(`${api.baseUrl}/upload`, {
+              method: 'POST',
+              headers: hasValidToken ? { 'Authorization': `Bearer ${token}` } : {},
+              body: formData,
+              signal: controller.signal
+            });
+            clearTimeout(uploadTimeout);
+
+            if (response.ok) {
+              const uploadRes = await response.json();
+              if (uploadRes.success && uploadRes.fileUrl) {
+                // Build absolute URL so it works from any host
+                const fileUrl = uploadRes.fileUrl.startsWith('http')
+                  ? uploadRes.fileUrl
+                  : `${api.baseUrl.replace('/api', '')}${uploadRes.fileUrl}`;
+                attachmentMarkdown = isImage
+                  ? `![${this.selectedFile.name}](${fileUrl})`
+                  : `[${this.selectedFile.name}](${fileUrl})`;
+                uploadSucceeded = true;
+              }
             }
-          } else {
-            throw new Error(uploadRes.error || 'Server upload failure');
+          } catch (uploadErr) {
+            // Network failure or timeout — will fall through to Tier 2
+            console.warn('[CHAT-UPLOAD] Backend upload failed, falling back to base64 embed:', uploadErr.message);
+          }
+
+          // --- Tier 2: Inline base64 data URL fallback (works on any deployment) ---
+          if (!uploadSucceeded) {
+            if (this.uploadPreviewName) {
+              this.uploadPreviewName.textContent = `⚡ Embedding: ${this.selectedFile.name}...`;
+            }
+            await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                if (isImage) {
+                  attachmentMarkdown = `![${this.selectedFile.name}](${dataUrl})`;
+                } else {
+                  // For non-images, embed as a downloadable data link
+                  attachmentMarkdown = `[📎 ${this.selectedFile.name}](${dataUrl})`;
+                }
+                resolve();
+              };
+              reader.onerror = () => reject(new Error('Failed to read file'));
+              reader.readAsDataURL(this.selectedFile);
+            });
           }
 
           // Clear attachment fields
@@ -163,6 +204,7 @@ export class ChatController {
           if (this.fileInput) this.fileInput.value = '';
           if (this.uploadPreview) this.uploadPreview.classList.add('hidden');
         }
+
 
         let finalMessage = msgText;
         if (attachmentMarkdown) {
