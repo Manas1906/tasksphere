@@ -43,7 +43,7 @@ public class UploadController {
             String uniqueFilename = System.currentTimeMillis() + "_" + safeFilename;
             
             File dest = new File(uploadsDir, uniqueFilename);
-            file.transferTo(dest.getAbsoluteFile());
+            java.nio.file.Files.copy(file.getInputStream(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             
             // Public path served by WebConfig resources handler
             String fileUrl = "/api/uploads/" + uniqueFilename;

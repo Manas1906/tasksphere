@@ -23,9 +23,10 @@ class ApiService {
     
     // Configure default headers with JWT integration
     const token = localStorage.getItem('tasksphere_jwt');
+    const hasValidToken = token && token !== 'null' && token !== 'undefined';
     options.headers = {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(hasValidToken ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers
     };
 

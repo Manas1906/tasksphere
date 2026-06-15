@@ -135,9 +135,10 @@ export class ChatController {
           formData.append('file', this.selectedFile);
 
           const token = localStorage.getItem('tasksphere_jwt');
+          const hasValidToken = token && token !== 'null' && token !== 'undefined';
           const response = await fetch(`${api.baseUrl}/upload`, {
             method: 'POST',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            headers: hasValidToken ? { 'Authorization': `Bearer ${token}` } : {},
             body: formData
           });
 

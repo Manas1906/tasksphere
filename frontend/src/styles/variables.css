@@ -54,6 +54,7 @@
   --cyan-glow: 0 0 15px rgba(0, 240, 255, 0.2);
   --purple-glow: 0 0 15px rgba(99, 102, 241, 0.2); /* Calming Indigo glow */
   /* Default dark theme text light helper */
+  --text-primary: #F8FAFC;
   --text-light: #E2E8F0;
 
   /* Standard Border Radii */
@@ -87,6 +88,7 @@ body.light-theme {
   
   /* Text Contrast Overrides */
   --text-main: #0F172A;
+  --text-primary: #0F172A;
   --text-muted: #64748B;
   --text-light: #334155;
   

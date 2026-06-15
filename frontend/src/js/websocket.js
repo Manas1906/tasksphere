@@ -34,10 +34,11 @@ class WebSocketManager {
     };
 
     const token = localStorage.getItem('tasksphere_jwt');
+    const hasValidToken = token && token !== 'null' && token !== 'undefined';
     const username = localStorage.getItem('chat_username');
     const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (username) headers['username'] = username;
+    if (hasValidToken) headers['Authorization'] = `Bearer ${token}`;
+    if (username && username !== 'null' && username !== 'undefined') headers['username'] = username;
 
     this.stompClient.connect(headers, 
       (frame) => {

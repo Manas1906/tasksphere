@@ -702,6 +702,7 @@ export class VoiceCallController {
     this._pendingOffer = null;
     this._pendingIceCandidates = [];
     this._originalVideoTrack = null;
+    this.state = 'IDLE';
   }
 
   onCallConnected() {
@@ -845,9 +846,6 @@ export class VoiceCallController {
   }
 
   createCallOverlay(id, label, buttonsHtml, bindFn) {
-    const container = document.getElementById('chatContainer');
-    if (!container) return;
-
     const overlay = document.createElement('div');
     overlay.id = id;
     overlay.className = 'incoming-call-overlay';
@@ -861,7 +859,7 @@ export class VoiceCallController {
         ${buttonsHtml}
       </div>
     `;
-    container.appendChild(overlay);
+    document.body.appendChild(overlay);
     bindFn();
   }
 
@@ -916,9 +914,6 @@ export class VoiceCallController {
 
   showActiveCallUI() {
     this.hideActiveCallUI();
-
-    const chatPanel = document.querySelector('#chatContainer .chat-panel');
-    if (!chatPanel) return;
 
     const overlay = document.createElement('div');
     overlay.id = 'activeCallOverlay';
@@ -988,7 +983,7 @@ export class VoiceCallController {
       </div>
     `;
 
-    chatPanel.appendChild(overlay);
+    document.body.appendChild(overlay);
 
     document.getElementById('muteCallBtn').onclick = () => this.toggleMute();
     document.getElementById('videoToggleBtn').onclick = () => this.toggleVideo();

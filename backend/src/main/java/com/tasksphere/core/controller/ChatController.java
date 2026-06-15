@@ -20,6 +20,9 @@ public class ChatController {
     private RedisCacheService redisCacheService;
 
     @Autowired
+    private com.tasksphere.core.repository.UserSessionRepository userSessionRepository;
+
+    @Autowired
     private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -69,8 +72,14 @@ public class ChatController {
             @RequestParam String requester,
             java.security.Principal principal) {
         
-        if (principal == null || !principal.getName().equalsIgnoreCase(requester)) {
-            return ResponseEntity.status(403).build();
+        if (principal != null) {
+            String principalEmail = principal.getName();
+            String resolvedUsername = userSessionRepository.findByEmail(principalEmail)
+                    .map(com.tasksphere.core.model.UserSession::getUsername)
+                    .orElse(principalEmail);
+            if (!resolvedUsername.equalsIgnoreCase(requester)) {
+                return ResponseEntity.status(403).build();
+            }
         }
         
         chatService.clearDirectMessages(requester, partner);

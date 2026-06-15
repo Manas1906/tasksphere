@@ -183,7 +183,7 @@ export class TimelineView {
         const statusClass = task.status.toLowerCase().replace('_', '');
         return `
           <div class="timeline-sidebar-row" data-task-id="${task.id}">
-            <span style="font-weight: 700; font-size: 11px; color: var(--accent-cyan); margin-right: 6px;">#${task.id}</span>
+            <span style="font-weight: 700; font-size: 11px; color: var(--accent-purple); margin-right: 6px;">#${task.id}</span>
             <span class="timeline-sidebar-title" title="${task.title}">${task.title}</span>
           </div>
         `;
