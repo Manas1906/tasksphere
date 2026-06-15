@@ -22,12 +22,27 @@ export class VoiceCallController {
     this._originalVideoTrack = null;
     this._screenStream = null;
 
-    // Google public STUN servers for NAT traversal
+    // ICE servers for NAT traversal — STUN + free public TURN fallback
     this.iceConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        // Free public TURN relay (OpenRelay Project) for cross-NAT connections
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
       ]
     };
 
@@ -145,6 +160,7 @@ export class VoiceCallController {
         type: 'offer',
         caller: this.myUsername,
         callerAvatar: this.myAvatar,
+        callerTimestamp: Date.now().toString(),
         target: targetUsername,
         sdp: offer.sdp,
         callType: this.callType

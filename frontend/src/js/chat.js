@@ -344,9 +344,31 @@ export class ChatController {
       this.handleIncomingTypingStatus(payload);
     });
 
+    // Primary channel: user-queue (requires matching STOMP principal)
     socket.subscribeUser('/queue/call', (payload) => {
+      const sigKey = `${payload.caller}:${payload.type}:${payload.callerTimestamp || ''}`;
+      if (this._seenCallSignals && this._seenCallSignals.has(sigKey)) return;
+      if (!this._seenCallSignals) this._seenCallSignals = new Set();
+      this._seenCallSignals.add(sigKey);
+      setTimeout(() => this._seenCallSignals && this._seenCallSignals.delete(sigKey), 5000);
       this.voiceCall.handleSignal(payload);
     });
+
+    // Fallback channel: topic-based delivery guaranteed by username in path
+    // This ensures calls work even if STOMP principal resolution fails
+    const myUser = this.myUsername;
+    if (myUser && myUser !== 'CTO Guest') {
+      socket.subscribe(`/topic/call/${myUser}`, (payload) => {
+        // Deduplicate: only handle if not already processed by the user-queue subscription
+        // (detected via a short TTL seen-signal cache keyed by caller+type+timestamp)
+        const sigKey = `${payload.caller}:${payload.type}:${payload.callerTimestamp || ''}`;
+        if (this._seenCallSignals && this._seenCallSignals.has(sigKey)) return;
+        if (!this._seenCallSignals) this._seenCallSignals = new Set();
+        this._seenCallSignals.add(sigKey);
+        setTimeout(() => this._seenCallSignals && this._seenCallSignals.delete(sigKey), 5000);
+        this.voiceCall.handleSignal(payload);
+      });
+    }
   }
 
   syncMyPresence() {
