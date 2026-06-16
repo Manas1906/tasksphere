@@ -1,0 +1,35 @@
+name: Daily Activity Heartbeat
+
+on:
+  schedule:
+    # Runs everyday at 12:00 UTC (5:30 PM IST)
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Generate Heartbeat
+      run: |
+        mkdir -p .activity
+        echo "Heartbeat at $(date)" >> .activity/heartbeat.log
+        # Keep only the last 30 lines to avoid log bloat
+        tail -n 30 .activity/heartbeat.log > .activity/heartbeat.log.tmp
+        mv .activity/heartbeat.log.tmp .activity/heartbeat.log
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add .activity/heartbeat.log
+        if ! git diff --cached --quiet; then
+          git commit -m "chore: record daily activity heartbeat [skip ci]"
+          git push
+        fi
