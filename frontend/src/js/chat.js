@@ -822,6 +822,43 @@ export class ChatController {
     return `${dmPrefix}${text}||meta:${JSON.stringify(meta)}`;
   }
 
+  formatMessageDate(timestamp) {
+    if (!timestamp) return 'now';
+    const date = new Date(timestamp);
+    const now = new Date();
+    
+    // Check if same day
+    const isSameDay = date.getDate() === now.getDate() &&
+                      date.getMonth() === now.getMonth() &&
+                      date.getFullYear() === now.getFullYear();
+    
+    // Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() &&
+                        date.getMonth() === yesterday.getMonth() &&
+                        date.getFullYear() === yesterday.getFullYear();
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (isSameDay) {
+      return timeStr;
+    } else if (isYesterday) {
+      return `Yesterday, ${timeStr}`;
+    } else {
+      // Check if within the last 7 days
+      const diffTime = Math.abs(now - date);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays < 7) {
+        const dayName = date.toLocaleDateString([], { weekday: 'long' });
+        return `${dayName}, ${timeStr}`;
+      } else {
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+        return `${dateStr}, ${timeStr}`;
+      }
+    }
+  }
+
   renderSingleMessage(msg) {
     if (msg.username === 'System') {
       const sysMsgElement = document.createElement('div');
@@ -837,7 +874,7 @@ export class ChatController {
     }
 
     const isSelf = msg.username === this.myUsername;
-    const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+    const time = this.formatMessageDate(msg.timestamp);
 
 
     const parsed = this.parseMessageMeta(msg.message);

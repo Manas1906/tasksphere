@@ -182,6 +182,20 @@
   grid-template-columns: 0px 1fr 0px !important;
 }
 
+/* Day 14: True fullscreen WhatsApp mode layout */
+.app-shell--chat-hub-fullscreen {
+  grid-template-columns: 0px 1fr 0px !important;
+  grid-template-rows: 0px 1fr !important;
+}
+
+.app-shell--chat-hub-fullscreen .app-header {
+  display: none !important;
+}
+
+.app-shell--chat-hub-fullscreen .app-sidebar {
+  display: none !important;
+}
+
 .app-shell--hide-sidebar .app-sidebar {
   width: 0px !important;
   opacity: 0 !important;

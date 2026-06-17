@@ -1114,6 +1114,9 @@ class TaskSphereApp {
     document.getElementById('myRole').textContent = role.replace(/_/g, ' ');
     document.getElementById('myAvatar').src = avatar;
 
+    const hubAvatar = document.getElementById('hubNavAvatar');
+    if (hubAvatar) hubAvatar.src = avatar;
+
     // Populate profile dropdown popup elements
     const dName = document.getElementById('dropdownUsername');
     const dRole = document.getElementById('dropdownRole');
@@ -1332,6 +1335,27 @@ class TaskSphereApp {
     if (chatHubBtn) {
       chatHubBtn.onclick = () => { clearActive(); chatHubBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('CHAT_HUB'); };
     }
+
+    // Bind Hub Navigation Buttons (WhatsApp Style Fullscreen mode support)
+    const hubDashboardBtn = document.getElementById('hubNavDashboard');
+    const hubBoardBtn = document.getElementById('hubNavBoard');
+    const hubTeamBtn = document.getElementById('hubNavTeam');
+    const hubWhiteboardBtn = document.getElementById('hubNavWhiteboard');
+    const hubTimelineBtn = document.getElementById('hubNavTimeline');
+    const hubAdminBtn = document.getElementById('hubNavAdmin');
+
+    const handleHubSwitch = (route, mainBtn) => {
+      clearActive();
+      if (mainBtn) mainBtn.classList.add('sidebar-nav-btn--active');
+      this.switchRoute(route);
+    };
+
+    if (hubDashboardBtn) hubDashboardBtn.onclick = () => handleHubSwitch('DASHBOARD', dashboardBtn);
+    if (hubBoardBtn) hubBoardBtn.onclick = () => handleHubSwitch('BOARD', boardBtn);
+    if (hubTeamBtn) hubTeamBtn.onclick = () => handleHubSwitch('AI_LAB', teamBtn);
+    if (hubWhiteboardBtn) hubWhiteboardBtn.onclick = () => handleHubSwitch('WHITEBOARD', whiteboardBtn);
+    if (hubTimelineBtn) hubTimelineBtn.onclick = () => handleHubSwitch('TIMELINE', timelineBtn);
+    if (hubAdminBtn) hubAdminBtn.onclick = () => handleHubSwitch('ADMIN_PANEL', adminBtn);
   }
 
   setupModals() {
@@ -1692,6 +1716,14 @@ class TaskSphereApp {
         adminNav.style.display = 'block';
       } else {
         adminNav.remove();
+      }
+    }
+    const hubAdmin = document.getElementById('hubNavAdmin');
+    if (hubAdmin) {
+      if (role === 'PRODUCT_OWNER' || role === 'MANAGER') {
+        hubAdmin.style.display = 'flex';
+      } else {
+        hubAdmin.remove();
       }
     }
   }
@@ -2062,19 +2094,16 @@ class TaskSphereApp {
     const chatContainer = document.getElementById('chatContainer');
     const chatPanel = document.querySelector('.chat-panel');
     const leftHeader = document.querySelector('.chat-hub-left-header');
-    const activeUsersTitle = document.getElementById('activeUsersTitle');
-    const groupsTitle = document.getElementById('groupsTitle');
 
     // Restore chat panel if leaving CHAT_HUB
     if (route !== 'CHAT_HUB') {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) mainContainer.classList.remove('app-main--full');
+      if (shell) shell.classList.remove('app-shell--chat-hub-fullscreen');
 
       if (chatPanel && chatPanel.parentElement && chatPanel.parentElement.classList.contains('chat-hub-container')) {
         chatPanel.classList.remove('chat-panel--hub');
         if (leftHeader) leftHeader.style.display = 'none';
-        if (activeUsersTitle) activeUsersTitle.style.display = 'none';
-        if (groupsTitle) groupsTitle.style.display = 'none';
         if (chatContainer) {
           chatContainer.appendChild(chatPanel);
           chatContainer.style.display = '';
@@ -2114,13 +2143,12 @@ class TaskSphereApp {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) {
         mainContainer.classList.add('app-main--full');
+        if (shell) shell.classList.add('app-shell--chat-hub-fullscreen');
         mainContainer.innerHTML = `<div class="chat-hub-container" style="height: 100%; width: 100%;"></div>`;
         const hubContainer = mainContainer.querySelector('.chat-hub-container');
         if (chatPanel && hubContainer) {
           chatPanel.classList.add('chat-panel--hub');
           if (leftHeader) leftHeader.style.display = 'flex';
-          if (activeUsersTitle) activeUsersTitle.style.display = 'block';
-          if (groupsTitle) groupsTitle.style.display = 'block';
           hubContainer.appendChild(chatPanel);
         }
         if (chatContainer) {
