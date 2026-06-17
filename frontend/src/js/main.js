@@ -304,12 +304,26 @@ class TaskSphereApp {
     if (chatToggle) {
       chatToggle.onclick = (e) => {
         e.stopPropagation();
-        if (window.innerWidth <= 1024) {
-          shell.classList.remove('app-shell--show-sidebar');
-          shell.classList.toggle('app-shell--show-chat');
-        } else {
-          // Desktop chat collapse toggle
-          shell.classList.toggle('app-shell--hide-chat');
+        this.switchRoute('CHAT_HUB');
+        
+        // Highlight active menu button
+        const chatHubBtn = document.getElementById('navChatHub');
+        if (chatHubBtn) {
+          const dashboardBtn = document.getElementById('navDashboard');
+          const boardBtn = document.getElementById('navBoard');
+          const teamBtn = document.getElementById('navTeam');
+          const whiteboardBtn = document.getElementById('navWhiteboard');
+          const timelineBtn = document.getElementById('navTimeline');
+          const adminBtn = document.getElementById('navAdmin');
+          
+          dashboardBtn.classList.remove('sidebar-nav-btn--active');
+          boardBtn.classList.remove('sidebar-nav-btn--active');
+          teamBtn.classList.remove('sidebar-nav-btn--active');
+          if (whiteboardBtn) whiteboardBtn.classList.remove('sidebar-nav-btn--active');
+          if (timelineBtn) timelineBtn.classList.remove('sidebar-nav-btn--active');
+          if (adminBtn) adminBtn.classList.remove('sidebar-nav-btn--active');
+          
+          chatHubBtn.classList.add('sidebar-nav-btn--active');
         }
       };
     }
@@ -2053,6 +2067,9 @@ class TaskSphereApp {
 
     // Restore chat panel if leaving CHAT_HUB
     if (route !== 'CHAT_HUB') {
+      const mainContainer = document.getElementById('mainContainer');
+      if (mainContainer) mainContainer.classList.remove('app-main--full');
+
       if (chatPanel && chatPanel.parentElement && chatPanel.parentElement.classList.contains('chat-hub-container')) {
         chatPanel.classList.remove('chat-panel--hub');
         if (leftHeader) leftHeader.style.display = 'none';
@@ -2096,6 +2113,7 @@ class TaskSphereApp {
     } else if (route === 'CHAT_HUB') {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) {
+        mainContainer.classList.add('app-main--full');
         mainContainer.innerHTML = `<div class="chat-hub-container" style="height: 100%; width: 100%;"></div>`;
         const hubContainer = mainContainer.querySelector('.chat-hub-container');
         if (chatPanel && hubContainer) {

@@ -1,11 +1,11 @@
 /* Outer Grid Shell - Day 5 Flexbox & Grid */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr var(--chat-panel-width);
+  grid-template-columns: var(--sidebar-width) 1fr 0px;
   grid-template-rows: var(--header-height) 1fr;
   grid-template-areas: 
     "sidebar header header"
-    "sidebar main chat";
+    "sidebar main main";
   width: 100vw;
   height: 100vh;
   transition: grid-template-columns var(--transition-normal);
@@ -46,11 +46,16 @@
   padding: var(--spacing-lg);
 }
 
+.app-main.app-main--full {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 .app-chat {
   grid-area: chat;
   background-color: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
-  display: flex;
+  display: none !important;
   flex-direction: column;
   height: 100%;
   overflow: hidden;

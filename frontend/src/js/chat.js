@@ -308,6 +308,16 @@ export class ChatController {
       };
     }
 
+    const mobileBackBtn = document.getElementById('mobileChatBackBtn');
+    if (mobileBackBtn) {
+      mobileBackBtn.onclick = () => {
+        const chatPanel = document.querySelector('.chat-panel');
+        if (chatPanel) {
+          chatPanel.classList.remove('chat-panel--active-chat');
+        }
+      };
+    }
+
     const chatHeader = document.querySelector('.chat-panel-header');
     if (chatHeader) {
       chatHeader.style.cursor = 'pointer';
@@ -606,9 +616,18 @@ export class ChatController {
     if (partner) {
       this.unreadDms[partner] = 0;
     }
+
+    const chatPanel = document.querySelector('.chat-panel');
+    if (chatPanel) {
+      if (partner) {
+        chatPanel.classList.add('chat-panel--active-chat');
+      } else {
+        chatPanel.classList.remove('chat-panel--active-chat');
+      }
+    }
     
     const backLink = document.getElementById('chatModeBackLink');
-    const chatTitle = document.querySelector('#chatContainer .chat-panel-header__title');
+    const chatTitle = document.querySelector('.chat-panel-header__title');
     const controls = document.getElementById('chatHeaderControls');
     
     // Always clear existing call & group buttons to avoid duplicates
@@ -705,12 +724,12 @@ export class ChatController {
       
       this.input.placeholder = `Send direct message to ${partner}...`;
     } else {
-      // Group room active (General Lounge)
+      // Group room active (General)
       if (backLink) backLink.style.display = 'none';
       if (chatTitle) {
         chatTitle.innerHTML = `
           <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-          General Lounge
+          General
         `;
       }
       this.input.placeholder = `Send team message...`;
@@ -1317,7 +1336,7 @@ export class ChatController {
     });
 
     const onlineCount = activeMembers.filter(user => user.status && user.status !== 'OFFLINE').length;
-    this.userCountSpan.textContent = `${onlineCount} active session${onlineCount > 1 ? 's' : ''}`;
+    this.userCountSpan.textContent = `${onlineCount} online`;
   }
 
   /* =======================================================
@@ -1793,10 +1812,14 @@ export class ChatController {
     // Operations Chat (General Room - fallback)
     const generalWrap = document.createElement('div');
     generalWrap.className = `group-item-wrap ${this.activeGroupId === null && this.activeChatPartner === null ? 'selected' : ''}`;
-    generalWrap.title = 'General Lounge';
+    generalWrap.title = 'General';
     generalWrap.style.marginRight = isHubView ? '0' : '8px';
     generalWrap.onclick = () => {
       this.switchChatPartner(null);
+      const chatPanel = document.querySelector('.chat-panel');
+      if (chatPanel) {
+        chatPanel.classList.add('chat-panel--active-chat');
+      }
     };
 
     if (isHubView) {
@@ -1807,7 +1830,7 @@ export class ChatController {
           </svg>
         </div>
         <div class="group-details">
-          <div class="group-name">General Lounge</div>
+          <div class="group-name">General</div>
           <div class="group-members-count">All workspace users</div>
         </div>
       `;
@@ -1884,8 +1907,17 @@ export class ChatController {
     this.activeChatPartner = null;
     this.unreadGroups[groupId] = 0;
 
+    const chatPanel = document.querySelector('.chat-panel');
+    if (chatPanel) {
+      if (groupId) {
+        chatPanel.classList.add('chat-panel--active-chat');
+      } else {
+        chatPanel.classList.remove('chat-panel--active-chat');
+      }
+    }
+
     const backLink = document.getElementById('chatModeBackLink');
-    const chatTitle = document.querySelector('#chatContainer .chat-panel-header__title');
+    const chatTitle = document.querySelector('.chat-panel-header__title');
     const controls = document.getElementById('chatHeaderControls');
     
     // Always clear existing call & group buttons to avoid duplicates
