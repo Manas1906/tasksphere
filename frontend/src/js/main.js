@@ -141,6 +141,8 @@ class TaskSphereApp {
       // If this is a new social signup, immediately route to Step 3 Profile Selection
       if (isSocialSignup) {
         showSocialProfileSetup(username);
+        const loader = document.getElementById('appLoading');
+        if (loader) loader.classList.add('hidden');
         return;
       }
       
@@ -161,6 +163,8 @@ class TaskSphereApp {
             console.log('[APP-START] Recovered social session requires onboarding profile setup. Navigating to Step 3.');
             localStorage.setItem('is_social_signup', 'true');
             showSocialProfileSetup(username);
+            const loader = document.getElementById('appLoading');
+            if (loader) loader.classList.add('hidden');
             return;
           }
           if (me && me.status === 'PENDING_APPROVAL') {
@@ -170,6 +174,8 @@ class TaskSphereApp {
               loginOverlay.classList.remove('hidden');
             }
             this.waitForApproval(username, me.role || role);
+            const loader = document.getElementById('appLoading');
+            if (loader) loader.classList.add('hidden');
             return;
           }
         } catch (e) {
@@ -182,6 +188,8 @@ class TaskSphereApp {
             const approvalStep = document.getElementById('authApprovalStep');
             if (approvalStep) approvalStep.classList.add('hidden');
           }
+          const loader = document.getElementById('appLoading');
+          if (loader) loader.classList.add('hidden');
           return;
         }
         
@@ -191,6 +199,10 @@ class TaskSphereApp {
           loginOverlay.style.display = 'none';
           loginOverlay.classList.add('hidden');
         }
+        const shell = document.getElementById('appShell');
+        if (shell) shell.classList.remove('hidden');
+        const loader = document.getElementById('appLoading');
+        if (loader) loader.classList.add('hidden');
 
         // Initialize onboarding tour only after confirming active session is verified!
         try {
@@ -238,18 +250,23 @@ class TaskSphereApp {
           document.getElementById('authOtpStep').classList.add('hidden');
           document.getElementById('authProfileStep').classList.remove('hidden');
           
-          document.querySelector('.auth-card__logo').textContent = 'Initialize Developer Session';
+          document.querySelector('.auth-card__logo').textContent = 'Setup Session Profile';
           document.querySelector('.auth-card__logo').style.fontSize = 'var(--font-size-lg)';
           document.querySelector('.auth-card__logo').style.letterSpacing = '1px';
           
           const subtitle = document.getElementById('authSubtitle');
-          if (subtitle) subtitle.textContent = '';
+          if (subtitle) subtitle.textContent = 'Choose your session username and enterprise role';
           
-          const userPrefix = localStorage.getItem('chat_username') || '';
-          document.getElementById('authUsernameInput').value = userPrefix;
-          document.getElementById('authUsernameInput').focus();
+          const usernameInput = document.getElementById('authUsernameInput');
+          if (usernameInput) usernameInput.value = username || '';
+          
+          // Focus role selection
+          const roleSelect = document.getElementById('authRoleSelect');
+          if (roleSelect) roleSelect.focus();
         }
       }
+      const loader = document.getElementById('appLoading');
+      if (loader) loader.classList.add('hidden');
     }
     
     // Register Service Worker for background Web Push alerts (Phase 13)
@@ -628,6 +645,8 @@ class TaskSphereApp {
               loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
             }
+            const shell = document.getElementById('appShell');
+            if (shell) shell.classList.remove('hidden');
             this.toggleAdminTab();
             this.initRealtimeSync();
             this.switchRoute(this.activeRoute);
@@ -864,6 +883,8 @@ class TaskSphereApp {
               // Hide overlay card
               loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
+              const shell = document.getElementById('appShell');
+              if (shell) shell.classList.remove('hidden');
               this.toggleAdminTab();
 
               // Initialize sockets synchronization
@@ -2113,6 +2134,12 @@ class TaskSphereApp {
     const chatContainer = document.getElementById('chatContainer');
     const chatPanel = document.querySelector('.chat-panel');
     const leftHeader = document.querySelector('.chat-hub-left-header');
+
+    // Automatically close any open mobile slide-out drawers on route transition
+    if (shell) {
+      shell.classList.remove('app-shell--show-sidebar');
+      shell.classList.remove('app-shell--show-chat');
+    }
 
     // Restore chat panel if leaving CHAT_HUB
     if (route !== 'CHAT_HUB') {

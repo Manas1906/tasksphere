@@ -12,7 +12,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration.class
+})
 @EnableAsync
 public class TaskSphereApplication {
 

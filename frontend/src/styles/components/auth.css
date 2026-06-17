@@ -745,6 +745,68 @@ body.light-theme .profile-dropdown__item:hover {
   -webkit-text-fill-color: transparent !important;
 }
 
+/* ============================================================
+   Loading Screen Overlay Styles
+   ============================================================ */
+.app-loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 50%, #0c0f1d 0%, #060913 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-loading-spinner-wrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 24px;
+}
+
+.app-loading-spinner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(6, 182, 212, 0.1);
+  border-top-color: var(--accent-cyan, #06b6d4);
+  border-radius: 50%;
+  animation: loadingSpin 1s linear infinite;
+}
+
+.app-loading-glow {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.app-loading-text {
+  font-family: var(--font-sans, "Inter", sans-serif);
+  font-size: 14px;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+@keyframes loadingSpin {
+  to { transform: rotate(360deg); }
+}
+
 
 
 

@@ -632,7 +632,7 @@ export class ChatController {
     }
     
     const backLink = document.getElementById('chatModeBackLink');
-    const chatTitle = document.querySelector('.chat-panel-header__title');
+    const chatTitle = document.getElementById('chatPanelTitle');
     const controls = document.getElementById('chatHeaderControls');
     
     // Always clear existing call & group buttons to avoid duplicates
@@ -1972,7 +1972,7 @@ export class ChatController {
     }
 
     const backLink = document.getElementById('chatModeBackLink');
-    const chatTitle = document.querySelector('.chat-panel-header__title');
+    const chatTitle = document.getElementById('chatPanelTitle');
     const controls = document.getElementById('chatHeaderControls');
     
     // Always clear existing call & group buttons to avoid duplicates
