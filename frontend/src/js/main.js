@@ -1291,6 +1291,13 @@ class TaskSphereApp {
         this.switchRoute('DASHBOARD');
       };
     }
+
+    const mobileHubBackBtn = document.getElementById('mobileHubBackBtn');
+    if (mobileHubBackBtn) {
+      mobileHubBackBtn.onclick = () => {
+        this.switchRoute('DASHBOARD');
+      };
+    }
   }
 
   initRealtimeSync() {

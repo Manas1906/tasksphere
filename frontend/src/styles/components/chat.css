@@ -1449,6 +1449,34 @@ body.light-theme .chat-panel--hub .group-item-wrap.selected {
   flex-shrink: 0;
 }
 
+.mobile-hub-back-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-hub-back-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 6px 0 0;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    transition: color var(--transition-fast);
+  }
+  .mobile-hub-back-btn:hover {
+    color: var(--text-primary);
+  }
+  .mobile-hub-back-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 .chat-panel--hub .chat-search-container {
   display: flex !important;
 }
