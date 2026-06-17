@@ -410,6 +410,8 @@ body.light-theme .chat-msg__bubble--call-log.missed {
   align-items: center;
   gap: var(--spacing-xs);
   position: relative;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .chat-msg__action-bar {
@@ -1054,23 +1056,45 @@ body.light-theme .thread-parent-container {
    ============================================================ */
 
 .chat-panel--hub {
-  display: grid !important;
-  grid-template-columns: 60px 320px 1fr !important;
-  grid-template-rows: 64px auto auto 1fr auto auto auto !important;
-  grid-template-areas:
-    "hub-nav left-header right-header"
-    "hub-nav left-users right-backlink"
-    "hub-nav left-groups right-messages"
-    "hub-nav left-groups right-messages"
-    "hub-nav left-groups right-typing"
-    "hub-nav left-groups right-upload"
-    "hub-nav left-groups right-input" !important;
+  display: flex !important;
+  flex-direction: row !important;
   height: 100% !important;
   width: 100% !important;
   background: var(--bg-secondary) !important;
   overflow: hidden !important;
   border-radius: 0 !important;
   border: none !important;
+}
+
+.chat-panel--hub .chat-hub-nav-sidebar {
+  display: flex !important;
+  width: 60px !important;
+  flex-shrink: 0 !important;
+  height: 100% !important;
+}
+
+.chat-panel--hub .chat-hub-left-col {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 320px !important;
+  flex-shrink: 0 !important;
+  border-right: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
+  height: 100% !important;
+}
+
+.chat-panel--hub .chat-hub-right-col {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  background: var(--bg-primary) !important;
+  height: 100% !important;
+}
+
+.chat-panel--hub .chat-hub-left-header {
+  grid-area: auto !important;
+  border-right: none !important;
 }
 
 /* Far-left WhatsApp-style narrow navigation sidebar */
@@ -1250,14 +1274,14 @@ body.light-theme .chat-hub-section-title {
 
 /* Vertical override lists styles */
 .chat-panel--hub .active-users-bar {
-  grid-area: left-users !important;
+  grid-area: auto !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
   gap: 8px !important;
   padding: 12px !important;
   border-bottom: 1px solid var(--border-color) !important;
-  border-right: 1px solid var(--border-color) !important;
+  border-right: none !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   height: 250px !important;
@@ -1265,13 +1289,13 @@ body.light-theme .chat-hub-section-title {
 }
 
 .chat-panel--hub .groups-bar {
-  grid-area: left-groups !important;
+  grid-area: auto !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
   gap: 8px !important;
   padding: 12px !important;
-  border-right: 1px solid var(--border-color) !important;
+  border-right: none !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   flex: 1 !important;
@@ -1356,34 +1380,34 @@ body.light-theme .chat-panel--hub .group-item-wrap.selected {
 
 /* Chat conversation area layout mapping */
 .chat-panel--hub .chat-panel-header {
-  grid-area: right-header;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  grid-area: auto !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
 }
 
 .chat-panel--hub #chatModeBackLink {
-  grid-area: right-backlink;
+  grid-area: auto !important;
 }
 
 .chat-panel--hub .chat-messages-container {
-  grid-area: right-messages;
-  background: var(--bg-primary);
+  grid-area: auto !important;
+  background: var(--bg-primary) !important;
   border-left: none !important;
-  flex: 1;
+  flex: 1 !important;
 }
 
 .chat-panel--hub .typing-indicator {
-  grid-area: right-typing;
+  grid-area: auto !important;
 }
 
 .chat-panel--hub .chat-upload-preview {
-  grid-area: right-upload;
+  grid-area: auto !important;
 }
 
 .chat-panel--hub .chat-input-area {
-  grid-area: right-input;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  grid-area: auto !important;
+  border-top: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
 }
 
 /* Mobile responsive single-pane layout overrides */
@@ -1398,36 +1422,33 @@ body.light-theme .chat-panel--hub .group-item-wrap.selected {
     overflow: hidden !important;
   }
 
+  .chat-panel--hub .chat-hub-nav-sidebar {
+    display: none !important;
+  }
+
   /* When the conversation pane is NOT active (i.e. showing lists) */
-  .chat-panel--hub:not(.chat-panel--active-chat) .chat-panel-header,
-  .chat-panel--hub:not(.chat-panel--active-chat) #chatModeBackLink,
-  .chat-panel--hub:not(.chat-panel--active-chat) .chat-messages-container,
-  .chat-panel--hub:not(.chat-panel--active-chat) .typing-indicator,
-  .chat-panel--hub:not(.chat-panel--active-chat) .chat-upload-preview,
-  .chat-panel--hub:not(.chat-panel--active-chat) .chat-input-area {
+  .chat-panel--hub:not(.chat-panel--active-chat) .chat-hub-left-col {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .chat-panel--hub:not(.chat-panel--active-chat) .chat-hub-right-col {
     display: none !important;
   }
 
   /* When the conversation pane IS active (i.e. showing active chat messages) */
-  .chat-panel--hub.chat-panel--active-chat .chat-hub-left-header,
-  .chat-panel--hub.chat-panel--active-chat .chat-hub-section-title,
-  .chat-panel--hub.chat-panel--active-chat .active-users-bar,
-  .chat-panel--hub.chat-panel--active-chat .groups-bar {
+  .chat-panel--hub.chat-panel--active-chat .chat-hub-left-col {
     display: none !important;
   }
-
-  /* Remove right borders and widths for vertical stacking on mobile */
-  .chat-panel--hub .chat-hub-left-header,
-  .chat-panel--hub .chat-hub-section-title,
-  .chat-panel--hub .active-users-bar,
-  .chat-panel--hub .groups-bar {
-    border-right: none !important;
+  .chat-panel--hub.chat-panel--active-chat .chat-hub-right-col {
+    display: flex !important;
     width: 100% !important;
-    max-width: 100% !important;
+    height: 100% !important;
   }
 
+  /* Shorter lists on mobile screens */
   .chat-panel--hub .active-users-bar {
-    height: 180px !important; /* Shorter heights on mobile screens */
+    height: 180px !important;
   }
 
   /* Show back button in header on mobile when chat is active */

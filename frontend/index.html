@@ -226,75 +226,77 @@
           </div>
         </div>
 
-        <div class="chat-hub-left-header" style="display: none;">
-          <svg style="width: 18px; height: 18px; fill: var(--accent-cyan); margin-right: 8px;" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-          Chats
+        <!-- Left Column Wrapper (teammates/channels/groups lists) -->
+        <div class="chat-hub-left-col">
+          <div class="chat-hub-left-header" style="display: none;">
+            <svg style="width: 18px; height: 18px; fill: var(--accent-cyan); margin-right: 8px;" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+            Chats
+          </div>
+          <!-- Horizontal user avatars scrolling bar (stacked in hub, row in sidebar) -->
+          <div class="active-users-bar" id="activeUsersList">
+            <!-- Avatars injected dynamically -->
+          </div>
+          <!-- Horizontal group chats scrolling bar (stacked in hub, row in sidebar) -->
+          <div class="groups-bar" id="groupsList">
+            <!-- Groups and "+" button injected dynamically -->
+          </div>
         </div>
 
-        <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button id="mobileChatBackBtn" class="mobile-chat-back-btn" style="display: none; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 4px 0 0; align-items: center; justify-content: center;" title="Back to Chats">
-              <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-            </button>
-            <div>
-              <h3 class="chat-panel-header__title" style="margin-bottom: var(--spacing-xs)">
-                <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-                General
-              </h3>
-              <div class="chat-panel-header__active-badge">
-                <span class="chat-panel-header__active-dot"></span>
-                <span id="activeUserCount">1 online</span>
+        <!-- Right Column Wrapper (active room conversation pane) -->
+        <div class="chat-hub-right-col">
+          <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button id="mobileChatBackBtn" class="mobile-chat-back-btn" style="display: none; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 4px 0 0; align-items: center; justify-content: center;" title="Back to Chats">
+                <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+              </button>
+              <div>
+                <h3 class="chat-panel-header__title" style="margin-bottom: var(--spacing-xs)">
+                  <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                  General
+                </h3>
+                <div class="chat-panel-header__active-badge">
+                  <span class="chat-panel-header__active-dot"></span>
+                  <span id="activeUserCount">1 online</span>
+                </div>
               </div>
             </div>
+            <div id="chatHeaderControls" style="display: flex; align-items: center; gap: 8px;">
+              <button id="clearChatHistoryBtn" style="display: none; background: none; border: none; color: var(--accent-rose); font-size: 11px; font-weight: 600; cursor: pointer; opacity: 0.65; transition: opacity var(--transition-fast); align-items: center; gap: 4px;" title="Clear Chat History (Admin Only)">
+                <svg style="width: 11px; height: 11px; fill: currentColor;" viewBox="0 0 24 24">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+                <span class="btn-text">Clear</span>
+              </button>
+              <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
+            </div>
           </div>
-          <div id="chatHeaderControls" style="display: flex; align-items: center; gap: 8px;">
-            <button id="clearChatHistoryBtn" style="display: none; background: none; border: none; color: var(--accent-rose); font-size: 11px; font-weight: 600; cursor: pointer; opacity: 0.65; transition: opacity var(--transition-fast); align-items: center; gap: 4px;" title="Clear Chat History (Admin Only)">
-              <svg style="width: 11px; height: 11px; fill: currentColor;" viewBox="0 0 24 24">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-              </svg>
-              <span class="btn-text">Clear</span>
-            </button>
-            <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
+
+          <!-- Dynamic mode switcher back-link for DM chats -->
+          <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(99, 102, 241, 0.05); align-items: center; gap: 6px; cursor: pointer;">
+            <span style="color: var(--accent-purple); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
           </div>
-        </div>
 
-        <!-- Dynamic mode switcher back-link for DM chats -->
-        <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(99, 102, 241, 0.05); align-items: center; gap: 6px; cursor: pointer;">
-          <span style="color: var(--accent-purple); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
-        </div>
+          <!-- Chat messages thread -->
+          <div class="chat-messages-container" id="chatMessages">
+            <!-- Message bubbles injected dynamically -->
+          </div>
 
-        <!-- Horizontal user avatars scrolling bar -->
-        <div class="active-users-bar" id="activeUsersList">
-          <!-- Avatars injected dynamically -->
-        </div>
+          <!-- Active typing indicator -->
+          <div class="typing-indicator hidden" id="typingIndicator">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span style="margin-left: var(--spacing-xs)">someone is typing...</span>
+          </div>
 
-        <!-- Horizontal group chats scrolling bar -->
-        <div class="groups-bar" id="groupsList">
-          <!-- Groups and "+" button injected dynamically -->
-        </div>
+          <!-- Upload preview bar -->
+          <div id="chatUploadPreview" class="chat-upload-preview hidden" style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+            <span id="chatUploadPreviewName" style="color: var(--accent-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;"></span>
+            <button id="chatUploadCancelBtn" style="background: none; border: none; color: var(--accent-rose); cursor: pointer; font-size: 16px; line-height: 1; padding: 0;">&times;</button>
+          </div>
 
-        <!-- Chat messages thread -->
-        <div class="chat-messages-container" id="chatMessages">
-
-          <!-- Message bubbles injected dynamically -->
-        </div>
-
-        <!-- Active typing indicator -->
-        <div class="typing-indicator hidden" id="typingIndicator">
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span style="margin-left: var(--spacing-xs)">someone is typing...</span>
-        </div>
-
-        <!-- Upload preview bar -->
-        <div id="chatUploadPreview" class="chat-upload-preview hidden" style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
-          <span id="chatUploadPreviewName" style="color: var(--accent-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;"></span>
-          <button id="chatUploadCancelBtn" style="background: none; border: none; color: var(--accent-rose); cursor: pointer; font-size: 16px; line-height: 1; padding: 0;">&times;</button>
-        </div>
-
-        <!-- Message input bar -->
-        <div class="chat-input-area">
+          <!-- Message input bar -->
+          <div class="chat-input-area">
           <button id="chatAttachBtn" class="chat-attach-btn" title="Upload File" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); transition: all var(--transition-fast); flex-shrink: 0;">
             <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
               <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-3.31 2.69-6 6-6s6 2.69 6 6v10c0 4.42-3.58 8-8 8s-8-3.58-8-8V6h2v9c0 3.31 2.69 6 6 6s6-2.69 6-6V5c0-2.21-1.79-4-4-4s-4 1.79-4 4v11.5c0 1.1.9 2 2 2s2-.9 2-2V6h2z"/>
@@ -586,7 +588,7 @@
   <div id="chatBackdrop" class="drawer-backdrop"></div>
 
   <!-- Authentication Glassmorphism Overlay Modal -->
-  <div id="loginOverlay" class="auth-overlay">
+  <div id="loginOverlay" class="auth-overlay hidden">
     <!-- Background neon floating blobs -->
     <div class="auth-blob auth-blob--purple"></div>
     <div class="auth-blob auth-blob--cyan"></div>
