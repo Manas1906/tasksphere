@@ -80,7 +80,7 @@ export class ChatController {
   async loadUserDirectory() {
     try {
       const users = await api.getUsers() || [];
-      const approvedTeammates = users.filter(u => u.status !== 'PENDING_APPROVAL' && u.username !== this.myUsername);
+      const approvedTeammates = users.filter(u => u.status !== 'PENDING_APPROVAL' && u.username && this.myUsername && u.username.toLowerCase().trim() !== this.myUsername.toLowerCase().trim());
       
       const mappedMembers = approvedTeammates.map(dbUser => {
         let cleanAvatar = dbUser.avatarUrl || '';
@@ -506,7 +506,12 @@ export class ChatController {
           const recipient = match[1];
           const sender = message.username;
           
-          if (recipient === this.myUsername && this.activeChatPartner !== sender) {
+          const recipientLower = recipient ? recipient.toLowerCase().trim() : '';
+          const selfLower = this.myUsername ? this.myUsername.toLowerCase().trim() : '';
+          const partnerLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
+          const senderLower = sender ? sender.toLowerCase().trim() : '';
+          
+          if (recipientLower === selfLower && partnerLower !== senderLower) {
             this.unreadDms[sender] = (this.unreadDms[sender] || 0) + 1;
             this.updateActiveUsersList({ username: '', status: 'ONLINE' });
           }
@@ -772,9 +777,14 @@ export class ChatController {
         const recipient = match[1];
         const sender = msg.username;
         
+        const selfLower = this.myUsername ? this.myUsername.toLowerCase().trim() : '';
+        const partnerLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
+        const senderLower = sender ? sender.toLowerCase().trim() : '';
+        const recipientLower = recipient ? recipient.toLowerCase().trim() : '';
+        
         // Match if (I sent to partner) OR (partner sent to me)
-        return (sender === this.myUsername && recipient === this.activeChatPartner) ||
-               (sender === this.activeChatPartner && recipient === this.myUsername);
+        return (senderLower === selfLower && recipientLower === partnerLower) ||
+               (senderLower === partnerLower && recipientLower === selfLower);
       }
     });
 
@@ -873,7 +883,7 @@ export class ChatController {
       return;
     }
 
-    const isSelf = msg.username === this.myUsername;
+    const isSelf = msg.username && this.myUsername && msg.username.toLowerCase().trim() === this.myUsername.toLowerCase().trim();
     const time = this.formatMessageDate(msg.timestamp);
 
 
@@ -896,7 +906,7 @@ export class ChatController {
     if (activeReactions.length > 0) {
       reactionsHtml = `<div class="chat-msg__reactions-capsules">`;
       activeReactions.forEach(([emoji, users]) => {
-        const hasReacted = users.includes(this.myUsername);
+        const hasReacted = users.some(u => u.toLowerCase().trim() === this.myUsername.toLowerCase().trim());
         reactionsHtml += `
           <span class="chat-msg__reaction-capsule ${hasReacted ? 'chat-msg__reaction-capsule--active' : ''}" data-emoji="${emoji}" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;">
             <span>${this.getEmojiSvg(emoji)}</span>
@@ -1097,7 +1107,8 @@ export class ChatController {
     }
     
     const userList = meta.reactions[emoji];
-    const idx = userList.indexOf(this.myUsername);
+    const selfLower = this.myUsername ? this.myUsername.toLowerCase().trim() : '';
+    const idx = userList.findIndex(u => u.toLowerCase().trim() === selfLower);
     if (idx !== -1) {
       userList.splice(idx, 1);
     } else {
@@ -1172,7 +1183,7 @@ export class ChatController {
     }
     
     replies.forEach(reply => {
-      const isSelf = reply.username === this.myUsername;
+      const isSelf = reply.username && this.myUsername && reply.username.toLowerCase().trim() === this.myUsername.toLowerCase().trim();
       const time = reply.timestamp ? new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
       let cleanAvatar = (reply.avatarUrl || '').split('||')[0];
       if (!cleanAvatar || cleanAvatar.trim() === '') {
@@ -1246,12 +1257,15 @@ export class ChatController {
     
     // Invalidate/Remove account from list immediately if they got pending state or were revoked
     if (presence.username) {
+      const presUsernameLower = presence.username.toLowerCase().trim();
+      const partnerLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
+
       if (presence.status === 'PENDING_APPROVAL' || presence.action === 'REJECTED') {
-        activeMembers = activeMembers.filter(m => m.username !== presence.username);
+        activeMembers = activeMembers.filter(m => m.username.toLowerCase().trim() !== presUsernameLower);
         localStorage.setItem('cache_users', JSON.stringify(activeMembers));
         
         // If we were chatting with this partner and they disappeared, return to group room
-        if (this.activeChatPartner === presence.username) {
+        if (partnerLower === presUsernameLower) {
           this.switchChatPartner(null);
         } else {
           this.drawAvatars(activeMembers);
@@ -1261,7 +1275,7 @@ export class ChatController {
       
       if (presence.status === 'OFFLINE') {
         // Mark user as OFFLINE but retain them in the cache directory (so they are available in ticket assignee list, etc.)
-        const existingIdx = activeMembers.findIndex(m => m.username === presence.username);
+        const existingIdx = activeMembers.findIndex(m => m.username.toLowerCase().trim() === presUsernameLower);
         if (existingIdx !== -1) {
           activeMembers[existingIdx].status = 'OFFLINE';
           activeMembers[existingIdx].lastActive = Date.now();
@@ -1269,7 +1283,7 @@ export class ChatController {
         localStorage.setItem('cache_users', JSON.stringify(activeMembers));
         
         // If we were chatting with this partner and they went offline, return to group room
-        if (this.activeChatPartner === presence.username) {
+        if (partnerLower === presUsernameLower) {
           this.switchChatPartner(null);
         } else {
           this.drawAvatars(activeMembers);
@@ -1279,8 +1293,9 @@ export class ChatController {
     }
 
     // Register active user in cache
-    if (presence.username && presence.username !== this.myUsername) {
-      const existingIdx = activeMembers.findIndex(m => m.username === presence.username);
+    if (presence.username && this.myUsername && presence.username.toLowerCase().trim() !== this.myUsername.toLowerCase().trim()) {
+      const presUsernameLower = presence.username.toLowerCase().trim();
+      const existingIdx = activeMembers.findIndex(m => m.username.toLowerCase().trim() === presUsernameLower);
       const memberObj = {
         id: presence.id || (existingIdx !== -1 ? activeMembers[existingIdx].id : 'user_' + Date.now()),
         username: presence.username,
@@ -1322,7 +1337,7 @@ export class ChatController {
     displayMembers.forEach(user => {
       const avatarWrap = document.createElement('div');
       avatarWrap.className = 'active-user-avatar-wrap';
-      if (this.activeChatPartner === user.username) {
+      if (this.activeChatPartner && user.username && this.activeChatPartner.toLowerCase().trim() === user.username.toLowerCase().trim()) {
         avatarWrap.classList.add('selected');
       }
       avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g, ' ')}) - ${user.status || 'OFFLINE'}`;
@@ -1330,8 +1345,11 @@ export class ChatController {
       avatarWrap.style.transition = 'all 0.2s ease';
 
       avatarWrap.onclick = () => {
-        if (user.username !== this.myUsername) {
-          if (this.activeChatPartner === user.username) {
+        const userUsernameLower = user.username.toLowerCase().trim();
+        const selfLower = this.myUsername ? this.myUsername.toLowerCase().trim() : '';
+        const partnerLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
+        if (userUsernameLower !== selfLower) {
+          if (partnerLower === userUsernameLower) {
             this.switchChatPartner(null);
           } else {
             this.switchChatPartner(user.username);

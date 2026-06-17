@@ -560,7 +560,7 @@ body.light-theme .chat-msg__reaction-capsule {
   background: #141a24;
   border: 1px solid rgba(255, 255, 255, 0.06);
   margin-top: 8px;
-  max-width: 270px;
+  max-width: 450px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.12);
   transition: all 0.2s ease;
 }

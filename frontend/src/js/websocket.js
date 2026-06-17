@@ -24,7 +24,21 @@ class WebSocketManager {
     }
 
     console.log(`[WS-CONNECTING] Attempting to handshake with real-time sync server at: ${this.socketUrl}`);
-    const socket = new SockJS(this.socketUrl);
+    let socket;
+    try {
+      // Disable iframe-based fallbacks to prevent SecurityError in incognito/private windows
+      socket = new SockJS(this.socketUrl, null, {
+        transports: ['websocket', 'xhr-streaming', 'xhr-polling']
+      });
+    } catch (e) {
+      console.error('[WS-FATAL] Failed to construct SockJS instance, falling back to basic connection wrapper:', e);
+      this.connected = false;
+      this.setWsStatusIndicator(false);
+      if (onErrorCallback) {
+        setTimeout(() => onErrorCallback(e), 50);
+      }
+      return;
+    }
     const StompClient = Stomp.Stomp || Stomp;
     this.stompClient = StompClient.over(socket);
     
