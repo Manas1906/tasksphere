@@ -600,9 +600,7 @@ export class ChatController {
 
   switchChatPartner(partner) {
     this.activeChatPartner = partner;
-    if (partner) {
-      this.activeGroupId = null;
-    }
+    this.activeGroupId = null;
     
     // Clear unread count when opening a DM session
     if (partner) {
@@ -1320,7 +1318,35 @@ export class ChatController {
 
     // Handle files/links: [label](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
-      return `<a class="chat-file-link" href="${url}" target="_blank" style="color: var(--accent-cyan); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;" download>📎 ${label}</a>`;
+      const cleanLabel = label.replace(/^📎\s*/, '');
+      const extMatch = cleanLabel.match(/\.([a-zA-Z0-9]+)$/);
+      const ext = extMatch ? extMatch[1].toUpperCase() : 'FILE';
+      
+      let fileIcon = '📁';
+      let iconColor = '#a855f7';
+      if (['PDF'].includes(ext)) { fileIcon = '📄'; iconColor = '#ef4444'; }
+      else if (['ZIP', 'RAR', 'TAR', 'GZ'].includes(ext)) { fileIcon = '📦'; iconColor = '#eab308'; }
+      else if (['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'SVG'].includes(ext)) { fileIcon = '🖼️'; iconColor = '#3b82f6'; }
+      else if (['DOC', 'DOCX', 'TXT', 'MD'].includes(ext)) { fileIcon = '📝'; iconColor = '#3b82f6'; }
+      else if (['JS', 'TS', 'JAVA', 'PY', 'HTML', 'CSS', 'SQL', 'SH', 'YML', 'YAML', 'JSON', 'XML'].includes(ext)) { fileIcon = '💻'; iconColor = '#10b981'; }
+
+      return `
+        <div class="chat-attachment-card">
+          <div class="chat-attachment-icon-badge" style="background: ${iconColor}15; color: ${iconColor}">
+            <span class="chat-attachment-type-icon">${fileIcon}</span>
+            <span class="chat-attachment-ext-label">${ext}</span>
+          </div>
+          <div class="chat-attachment-info">
+            <span class="chat-attachment-name" title="${cleanLabel}">${cleanLabel}</span>
+            <span class="chat-attachment-meta">Click to download</span>
+          </div>
+          <a class="chat-attachment-download-btn" href="${url}" target="_blank" download title="Download ${cleanLabel}">
+            <svg viewBox="0 0 24 24">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+            </svg>
+          </a>
+        </div>
+      `;
     });
 
     // Handle code blocks: ```lang ... ``` or ``` ... ```
