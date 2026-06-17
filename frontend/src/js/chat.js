@@ -1338,10 +1338,13 @@ export class ChatController {
   }
 
   drawAvatars(activeMembers) {
-    this.activeUsersContainer.innerHTML = '';
-    
     const chatPanel = document.querySelector('.chat-panel');
     const isHubView = chatPanel && chatPanel.classList.contains('chat-panel--hub');
+
+    // In hub mode the unified list renders users — skip legacy avatar bar
+    if (!isHubView) {
+      this.activeUsersContainer.innerHTML = '';
+    }
     
     // Sort active members: online members first, then alphabetical
     const sortedMembers = [...activeMembers].sort((a, b) => {
@@ -1390,25 +1393,16 @@ export class ChatController {
         : '';
         
       if (isHubView) {
-        avatarWrap.innerHTML = `
-          <div class="active-user-avatar-container">
-            <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
-            <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
-            ${badgeHtml}
-          </div>
-          <div class="active-user-details">
-            <div class="active-user-username">${user.username}</div>
-            <div class="active-user-role">${(user.role || 'DEVELOPER').replace(/_/g, ' ')}</div>
-          </div>
-        `;
+        // Hub mode: unified list handles rendering — don't touch the hidden container
       } else {
         avatarWrap.innerHTML = `
           <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
           <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
           ${badgeHtml}
         `;
+        this.activeUsersContainer.appendChild(avatarWrap);
       }
-      this.activeUsersContainer.appendChild(avatarWrap);
+
     });
 
     const onlineCount = activeMembers.filter(user => user.status && user.status !== 'OFFLINE').length;
@@ -2035,10 +2029,14 @@ export class ChatController {
 
   drawGroups() {
     if (!this.groupsListContainer) return;
-    this.groupsListContainer.innerHTML = '';
 
     const chatPanel = document.querySelector('.chat-panel');
     const isHubView = chatPanel && chatPanel.classList.contains('chat-panel--hub');
+
+    // Hub mode: unified list handles group rendering — skip legacy container
+    if (isHubView) return;
+
+    this.groupsListContainer.innerHTML = '';
 
     // Create Group "+" Button
     const createBtn = document.createElement('button');

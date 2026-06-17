@@ -1278,36 +1278,12 @@ body.light-theme .chat-hub-section-title {
   text-overflow: ellipsis;
 }
 
-/* Vertical override lists styles */
-.chat-panel--hub .active-users-bar {
-  grid-area: auto !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 8px !important;
-  padding: 12px !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  border-right: none !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  height: 250px !important;
-  background: var(--bg-secondary) !important;
+/* Hide legacy split bars in hub mode — unified list replaces them */
+.chat-panel--hub #activeUsersList,
+.chat-panel--hub #groupsList {
+  display: none !important;
 }
 
-.chat-panel--hub .groups-bar {
-  grid-area: auto !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 8px !important;
-  padding: 12px !important;
-  border-right: none !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  flex: 1 !important;
-  height: auto !important;
-  background: var(--bg-secondary) !important;
-}
 
 /* Item Wrappers for vertical alignments */
 .chat-panel--hub .active-user-avatar-wrap {
