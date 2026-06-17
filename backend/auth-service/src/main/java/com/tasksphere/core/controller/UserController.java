@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import com.tasksphere.core.service.EventPublisher;
+import com.tasksphere.core.event.UserCreatedEvent;
+import com.tasksphere.core.event.UserPresenceEvent;
 
 @RestController
 @RequestMapping("/api/users")
@@ -34,6 +37,9 @@ public class UserController {
 
     @Autowired
     private UserApprovalService userApprovalService;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
     @GetMapping
     public ResponseEntity<List<UserSession>> getAllUsers() {
@@ -122,9 +128,29 @@ public class UserController {
             }
             
             UserSession savedUser = userRepository.save(activeUser);
+            
+            // Publish presence update on successful login
+            if ("ONLINE".equalsIgnoreCase(savedUser.getStatus())) {
+                eventPublisher.publishUserPresence(UserPresenceEvent.builder()
+                        .username(savedUser.getUsername())
+                        .status("ONLINE")
+                        .timestamp(Instant.now())
+                        .build());
+            }
+
             if (isNewProfileCompletion && "PENDING_APPROVAL".equalsIgnoreCase(savedUser.getStatus())) {
                 userApprovalService.notifyAdminsForApproval(savedUser);
             } else if (isNewProfileCompletion && "ONLINE".equalsIgnoreCase(savedUser.getStatus())) {
+                // Publish UserCreatedEvent for complete profile sync
+                eventPublisher.publishUserCreated(UserCreatedEvent.builder()
+                        .id(savedUser.getId())
+                        .username(savedUser.getUsername())
+                        .role(savedUser.getRole())
+                        .email(savedUser.getExtractedEmail())
+                        .avatarUrl(savedUser.getPureAvatarUrl())
+                        .timestamp(Instant.now())
+                        .build());
+
                 // Dispatch beautiful welcome onboarding email asynchronously for auto-approved user
                 String userEmail = savedUser.getExtractedEmail();
                 if (userEmail != null && !userEmail.trim().isEmpty()) {
@@ -163,6 +189,21 @@ public class UserController {
             if ("PENDING_APPROVAL".equalsIgnoreCase(initialStatus)) {
                 userApprovalService.notifyAdminsForApproval(savedUser);
             } else if ("ONLINE".equalsIgnoreCase(initialStatus)) {
+                // Publish events
+                eventPublisher.publishUserCreated(UserCreatedEvent.builder()
+                        .id(savedUser.getId())
+                        .username(savedUser.getUsername())
+                        .role(savedUser.getRole())
+                        .email(savedUser.getExtractedEmail())
+                        .avatarUrl(savedUser.getPureAvatarUrl())
+                        .timestamp(Instant.now())
+                        .build());
+                eventPublisher.publishUserPresence(UserPresenceEvent.builder()
+                        .username(savedUser.getUsername())
+                        .status("ONLINE")
+                        .timestamp(Instant.now())
+                        .build());
+
                 // Dispatch beautiful welcome onboarding email asynchronously for auto-approved user
                 String userEmail = savedUser.getExtractedEmail();
                 if (userEmail != null && !userEmail.trim().isEmpty()) {
@@ -184,7 +225,16 @@ public class UserController {
                 .map(user -> {
                     user.setStatus(cleanedStatus);
                     user.setLastActiveTime(Instant.now());
-                    return ResponseEntity.ok(userRepository.save(user));
+                    UserSession saved = userRepository.save(user);
+                    
+                    // Publish presence event
+                    eventPublisher.publishUserPresence(UserPresenceEvent.builder()
+                            .username(saved.getUsername())
+                            .status(cleanedStatus)
+                            .timestamp(Instant.now())
+                            .build());
+                    
+                    return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -208,6 +258,21 @@ public class UserController {
         user.setStatus("ONLINE");
         user.setLastActiveTime(Instant.now());
         UserSession saved = userRepository.save(user);
+
+        // Publish events for newly approved user
+        eventPublisher.publishUserCreated(UserCreatedEvent.builder()
+                .id(saved.getId())
+                .username(saved.getUsername())
+                .role(saved.getRole())
+                .email(saved.getExtractedEmail())
+                .avatarUrl(saved.getPureAvatarUrl())
+                .timestamp(Instant.now())
+                .build());
+        eventPublisher.publishUserPresence(UserPresenceEvent.builder()
+                .username(saved.getUsername())
+                .status("ONLINE")
+                .timestamp(Instant.now())
+                .build());
 
         // Dispatch beautiful welcome onboarding newsletter asynchronously
         String userEmail = user.getExtractedEmail();

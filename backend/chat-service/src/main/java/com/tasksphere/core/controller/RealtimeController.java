@@ -15,6 +15,8 @@ import org.springframework.stereotype.Controller;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import com.tasksphere.core.service.EventPublisher;
+import com.tasksphere.core.event.UserPresenceEvent;
 
 
 @Controller
@@ -40,6 +42,9 @@ public class RealtimeController {
 
     @Autowired
     private com.tasksphere.core.service.GroupChatService groupChatService;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
     /**
      * Receives a chat message from a user, saves it, and broadcasts it to all listeners.
@@ -152,17 +157,16 @@ public class RealtimeController {
      * Receives notifications that users are active or changed their presence and syncs them.
      */
     @MessageMapping("/user.presence")
-    @SendTo("/topic/users")
-    public Map<String, Object> syncUserPresence(Map<String, Object> presenceUpdate) {
-        presenceUpdate.put("syncedAt", Instant.now());
-        
-        // Synchronize in-memory/Redis TTL presence registration
+    public void syncUserPresence(Map<String, Object> presenceUpdate) {
         String username = (String) presenceUpdate.get("username");
         if (username != null) {
-            redisCacheService.cachePresence(username);
+            String status = presenceUpdate.get("status") != null ? (String) presenceUpdate.get("status") : "ONLINE";
+            eventPublisher.publishUserPresence(UserPresenceEvent.builder()
+                    .username(username)
+                    .status(status)
+                    .timestamp(Instant.now())
+                    .build());
         }
-        
-        return presenceUpdate;
     }
 
     /**
