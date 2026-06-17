@@ -187,6 +187,12 @@
         <!-- Far-left narrow vertical navigation bar (WhatsApp Web Style) -->
         <div class="chat-hub-nav-sidebar">
           <div class="chat-hub-nav-group-top">
+            <!-- Home / back-to-app button -->
+            <button class="hub-home-btn" id="hubNavHome" title="Back to Home">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+            </button>
             <button class="chat-hub-nav-btn chat-hub-nav-btn--active" id="hubNavChat" title="Chats">
               <svg viewBox="0 0 24 24">
                 <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
@@ -224,6 +230,12 @@
             </button>
           </div>
           <div class="chat-hub-nav-group-bottom">
+            <!-- Theme toggle -->
+            <button class="hub-theme-toggle" id="hubNavThemeToggle" title="Toggle Light / Dark Mode">
+              <svg id="hubNavThemeIcon" viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </button>
             <div class="chat-hub-nav-avatar-wrap">
               <img id="hubNavAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" class="chat-hub-nav-avatar" alt="My Profile">
             </div>

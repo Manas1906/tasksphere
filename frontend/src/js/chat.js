@@ -471,8 +471,53 @@ export class ChatController {
   }
 
 
-  async loadChatHistory() {
+  // ----------------------------------------------------------------
+  // Skeleton Helpers
+  // ----------------------------------------------------------------
+  showMessageSkeleton() {
+    if (!this.messagesContainer) return;
     this.messagesContainer.innerHTML = '';
+    const rows = [
+      { right: false, width: '55%' },
+      { right: true,  width: '40%' },
+      { right: false, width: '70%' },
+      { right: true,  width: '50%' },
+      { right: false, width: '60%' },
+      { right: true,  width: '35%' },
+    ];
+    rows.forEach(({ right, width }) => {
+      const row = document.createElement('div');
+      row.className = `chat-skeleton-row${right ? ' chat-skeleton-row--right' : ''}`;
+      row.innerHTML = `
+        <div class="chat-skeleton-avatar skeleton-base"></div>
+        <div class="chat-skeleton-body">
+          <div class="chat-skeleton-line skeleton-base" style="width:${right ? '45%' : '30%'};"></div>
+          <div class="chat-skeleton-bubble skeleton-base" style="width:${width};"></div>
+        </div>`;
+      this.messagesContainer.appendChild(row);
+    });
+  }
+
+  showSidebarSkeleton() {
+    const container = this.unifiedListContainer;
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const item = document.createElement('div');
+      item.className = 'chat-skeleton-list-item';
+      item.innerHTML = `
+        <div class="chat-skeleton-list-icon skeleton-base"></div>
+        <div class="chat-skeleton-list-text">
+          <div class="chat-skeleton-list-name skeleton-base"></div>
+          <div class="chat-skeleton-list-sub skeleton-base"></div>
+        </div>`;
+      container.appendChild(item);
+    }
+  }
+
+  async loadChatHistory() {
+    this.showMessageSkeleton();
+    this.showSidebarSkeleton();
     try {
       this.historyMessages = await api.request('/chat-messages') || [];
     } catch (e) {

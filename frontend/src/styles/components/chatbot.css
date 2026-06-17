@@ -2,10 +2,10 @@
 
 .chatbot-toggle {
   position: fixed;
-  bottom: 24px;
+  bottom: 88px;          /* lifted above the chat input bar (~64px) */
   right: 24px;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
   box-shadow: 0 8px 20px rgba(2, 136, 209, 0.22);
@@ -15,7 +15,7 @@
   cursor: pointer;
   z-index: 999;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), bottom 0.4s ease;
 }
 
 .chatbot-toggle:hover {
@@ -213,7 +213,7 @@
   50% { transform: translateY(-4px); }
 }
 
-/* Mobile responsive adjustments */
+/* Mobile: put chatbot at bottom-LEFT so it doesn't clash with the send button on the right */
 @media (max-width: 480px) {
   .chatbot-window {
     width: calc(100vw - 32px);
@@ -223,10 +223,19 @@
   }
   .chatbot-toggle {
     bottom: 16px;
-    right: 16px;
+    right: auto;     /* cancel right */
+    left: 16px;      /* move to bottom-left corner */
+    width: 44px;
+    height: 44px;
   }
   .chatbot-messages {
-    max-height: 275px; /* Enforces strict maximum height bounds on mobile to guarantee internal scrolling */
+    max-height: 275px;
+  }
+  /* Slide window to the left too so it doesn't overlap the input */
+  .chatbot-window {
+    right: auto;
+    left: 16px;
+    bottom: 72px;
   }
 }
 
