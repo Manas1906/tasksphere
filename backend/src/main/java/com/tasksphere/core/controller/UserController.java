@@ -102,7 +102,8 @@ public class UserController {
             if ("PRODUCT_OWNER".equalsIgnoreCase(targetRole) || "MANAGER".equalsIgnoreCase(targetRole)) {
                 activeUser.setStatus("ONLINE");
             } else if (isNewProfileCompletion) {
-                activeUser.setStatus("PENDING_APPROVAL");
+                // Temporary: auto-approve for recruiters to explore
+                activeUser.setStatus("ONLINE");
             } else if (!"PENDING_APPROVAL".equalsIgnoreCase(activeUser.getStatus())) {
                 activeUser.setStatus("ONLINE");
             }
@@ -132,7 +133,8 @@ public class UserController {
             
             // Check if user has admin privileges. If not, mark status as PENDING_APPROVAL
             if (!"PRODUCT_OWNER".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role)) {
-                initialStatus = "PENDING_APPROVAL";
+                // Temporary: auto-approve for recruiters to explore
+                initialStatus = "ONLINE";
             }
             
             // Encrypt and serialize profile credentials if password and email are supplied
