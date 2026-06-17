@@ -95,6 +95,14 @@
           </button>
         </li>
         <li>
+          <button id="navChatHub" class="sidebar-nav-btn">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+            </svg>
+            <span>General Lounge</span>
+          </button>
+        </li>
+        <li>
           <button id="navBoard" class="sidebar-nav-btn">
             <svg viewBox="0 0 24 24">
               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -172,11 +180,16 @@
     <!-- Chat Sidebar Panel - Real-time active collaboration room -->
     <aside class="app-chat" id="chatContainer">
       <div class="chat-panel">
+        <div class="chat-hub-left-header" style="display: none;">
+          <svg style="width: 18px; height: 18px; fill: var(--accent-cyan); margin-right: 8px;" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+          General Lounge
+        </div>
+
         <div class="chat-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start">
           <div>
             <h3 class="chat-panel-header__title" style="margin-bottom: var(--spacing-xs)">
               <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-              Operations Chat
+              General Lounge
             </h3>
             <div class="chat-panel-header__active-badge">
               <span class="chat-panel-header__active-dot"></span>
@@ -199,11 +212,13 @@
           <span style="color: var(--accent-purple); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
         </div>
 
+        <div class="chat-hub-section-title" id="activeUsersTitle" style="display: none;">Teammates</div>
         <!-- Horizontal user avatars scrolling bar -->
         <div class="active-users-bar" id="activeUsersList">
           <!-- Avatars injected dynamically -->
         </div>
 
+        <div class="chat-hub-section-title" id="groupsTitle" style="display: none;">Group Channels</div>
         <!-- Horizontal group chats scrolling bar -->
         <div class="groups-bar" id="groupsList">
           <!-- Groups and "+" button injected dynamically -->

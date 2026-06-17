@@ -433,15 +433,51 @@ export class VoiceCallController {
     };
 
     this.peerConnection.ontrack = (event) => {
-      const remoteVideo = document.getElementById('remoteVideo');
-      if (remoteVideo && event.streams[0]) {
-        remoteVideo.srcObject = event.streams[0];
-      }
+      console.log('[VOICECALL] Remote track received:', event.track.kind, event.track);
       
-      this.remoteAudio = document.getElementById('remoteAudio');
-      if (this.remoteAudio && event.streams[0]) {
-        this.remoteAudio.srcObject = event.streams[0];
+      const remoteVideo = document.getElementById('remoteVideo');
+      const remoteAudio = document.getElementById('remoteAudio');
+      this.remoteAudio = remoteAudio;
+
+      // Create or use the remote stream
+      let remoteStream = event.streams[0];
+      if (!remoteStream) {
+        // Fallback: create a MediaStream from the tracks we have
+        remoteStream = new MediaStream();
+        if (this.peerConnection) {
+          this.peerConnection.getReceivers().forEach(receiver => {
+            if (receiver.track) {
+              remoteStream.addTrack(receiver.track);
+            }
+          });
+        }
       }
+
+      // Check track kind and assign/play
+      if (event.track.kind === 'video') {
+        if (remoteVideo) {
+          remoteVideo.srcObject = remoteStream;
+          remoteVideo.play().catch(err => console.warn('[VOICECALL] Remote video play error:', err));
+        }
+      } else if (event.track.kind === 'audio') {
+        if (remoteAudio) {
+          remoteAudio.srcObject = remoteStream;
+          remoteAudio.play().catch(err => console.warn('[VOICECALL] Remote audio play error:', err));
+        }
+      }
+
+      // Also listen to addtrack on remoteStream to re-bind if new tracks are added later
+      remoteStream.onaddtrack = (e) => {
+        console.log('[VOICECALL] Track added to remoteStream dynamically:', e.track.kind);
+        if (e.track.kind === 'video' && remoteVideo) {
+          remoteVideo.srcObject = remoteStream;
+          remoteVideo.play().catch(err => console.warn('[VOICECALL] Remote video play error on addtrack:', err));
+        } else if (e.track.kind === 'audio' && remoteAudio) {
+          remoteAudio.srcObject = remoteStream;
+          remoteAudio.play().catch(err => console.warn('[VOICECALL] Remote audio play error on addtrack:', err));
+        }
+        this.updateCallLayout();
+      };
 
       this.updateCallLayout();
     };
@@ -898,13 +934,28 @@ export class VoiceCallController {
       localVideo.srcObject = this.localStream;
     }
 
-    // Bind remote video stream dynamically if tracks are already active
+    // Bind remote video/audio streams dynamically if tracks are already active
     if (this.peerConnection) {
       const remoteVideo = document.getElementById('remoteVideo');
+      const remoteAudio = document.getElementById('remoteAudio');
       const receivers = this.peerConnection.getReceivers();
-      const remoteStream = receivers.length > 0 ? new MediaStream(receivers.map(r => r.track)) : null;
-      if (remoteVideo && remoteStream) {
-        remoteVideo.srcObject = remoteStream;
+      
+      if (receivers.length > 0) {
+        const videoTracks = receivers.filter(r => r.track && r.track.kind === 'video').map(r => r.track);
+        const audioTracks = receivers.filter(r => r.track && r.track.kind === 'audio').map(r => r.track);
+        
+        if (videoTracks.length > 0 && remoteVideo) {
+          const videoStream = new MediaStream(videoTracks);
+          remoteVideo.srcObject = videoStream;
+          remoteVideo.play().catch(err => console.warn('[VOICECALL] remoteVideo play error on connect:', err));
+        }
+        
+        if (audioTracks.length > 0 && remoteAudio) {
+          const audioStream = new MediaStream(audioTracks);
+          remoteAudio.srcObject = audioStream;
+          remoteAudio.play().catch(err => console.warn('[VOICECALL] remoteAudio play error on connect:', err));
+          this.remoteAudio = remoteAudio;
+        }
       }
     }
   }

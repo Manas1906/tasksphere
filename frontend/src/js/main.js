@@ -1291,6 +1291,7 @@ class TaskSphereApp {
     const whiteboardBtn = document.getElementById('navWhiteboard');
     const timelineBtn = document.getElementById('navTimeline');
     const adminBtn = document.getElementById('navAdmin');
+    const chatHubBtn = document.getElementById('navChatHub');
  
     const clearActive = () => {
       dashboardBtn.classList.remove('sidebar-nav-btn--active');
@@ -1299,6 +1300,7 @@ class TaskSphereApp {
       if (whiteboardBtn) whiteboardBtn.classList.remove('sidebar-nav-btn--active');
       if (timelineBtn) timelineBtn.classList.remove('sidebar-nav-btn--active');
       if (adminBtn) adminBtn.classList.remove('sidebar-nav-btn--active');
+      if (chatHubBtn) chatHubBtn.classList.remove('sidebar-nav-btn--active');
     };
  
     dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('DASHBOARD'); };
@@ -1312,6 +1314,9 @@ class TaskSphereApp {
     }
     if (adminBtn) {
       adminBtn.onclick = () => { clearActive(); adminBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('ADMIN_PANEL'); };
+    }
+    if (chatHubBtn) {
+      chatHubBtn.onclick = () => { clearActive(); chatHubBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('CHAT_HUB'); };
     }
   }
 
@@ -2038,6 +2043,36 @@ class TaskSphereApp {
     if (this.currentView && typeof this.currentView.destroy === 'function') {
       this.currentView.destroy();
     }
+
+    const shell = document.querySelector('.app-shell');
+    const chatContainer = document.getElementById('chatContainer');
+    const chatPanel = document.querySelector('.chat-panel');
+    const leftHeader = document.querySelector('.chat-hub-left-header');
+    const activeUsersTitle = document.getElementById('activeUsersTitle');
+    const groupsTitle = document.getElementById('groupsTitle');
+
+    // Restore chat panel if leaving CHAT_HUB
+    if (route !== 'CHAT_HUB') {
+      if (chatPanel && chatPanel.parentElement && chatPanel.parentElement.classList.contains('chat-hub-container')) {
+        chatPanel.classList.remove('chat-panel--hub');
+        if (leftHeader) leftHeader.style.display = 'none';
+        if (activeUsersTitle) activeUsersTitle.style.display = 'none';
+        if (groupsTitle) groupsTitle.style.display = 'none';
+        if (chatContainer) {
+          chatContainer.appendChild(chatPanel);
+          chatContainer.style.display = '';
+        }
+        if (shell) shell.classList.remove('app-shell--hide-chat');
+        
+        if (this.chatController) {
+          this.chatController.switchChatPartner(null);
+          const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+          this.chatController.drawAvatars(cachedUsers);
+          this.chatController.drawGroups();
+          this.chatController.redrawMessages();
+        }
+      }
+    }
  
     if (route === 'DASHBOARD') {
       this.currentView = new DashboardView('mainContainer');
@@ -2058,6 +2093,35 @@ class TaskSphereApp {
       } else {
         this.currentView = new AdminView('mainContainer');
       }
+    } else if (route === 'CHAT_HUB') {
+      const mainContainer = document.getElementById('mainContainer');
+      if (mainContainer) {
+        mainContainer.innerHTML = `<div class="chat-hub-container" style="height: 100%; width: 100%;"></div>`;
+        const hubContainer = mainContainer.querySelector('.chat-hub-container');
+        if (chatPanel && hubContainer) {
+          chatPanel.classList.add('chat-panel--hub');
+          if (leftHeader) leftHeader.style.display = 'flex';
+          if (activeUsersTitle) activeUsersTitle.style.display = 'block';
+          if (groupsTitle) groupsTitle.style.display = 'block';
+          hubContainer.appendChild(chatPanel);
+        }
+        if (chatContainer) {
+          chatContainer.style.display = 'none';
+        }
+        if (shell) shell.classList.add('app-shell--hide-chat');
+      }
+      
+      this.currentView = {
+        render: async () => {
+          if (this.chatController) {
+            this.chatController.switchChatPartner(null);
+            const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+            this.chatController.drawAvatars(cachedUsers);
+            this.chatController.drawGroups();
+            this.chatController.redrawMessages();
+          }
+        }
+      };
     }
  
     await this.currentView.render();

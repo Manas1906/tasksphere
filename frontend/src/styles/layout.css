@@ -207,7 +207,7 @@
     left: -280px;
     bottom: 0;
     width: 280px;
-    z-index: 1000;
+    z-index: 1300;
     transition: left var(--transition-normal);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
   }
@@ -218,7 +218,7 @@
     right: -320px;
     bottom: 0;
     width: 320px;
-    z-index: 1000;
+    z-index: 1300;
     transition: right var(--transition-normal);
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
   }

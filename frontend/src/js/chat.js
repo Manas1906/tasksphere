@@ -705,12 +705,12 @@ export class ChatController {
       
       this.input.placeholder = `Send direct message to ${partner}...`;
     } else {
-      // Group room active (Operations Chat)
+      // Group room active (General Lounge)
       if (backLink) backLink.style.display = 'none';
       if (chatTitle) {
         chatTitle.innerHTML = `
           <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-          Operations Chat
+          General Lounge
         `;
       }
       this.input.placeholder = `Send team message...`;
@@ -1248,22 +1248,30 @@ export class ChatController {
   drawAvatars(activeMembers) {
     this.activeUsersContainer.innerHTML = '';
     
-    // Horizontal active bar should only draw members that are actively online/away/dnd
-    const onlineMembers = activeMembers.filter(user => user.status && user.status !== 'OFFLINE');
+    const chatPanel = document.querySelector('.chat-panel');
+    const isHubView = chatPanel && chatPanel.classList.contains('chat-panel--hub');
     
-    onlineMembers.forEach(user => {
+    // Sort active members: online members first, then alphabetical
+    const sortedMembers = [...activeMembers].sort((a, b) => {
+      const aOnline = a.status && a.status !== 'OFFLINE';
+      const bOnline = b.status && b.status !== 'OFFLINE';
+      if (aOnline && !bOnline) return -1;
+      if (!aOnline && bOnline) return 1;
+      return a.username.localeCompare(b.username);
+    });
+
+    // In horizontal mode, only show online members to fit sidebar. In hub view, show all members!
+    const displayMembers = isHubView ? sortedMembers : sortedMembers.filter(user => user.status && user.status !== 'OFFLINE');
+    
+    displayMembers.forEach(user => {
       const avatarWrap = document.createElement('div');
       avatarWrap.className = 'active-user-avatar-wrap';
-      avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g, ' ')}) - ${user.status}`;
-      avatarWrap.style.cursor = 'pointer';
-      avatarWrap.style.transition = 'outline 0.2s ease, transform 0.2s ease';
-
-      // Outline the selected partner
       if (this.activeChatPartner === user.username) {
-        avatarWrap.style.outline = '2px solid var(--accent-purple)';
-        avatarWrap.style.outlineOffset = '2px';
-        avatarWrap.style.transform = 'scale(1.05)';
+        avatarWrap.classList.add('selected');
       }
+      avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g, ' ')}) - ${user.status || 'OFFLINE'}`;
+      avatarWrap.style.cursor = 'pointer';
+      avatarWrap.style.transition = 'all 0.2s ease';
 
       avatarWrap.onclick = () => {
         if (user.username !== this.myUsername) {
@@ -1275,7 +1283,7 @@ export class ChatController {
         }
       };
 
-      const statusClass = user.status.toLowerCase();
+      const statusClass = (user.status || 'OFFLINE').toLowerCase();
       let cleanAvatar = (user.avatarUrl || '').split('||')[0];
       if (!cleanAvatar || cleanAvatar.trim() === '') {
         cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
@@ -1286,15 +1294,30 @@ export class ChatController {
         ? `<span class="active-user-unread-badge">${unreadCount}</span>` 
         : '';
         
-      avatarWrap.innerHTML = `
-        <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
-        <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
-        ${badgeHtml}
-      `;
+      if (isHubView) {
+        avatarWrap.innerHTML = `
+          <div class="active-user-avatar-container">
+            <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
+            <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
+            ${badgeHtml}
+          </div>
+          <div class="active-user-details">
+            <div class="active-user-username">${user.username}</div>
+            <div class="active-user-role">${(user.role || 'DEVELOPER').replace(/_/g, ' ')}</div>
+          </div>
+        `;
+      } else {
+        avatarWrap.innerHTML = `
+          <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
+          <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
+          ${badgeHtml}
+        `;
+      }
       this.activeUsersContainer.appendChild(avatarWrap);
     });
 
-    this.userCountSpan.textContent = `${onlineMembers.length} active session${onlineMembers.length > 1 ? 's' : ''}`;
+    const onlineCount = activeMembers.filter(user => user.status && user.status !== 'OFFLINE').length;
+    this.userCountSpan.textContent = `${onlineCount} active session${onlineCount > 1 ? 's' : ''}`;
   }
 
   /* =======================================================
@@ -1735,11 +1758,29 @@ export class ChatController {
     if (!this.groupsListContainer) return;
     this.groupsListContainer.innerHTML = '';
 
+    const chatPanel = document.querySelector('.chat-panel');
+    const isHubView = chatPanel && chatPanel.classList.contains('chat-panel--hub');
+
     // Create Group "+" Button
     const createBtn = document.createElement('button');
     createBtn.className = 'create-group-btn';
     createBtn.title = 'Create Group Chat';
-    createBtn.innerHTML = '+';
+    if (isHubView) {
+      createBtn.innerHTML = `<span style="font-size: 16px; font-weight: bold; line-height: 1;">+</span> <span style="font-size: 13px; font-weight: 600;">Create Group Chat</span>`;
+      createBtn.style.width = '100%';
+      createBtn.style.display = 'flex';
+      createBtn.style.alignItems = 'center';
+      createBtn.style.gap = '8px';
+      createBtn.style.padding = '8px 12px';
+      createBtn.style.borderRadius = 'var(--radius-md)';
+      createBtn.style.background = 'rgba(255,255,255,0.03)';
+      createBtn.style.border = '1px dashed var(--border-color)';
+      createBtn.style.color = 'var(--text-muted)';
+      createBtn.style.cursor = 'pointer';
+    } else {
+      createBtn.innerHTML = '+';
+      createBtn.removeAttribute('style');
+    }
     createBtn.onclick = (e) => {
       e.stopPropagation();
       this.populateMembersList('groupMembersList');
@@ -1752,17 +1793,40 @@ export class ChatController {
     // Operations Chat (General Room - fallback)
     const generalWrap = document.createElement('div');
     generalWrap.className = `group-item-wrap ${this.activeGroupId === null && this.activeChatPartner === null ? 'selected' : ''}`;
-    generalWrap.title = 'Operations Group Chat';
-    generalWrap.style.marginRight = '8px';
+    generalWrap.title = 'General Lounge';
+    generalWrap.style.marginRight = isHubView ? '0' : '8px';
     generalWrap.onclick = () => {
       this.switchChatPartner(null);
     };
 
-    generalWrap.innerHTML = `
-      <svg style="width: 20px; height: 20px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-      </svg>
-    `;
+    if (isHubView) {
+      generalWrap.innerHTML = `
+        <div class="group-icon-container">
+          <svg style="width: 20px; height: 20px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+        </div>
+        <div class="group-details">
+          <div class="group-name">General Lounge</div>
+          <div class="group-members-count">All workspace users</div>
+        </div>
+      `;
+      generalWrap.style.width = '100%';
+      generalWrap.style.display = 'flex';
+      generalWrap.style.alignItems = 'center';
+      generalWrap.style.gap = '10px';
+      generalWrap.style.padding = '8px 12px';
+      generalWrap.style.borderRadius = 'var(--radius-md)';
+      generalWrap.style.cursor = 'pointer';
+    } else {
+      generalWrap.innerHTML = `
+        <svg style="width: 20px; height: 20px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+      `;
+      generalWrap.removeAttribute('style');
+      generalWrap.style.marginRight = '8px';
+    }
     this.groupsListContainer.appendChild(generalWrap);
 
     // Dynamic User Groups
@@ -1785,10 +1849,31 @@ export class ChatController {
         ? `<span class="active-user-unread-badge" style="top: -6px; right: -6px;">${unreadCount}</span>` 
         : '';
 
-      wrap.innerHTML = `
-        <img src="${cleanIcon}" class="group-icon" alt="${group.name}">
-        ${badgeHtml}
-      `;
+      if (isHubView) {
+        wrap.innerHTML = `
+          <div class="group-icon-container" style="position: relative;">
+            <img src="${cleanIcon}" class="group-icon" alt="${group.name}">
+            ${badgeHtml}
+          </div>
+          <div class="group-details">
+            <div class="group-name">${group.name}</div>
+            <div class="group-members-count">Private channel</div>
+          </div>
+        `;
+        wrap.style.width = '100%';
+        wrap.style.display = 'flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '10px';
+        wrap.style.padding = '8px 12px';
+        wrap.style.borderRadius = 'var(--radius-md)';
+        wrap.style.cursor = 'pointer';
+      } else {
+        wrap.innerHTML = `
+          <img src="${cleanIcon}" class="group-icon" alt="${group.name}">
+          ${badgeHtml}
+        `;
+        wrap.removeAttribute('style');
+      }
       
       this.groupsListContainer.appendChild(wrap);
     });

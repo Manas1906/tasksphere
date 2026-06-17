@@ -124,6 +124,16 @@ public class UserController {
             UserSession savedUser = userRepository.save(activeUser);
             if (isNewProfileCompletion && "PENDING_APPROVAL".equalsIgnoreCase(savedUser.getStatus())) {
                 userApprovalService.notifyAdminsForApproval(savedUser);
+            } else if (isNewProfileCompletion && "ONLINE".equalsIgnoreCase(savedUser.getStatus())) {
+                // Dispatch beautiful welcome onboarding email asynchronously for auto-approved user
+                String userEmail = savedUser.getExtractedEmail();
+                if (userEmail != null && !userEmail.trim().isEmpty()) {
+                    try {
+                        emailService.sendWelcomeEmail(userEmail, savedUser.getUsername(), savedUser.getRole());
+                    } catch (Exception ex) {
+                        System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+                    }
+                }
             }
             return ResponseEntity.ok(savedUser);
         } else {
@@ -152,6 +162,16 @@ public class UserController {
             UserSession savedUser = userRepository.save(newUser);
             if ("PENDING_APPROVAL".equalsIgnoreCase(initialStatus)) {
                 userApprovalService.notifyAdminsForApproval(savedUser);
+            } else if ("ONLINE".equalsIgnoreCase(initialStatus)) {
+                // Dispatch beautiful welcome onboarding email asynchronously for auto-approved user
+                String userEmail = savedUser.getExtractedEmail();
+                if (userEmail != null && !userEmail.trim().isEmpty()) {
+                    try {
+                        emailService.sendWelcomeEmail(userEmail, savedUser.getUsername(), savedUser.getRole());
+                    } catch (Exception ex) {
+                        System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+                    }
+                }
             }
             return ResponseEntity.ok(savedUser);
         }
