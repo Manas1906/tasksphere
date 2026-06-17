@@ -313,7 +313,7 @@ export class ChatController {
     const backLink = document.getElementById('chatModeBackLink');
     if (backLink) {
       backLink.onclick = () => {
-        this.switchChatPartner(null);
+        this.switchChatPartner(undefined);
       };
     }
 
@@ -683,16 +683,25 @@ export class ChatController {
     this.activeGroupId = null;
     
     // Clear unread count when opening a DM session
-    if (partner) {
+    if (partner && partner !== '__blank__') {
       this.unreadDms[partner] = 0;
     }
 
     const chatPanel = document.querySelector('.chat-panel');
     if (chatPanel) {
-      if (partner) {
+      if (partner && partner !== '__blank__') {
         chatPanel.classList.add('chat-panel--active-chat');
       } else {
         chatPanel.classList.remove('chat-panel--active-chat');
+      }
+
+      if (partner === undefined || partner === '__blank__') {
+        chatPanel.classList.add('chat-panel--blank');
+        this.updateActiveUsersList({ username: '', status: 'ONLINE' });
+        this.drawUnifiedList();
+        return; // Return early for blank state
+      } else {
+        chatPanel.classList.remove('chat-panel--blank');
       }
     }
     
@@ -1330,9 +1339,9 @@ export class ChatController {
         activeMembers = activeMembers.filter(m => m.username.toLowerCase().trim() !== presUsernameLower);
         localStorage.setItem('cache_users', JSON.stringify(activeMembers));
         
-        // If we were chatting with this partner and they disappeared, return to group room
+        // If we were chatting with this partner and they disappeared, return to blank state
         if (partnerLower === presUsernameLower) {
-          this.switchChatPartner(null);
+          this.switchChatPartner(undefined);
         } else {
           this.drawAvatars(activeMembers);
         }
@@ -1348,9 +1357,9 @@ export class ChatController {
         }
         localStorage.setItem('cache_users', JSON.stringify(activeMembers));
         
-        // If we were chatting with this partner and they went offline, return to group room
+        // If we were chatting with this partner and they went offline, return to blank state
         if (partnerLower === presUsernameLower) {
-          this.switchChatPartner(null);
+          this.switchChatPartner(undefined);
         } else {
           this.drawAvatars(activeMembers);
         }
@@ -1419,7 +1428,7 @@ export class ChatController {
         const partnerLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
         if (userUsernameLower !== selfLower) {
           if (partnerLower === userUsernameLower) {
-            this.switchChatPartner(null);
+            this.switchChatPartner(undefined);
           } else {
             this.switchChatPartner(user.username);
           }
@@ -2063,7 +2072,7 @@ export class ChatController {
         const uLower = user.username.toLowerCase().trim();
         const pLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
         if (pLower === uLower) {
-          this.switchChatPartner(null);
+          this.switchChatPartner(undefined);
         } else {
           this.switchChatPartner(user.username);
         }
@@ -2307,7 +2316,7 @@ export class ChatController {
           socket.unsubscribe(`/topic/group.${groupId}`);
           
           this.groups = this.groups.filter(g => g.id !== groupId);
-          this.switchChatPartner(null);
+          this.switchChatPartner(undefined);
         } catch (err) {
           console.error('[GROUP-LEAVE-ERROR] Failed to leave group:', err);
           alert(`Failed to leave group: ${err.message || err}`);

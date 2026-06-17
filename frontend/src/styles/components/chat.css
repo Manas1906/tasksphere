@@ -1812,7 +1812,60 @@ body.light-theme .hub-home-btn {
   color: #64748b;
 }
 
-body.light-theme .hub-home-btn:hover {
+.hub-home-btn:hover {
   background: rgba(0,0,0,0.06);
   color: var(--accent-emerald);
+}
+
+/* ============================================================
+   Blank Chat State UI Styles
+   ============================================================ */
+.chat-blank-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: var(--bg-primary, #0B0F17);
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  padding: var(--spacing-xl, 32px);
+  box-sizing: border-box;
+}
+
+.chat-blank-state__icon {
+  width: 64px;
+  height: 64px;
+  fill: rgba(255, 255, 255, 0.08);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.chat-blank-state__title {
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 700;
+  color: var(--text-primary, #F8FAFC);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+.chat-blank-state__desc {
+  font-size: var(--font-size-sm, 0.875rem);
+  max-width: 320px;
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+  opacity: 0.85;
+}
+
+/* Toggle blank state layout */
+.chat-panel--blank .chat-panel-header,
+.chat-panel--blank #chatModeBackLink,
+.chat-panel--blank #chatMessages,
+.chat-panel--blank #typingIndicator,
+.chat-panel--blank #chatUploadPreview,
+.chat-panel--blank .chat-input-area {
+  display: none !important;
+}
+
+.chat-panel--blank .chat-blank-state {
+  display: flex !important;
 }
