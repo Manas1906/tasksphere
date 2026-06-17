@@ -100,32 +100,7 @@ body.light-theme .active-users-bar, body.light-theme .groups-bar {
   display: none;
 }
 
-/* Pseudo section labels */
-.active-users-bar::before {
-  content: "TEAMS";
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--accent-cyan, #06b6d4);
-  letter-spacing: 0.05em;
-  margin-right: 4px;
-  padding: 2px 5px;
-  background: rgba(6, 182, 212, 0.1);
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.groups-bar::before {
-  content: "GROUPS";
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--accent-purple, #a855f7);
-  letter-spacing: 0.05em;
-  margin-right: 4px;
-  padding: 2px 5px;
-  background: rgba(168, 85, 247, 0.1);
-  border-radius: 4px;
-  flex-shrink: 0;
-}
+/* Pseudo section labels removed for clean WhatsApp list experience */
 
 /* Teammate avatar styles */
 .active-user-avatar-wrap {
@@ -1094,8 +1069,8 @@ body.light-theme .thread-parent-container {
   width: 100% !important;
   background: var(--bg-secondary) !important;
   overflow: hidden !important;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border-radius: 0 !important;
+  border: none !important;
 }
 
 /* Far-left WhatsApp-style narrow navigation sidebar */
