@@ -13,6 +13,11 @@ export class ChatController {
     this.sendBtn = document.getElementById('chatSendBtn');
     this.activeUsersContainer = document.getElementById('activeUsersList');
     this.userCountSpan = document.getElementById('activeUserCount');
+
+    // Unified sidebar list (Hub mode)
+    this.unifiedListContainer = document.getElementById('chatUnifiedList');
+    this.chatSearchQuery = '';
+    this.allKnownMembers = []; // cache of all workspace users
     
     this.activeChatPartner = null; // null for Operations Group Chat, otherwise username
     this.historyMessages = [];
@@ -102,11 +107,15 @@ export class ChatController {
       });
       
       localStorage.setItem('cache_users', JSON.stringify(mappedMembers));
+      this.allKnownMembers = mappedMembers;
       this.drawAvatars(mappedMembers);
+      this.drawUnifiedList();
     } catch (err) {
       console.warn('Failed to load user directory:', err);
       let cachedMembers = JSON.parse(localStorage.getItem('cache_users') || '[]');
+      this.allKnownMembers = cachedMembers;
       this.drawAvatars(cachedMembers);
+      this.drawUnifiedList();
     }
   }
 
@@ -308,6 +317,15 @@ export class ChatController {
       };
     }
 
+    // Unified search bar wiring
+    const searchInput = document.getElementById('chatSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        this.chatSearchQuery = searchInput.value.trim().toLowerCase();
+        this.drawUnifiedList();
+      });
+    }
+
     const mobileBackBtn = document.getElementById('mobileChatBackBtn');
     if (mobileBackBtn) {
       mobileBackBtn.onclick = () => {
@@ -462,6 +480,7 @@ export class ChatController {
       this.historyMessages = JSON.parse(localStorage.getItem('cache_chat') || '[]');
     }
     this.redrawMessages();
+    this.drawUnifiedList(); // refresh DM history contacts
   }
 
   subscribeChannels() {
@@ -575,6 +594,7 @@ export class ChatController {
     } else {
       this.unreadGroups[message.groupId] = (this.unreadGroups[message.groupId] || 0) + 1;
       this.drawGroups();
+      this.drawUnifiedList();
     }
   }
 
@@ -746,6 +766,7 @@ export class ChatController {
     // Rerender chat bubbles matching current active channel
     this.redrawMessages();
     this.drawGroups();
+    this.drawUnifiedList();
   }
 
 
@@ -1392,6 +1413,10 @@ export class ChatController {
 
     const onlineCount = activeMembers.filter(user => user.status && user.status !== 'OFFLINE').length;
     this.userCountSpan.textContent = `${onlineCount} online`;
+
+    // Keep the unified list in sync with presence changes
+    this.allKnownMembers = activeMembers;
+    this.drawUnifiedList();
   }
 
   /* =======================================================
@@ -1818,6 +1843,7 @@ export class ChatController {
       this.groups = groups;
       console.log('[GROUP-CHAT] Loaded user groups:', groups);
       this.drawGroups();
+      this.drawUnifiedList();
       
       // Auto subscribe to all groups on load
       groups.forEach(group => {
@@ -1826,6 +1852,185 @@ export class ChatController {
     } catch (err) {
       console.error('[GROUP-CHAT] Failed to load user groups:', err);
     }
+  }
+
+  // =============================================================
+  // Unified Sidebar List: channels + DMs in one scrollable pane
+  // =============================================================
+  drawUnifiedList() {
+    const container = this.unifiedListContainer;
+    if (!container) return;
+    container.innerHTML = '';
+
+    const q = (this.chatSearchQuery || '').toLowerCase().trim();
+    const isHubView = (() => {
+      const p = document.querySelector('.chat-panel');
+      return p && p.classList.contains('chat-panel--hub');
+    })();
+    if (!isHubView) return;
+
+    // ─── CHANNELS SECTION ───────────────────────────────────────
+    const channelLabel = document.createElement('div');
+    channelLabel.className = 'chat-list-section-label';
+    channelLabel.textContent = 'Channels';
+    container.appendChild(channelLabel);
+
+    // Create Group button
+    const createBtn = document.createElement('button');
+    createBtn.className = 'create-group-btn';
+    createBtn.title = 'Create Group Chat';
+    createBtn.innerHTML = `<span style="font-size:16px;font-weight:bold;line-height:1;">+</span> <span style="font-size:13px;font-weight:600;">Create Group Chat</span>`;
+    createBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.populateMembersList('groupMembersList');
+      if (this.createGroupModal) this.createGroupModal.classList.add('modal-overlay--active');
+    };
+    container.appendChild(createBtn);
+
+    // General room
+    const generalMatch = !q || 'general'.includes(q) || 'all workspace users'.includes(q);
+    if (generalMatch) {
+      const generalWrap = document.createElement('div');
+      generalWrap.className = `group-item-wrap ${
+        this.activeGroupId === null && this.activeChatPartner === null ? 'selected' : ''
+      }`;
+      generalWrap.style.cssText = 'width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-md);cursor:pointer;box-sizing:border-box;';
+      generalWrap.title = 'General';
+      generalWrap.innerHTML = `
+        <div class="group-icon-container">
+          <svg style="width:20px;height:20px;fill:var(--accent-cyan)" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+        </div>
+        <div class="group-details">
+          <div class="group-name">General</div>
+          <div class="group-members-count">All workspace users</div>
+        </div>`;
+      generalWrap.onclick = () => {
+        this.switchChatPartner(null);
+        const cp = document.querySelector('.chat-panel');
+        if (cp) cp.classList.add('chat-panel--active-chat');
+      };
+      container.appendChild(generalWrap);
+    }
+
+    // Custom groups
+    const filteredGroups = this.groups.filter(g =>
+      !q || g.name.toLowerCase().includes(q)
+    );
+    filteredGroups.forEach(group => {
+      let cleanIcon = group.iconUrl ? group.iconUrl.trim() : '';
+      if (!cleanIcon) cleanIcon = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(group.name)}`;
+      const unread = this.unreadGroups[group.id] || 0;
+      const badge = unread > 0 ? `<span class="active-user-unread-badge" style="top:-6px;right:-6px;">${unread}</span>` : '';
+
+      const wrap = document.createElement('div');
+      wrap.className = `group-item-wrap ${this.activeGroupId === group.id ? 'selected' : ''}`;
+      wrap.style.cssText = 'width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-md);cursor:pointer;box-sizing:border-box;';
+      wrap.title = group.name;
+      wrap.innerHTML = `
+        <div class="group-icon-container" style="position:relative;">
+          <img src="${cleanIcon}" class="group-icon" alt="${group.name}">
+          ${badge}
+        </div>
+        <div class="group-details">
+          <div class="group-name">${group.name}</div>
+          <div class="group-members-count">Private channel</div>
+        </div>`;
+      wrap.onclick = () => this.switchGroup(group.id);
+      container.appendChild(wrap);
+    });
+
+    // ─── DIRECT MESSAGES SECTION ─────────────────────────────────
+    const dmLabel = document.createElement('div');
+    dmLabel.className = 'chat-list-section-label';
+    dmLabel.style.marginTop = '6px';
+    dmLabel.textContent = 'Direct Messages';
+    container.appendChild(dmLabel);
+
+    const myUserLower = (this.myUsername || '').toLowerCase().trim();
+
+    // Derive users the logged-in user has interacted with via DM history
+    const interactedUsernames = new Set();
+    (this.historyMessages || []).forEach(msg => {
+      if (!msg.message) return;
+      const match = msg.message.match(/^\[DM:([^\]]+)\]/);
+      if (!match) return;
+      const recipient = match[1].toLowerCase().trim();
+      const sender = (msg.username || '').toLowerCase().trim();
+      if (sender === myUserLower) interactedUsernames.add(recipient);
+      else if (recipient === myUserLower) interactedUsernames.add(sender);
+    });
+
+    // Decide which members to display
+    let displayMembers;
+    if (q) {
+      // Search mode: show all matching members (except self)
+      displayMembers = (this.allKnownMembers || []).filter(u =>
+        u.username &&
+        u.username.toLowerCase().trim() !== myUserLower &&
+        u.username.toLowerCase().includes(q)
+      );
+    } else {
+      // Default: only history contacts
+      displayMembers = (this.allKnownMembers || []).filter(u =>
+        u.username &&
+        interactedUsernames.has(u.username.toLowerCase().trim())
+      );
+    }
+
+    // Sort online first then alphabetical
+    displayMembers.sort((a, b) => {
+      const aOn = a.status && a.status !== 'OFFLINE';
+      const bOn = b.status && b.status !== 'OFFLINE';
+      if (aOn && !bOn) return -1;
+      if (!aOn && bOn) return 1;
+      return a.username.localeCompare(b.username);
+    });
+
+    if (displayMembers.length === 0) {
+      const hint = document.createElement('div');
+      hint.className = 'chat-list-empty-hint';
+      hint.textContent = q ? 'No users found.' : 'Search to start a new conversation.';
+      container.appendChild(hint);
+    }
+
+    displayMembers.forEach(user => {
+      const statusClass = (user.status || 'OFFLINE').toLowerCase();
+      let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar) cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+      const unread = this.unreadDms[user.username] || 0;
+      const badge = unread > 0 ? `<span class="active-user-unread-badge">${unread}</span>` : '';
+
+      const avatarWrap = document.createElement('div');
+      avatarWrap.className = 'active-user-avatar-wrap';
+      if (this.activeChatPartner &&
+          this.activeChatPartner.toLowerCase().trim() === user.username.toLowerCase().trim()) {
+        avatarWrap.classList.add('selected');
+      }
+      avatarWrap.style.cssText = 'width:100%;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--radius-md);cursor:pointer;box-sizing:border-box;';
+      avatarWrap.title = `${user.username} (${(user.role || 'DEVELOPER').replace(/_/g,' ')}) - ${user.status || 'OFFLINE'}`;
+      avatarWrap.innerHTML = `
+        <div class="active-user-avatar-container">
+          <img src="${cleanAvatar}" class="active-user-avatar" alt="${user.username}">
+          <span class="active-user-status-dot active-user-status-dot--${statusClass}"></span>
+          ${badge}
+        </div>
+        <div class="active-user-details">
+          <div class="active-user-username">${user.username}</div>
+          <div class="active-user-role">${(user.role || 'DEVELOPER').replace(/_/g,' ')}</div>
+        </div>`;
+      avatarWrap.onclick = () => {
+        const uLower = user.username.toLowerCase().trim();
+        const pLower = this.activeChatPartner ? this.activeChatPartner.toLowerCase().trim() : '';
+        if (pLower === uLower) {
+          this.switchChatPartner(null);
+        } else {
+          this.switchChatPartner(user.username);
+        }
+      };
+      container.appendChild(avatarWrap);
+    });
   }
 
   drawGroups() {
@@ -2094,6 +2299,7 @@ export class ChatController {
 
     this.drawGroups();
     this.updateActiveUsersList({ username: '', status: 'ONLINE' });
+    this.drawUnifiedList();
   }
 
   populateMembersList(containerId, currentMemberNames = []) {

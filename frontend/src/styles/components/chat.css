@@ -1452,13 +1452,188 @@ body.light-theme .chat-panel--hub .group-item-wrap.selected {
     height: 100% !important;
   }
 
-  /* Shorter lists on mobile screens */
-  .chat-panel--hub .active-users-bar {
-    height: 180px !important;
-  }
-
   /* Show back button in header on mobile when chat is active */
   .chat-panel--active-chat #mobileChatBackBtn {
     display: flex !important;
   }
+}
+
+/* ============================================================
+   Unified Search + List Sidebar (Hub mode)
+   ============================================================ */
+
+/* Search bar container */
+.chat-search-container {
+  display: none; /* Hidden by default; shown only in hub mode */
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.chat-panel--hub .chat-search-container {
+  display: flex !important;
+}
+
+.chat-search-icon {
+  width: 16px;
+  height: 16px;
+  fill: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.chat-search-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.chat-search-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.chat-search-input:focus {
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+body.light-theme .chat-search-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+}
+
+body.light-theme .chat-search-input:focus {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+/* Unified scrollable list */
+.chat-unified-list {
+  display: none; /* Hidden by default; shown only in hub mode */
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  background: var(--bg-secondary);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.chat-panel--hub .chat-unified-list {
+  display: flex !important;
+}
+
+.chat-unified-list::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-unified-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+/* Section label inside unified list */
+.chat-list-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 14px 14px 4px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* Empty state hint */
+.chat-list-empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 14px 10px;
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* DM row inside unified list – reuses active-user-avatar-wrap rules */
+.chat-panel--hub .chat-unified-list .active-user-avatar-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-md) !important;
+  background: transparent !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border: 1px solid transparent !important;
+  box-sizing: border-box !important;
+}
+
+.chat-panel--hub .chat-unified-list .active-user-avatar-wrap:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.chat-panel--hub .chat-unified-list .active-user-avatar-wrap.selected {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Group row inside unified list – reuses group-item-wrap rules */
+.chat-panel--hub .chat-unified-list .group-item-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-md) !important;
+  background: transparent !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  box-sizing: border-box !important;
+}
+
+.chat-panel--hub .chat-unified-list .group-item-wrap:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.chat-panel--hub .chat-unified-list .group-item-wrap.selected {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+body.light-theme .chat-panel--hub .chat-unified-list .active-user-avatar-wrap:hover,
+body.light-theme .chat-panel--hub .chat-unified-list .group-item-wrap:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .chat-panel--hub .chat-unified-list .active-user-avatar-wrap.selected,
+body.light-theme .chat-panel--hub .chat-unified-list .group-item-wrap.selected {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Create group button row inside unified list */
+.chat-panel--hub .chat-unified-list .create-group-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 7px 12px !important;
+  border-radius: var(--radius-md) !important;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px dashed var(--border-color) !important;
+  color: var(--text-muted) !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-sizing: border-box !important;
 }

@@ -230,19 +230,21 @@
           </div>
         </div>
 
-        <!-- Left Column Wrapper (teammates/channels/groups lists) -->
+        <!-- Left Column Wrapper (unified channels + DMs list) -->
         <div class="chat-hub-left-col">
-          <div class="chat-hub-left-header" style="display: none;">
-            <svg style="width: 18px; height: 18px; fill: var(--accent-cyan); margin-right: 8px;" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-            Chats
+          <!-- Hidden legacy containers kept for non-hub sidebar compatibility -->
+          <div class="active-users-bar" id="activeUsersList" style="display:none;"></div>
+          <div class="groups-bar" id="groupsList" style="display:none;"></div>
+
+          <!-- Unified search bar -->
+          <div class="chat-search-container" id="chatSearchContainer">
+            <svg class="chat-search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" id="chatSearchInput" class="chat-search-input" placeholder="Search channels or people..." autocomplete="off">
           </div>
-          <!-- Horizontal user avatars scrolling bar (stacked in hub, row in sidebar) -->
-          <div class="active-users-bar" id="activeUsersList">
-            <!-- Avatars injected dynamically -->
-          </div>
-          <!-- Horizontal group chats scrolling bar (stacked in hub, row in sidebar) -->
-          <div class="groups-bar" id="groupsList">
-            <!-- Groups and "+" button injected dynamically -->
+
+          <!-- Unified scrollable list (channels + DMs merged) -->
+          <div class="chat-unified-list" id="chatUnifiedList">
+            <!-- Sections injected dynamically by drawUnifiedList() -->
           </div>
         </div>
 
@@ -277,7 +279,7 @@
 
           <!-- Dynamic mode switcher back-link for DM chats -->
           <div id="chatModeBackLink" style="display: none; padding: var(--spacing-xs) var(--spacing-md); border-bottom: 1px solid var(--border-color); background: rgba(99, 102, 241, 0.05); align-items: center; gap: 6px; cursor: pointer;">
-            <span style="color: var(--accent-purple); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">← Return to Group Channel</span>
+            <span style="color: var(--accent-purple); font-size: 16px; font-weight: 700;">←</span>
           </div>
 
           <!-- Chat messages thread -->
