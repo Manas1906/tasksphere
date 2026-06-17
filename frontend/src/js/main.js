@@ -99,6 +99,7 @@ class TaskSphereApp {
       const showSocialProfileSetup = (userVal) => {
         console.log('[APP-START] Social registration requires profile setup. Navigating to Step 3.');
         if (loginOverlay) {
+          loginOverlay.style.display = 'flex';
           loginOverlay.classList.remove('hidden');
           document.getElementById('authLoginStep').classList.add('hidden');
           document.getElementById('authOtpStep').classList.add('hidden');
@@ -164,13 +165,17 @@ class TaskSphereApp {
           }
           if (me && me.status === 'PENDING_APPROVAL') {
             console.log('[APP-START] Recovered session requires admin approval. Gating.');
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
+            if (loginOverlay) {
+              loginOverlay.style.display = 'flex';
+              loginOverlay.classList.remove('hidden');
+            }
             this.waitForApproval(username, me.role || role);
             return;
           }
         } catch (e) {
           console.error('[APP-START] Could not verify database registration status, gating workspace:', e);
           if (loginOverlay) {
+            loginOverlay.style.display = 'flex';
             loginOverlay.classList.remove('hidden');
             const loginStep = document.getElementById('authLoginStep');
             if (loginStep) loginStep.classList.remove('hidden');
@@ -182,7 +187,10 @@ class TaskSphereApp {
         
         console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
         this.applyProfileUI();
-        if (loginOverlay) loginOverlay.classList.add('hidden');
+        if (loginOverlay) {
+          loginOverlay.style.display = 'none';
+          loginOverlay.classList.add('hidden');
+        }
 
         // Initialize onboarding tour only after confirming active session is verified!
         try {
@@ -222,6 +230,7 @@ class TaskSphereApp {
     } else {
       console.log('[APP-START] No active session or incomplete profile. Gating workspace behind login overlay.');
       if (loginOverlay) {
+        loginOverlay.style.display = 'flex';
         loginOverlay.classList.remove('hidden');
         if (token) {
           console.log('[APP-START] JWT session found but profile incomplete. Navigating to Step 3 Profile Initialization.');
@@ -615,7 +624,10 @@ class TaskSphereApp {
 
             this.applyProfileUI();
             
-            if (loginOverlay) loginOverlay.classList.add('hidden');
+            if (loginOverlay) {
+              loginOverlay.style.display = 'none';
+              loginOverlay.classList.add('hidden');
+            }
             this.toggleAdminTab();
             this.initRealtimeSync();
             this.switchRoute(this.activeRoute);
@@ -850,6 +862,7 @@ class TaskSphereApp {
               this.applyProfileUI();
 
               // Hide overlay card
+              loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
               this.toggleAdminTab();
 
@@ -1085,7 +1098,10 @@ class TaskSphereApp {
             // Launch Workspace
             this.applyProfileUI();
             
-            if (loginOverlay) loginOverlay.classList.add('hidden');
+            if (loginOverlay) {
+              loginOverlay.style.display = 'none';
+              loginOverlay.classList.add('hidden');
+            }
             this.toggleAdminTab();
             this.initRealtimeSync();
 
@@ -1696,7 +1712,10 @@ class TaskSphereApp {
  
     // Close blocking overlay
     const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) loginOverlay.classList.add('hidden');
+    if (loginOverlay) {
+      loginOverlay.style.display = 'none';
+      loginOverlay.classList.add('hidden');
+    }
     document.getElementById('authApprovalStep').classList.add('hidden');
  
     // Apply layout changes

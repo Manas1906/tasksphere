@@ -59,6 +59,7 @@ class ApiService {
 
       const loginOverlay = document.getElementById('loginOverlay');
       if (loginOverlay) {
+        loginOverlay.style.display = 'flex';
         loginOverlay.classList.remove('hidden');
       }
       throw new Error('Session expired or unauthorized. Please log in again.');
