@@ -337,15 +337,6 @@ export class ChatController {
     }
 
     const chatHeader = document.querySelector('.chat-panel-header');
-    if (chatHeader) {
-      chatHeader.style.cursor = 'pointer';
-      chatHeader.title = 'Switch back to Operations Group Chat';
-      chatHeader.onclick = (e) => {
-        if (e.target.id !== 'clearChatHistoryBtn' && !e.target.closest('#chatHeaderControls')) {
-          this.switchChatPartner(null);
-        }
-      };
-    }
 
     const closeThreadBtn = document.getElementById('closeThreadBtn');
     if (closeThreadBtn) {
@@ -804,7 +795,7 @@ export class ChatController {
       this.input.placeholder = `Send direct message to ${partner}...`;
     } else {
       // Group room active (General)
-      if (backLink) backLink.style.display = 'none';
+      if (backLink) backLink.style.display = 'flex';
       if (chatTitle) {
         chatTitle.innerHTML = `
           <svg style="width: 16px; height: 16px; fill: var(--accent-cyan)" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>

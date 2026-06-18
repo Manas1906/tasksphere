@@ -1,6 +1,26 @@
 /* auth.css - Premium Glassmorphism Login Modal */
 
 .auth-overlay {
+  /* Keep auth overlays strictly in dark theme layout tokens for readability */
+  --bg-primary: #0B0F17;
+  --bg-secondary: #131A26;
+  --bg-tertiary: #1E293B;
+  --bg-card: #1a2436;
+  --border-color: rgba(255, 255, 255, 0.06);
+  --accent-cyan: #00F0FF;
+  --accent-purple: #6366F1;
+  --accent-emerald: #10B981;
+  --accent-rose: #F43F5E;
+  --accent-amber: #F59E0B;
+  --text-main: #F8FAFC;
+  --text-primary: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-light: #E2E8F0;
+  --glass-bg: #131A26;
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --cyan-glow: 0 0 15px rgba(0, 240, 255, 0.2);
+  --purple-glow: 0 0 15px rgba(99, 102, 241, 0.2);
+
   position: fixed;
   top: 0;
   left: 0;

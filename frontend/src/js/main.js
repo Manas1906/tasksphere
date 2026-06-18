@@ -641,15 +641,26 @@ class TaskSphereApp {
 
             this.applyProfileUI();
             
+            // Show the skeleton loader screen
+            const loader = document.getElementById('appLoading');
+            if (loader) {
+              loader.classList.remove('hidden');
+            }
+            // Hide overlay card
             if (loginOverlay) {
               loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
             }
-            const shell = document.getElementById('appShell');
-            if (shell) shell.classList.remove('hidden');
             this.toggleAdminTab();
             this.initRealtimeSync();
             this.switchRoute(this.activeRoute);
+
+            // Transition from skeleton loader to appShell after 1000ms
+            setTimeout(() => {
+              const shell = document.getElementById('appShell');
+              if (shell) shell.classList.remove('hidden');
+              if (loader) loader.classList.add('hidden');
+            }, 1000);
           }
         } catch (err) {
           console.error('[AUTH-LOGIN] Login validation failed:', err);
@@ -880,11 +891,14 @@ class TaskSphereApp {
               // Update UI headers
               this.applyProfileUI();
 
+              // Show the skeleton loader screen
+              const loader = document.getElementById('appLoading');
+              if (loader) {
+                loader.classList.remove('hidden');
+              }
               // Hide overlay card
               loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
-              const shell = document.getElementById('appShell');
-              if (shell) shell.classList.remove('hidden');
               this.toggleAdminTab();
 
               // Initialize sockets synchronization
@@ -892,6 +906,13 @@ class TaskSphereApp {
 
               // Refresh views
               this.switchRoute(this.activeRoute);
+
+              // Transition from skeleton loader to appShell after 1000ms
+              setTimeout(() => {
+                const shell = document.getElementById('appShell');
+                if (shell) shell.classList.remove('hidden');
+                if (loader) loader.classList.add('hidden');
+              }, 1000);
             }
           } catch (err) {
             console.error('[AUTH-PROFILE] Profile setup failed:', err);
@@ -1119,6 +1140,11 @@ class TaskSphereApp {
             // Launch Workspace
             this.applyProfileUI();
             
+            // Show the skeleton loader screen
+            const loader = document.getElementById('appLoading');
+            if (loader) {
+              loader.classList.remove('hidden');
+            }
             if (loginOverlay) {
               loginOverlay.style.display = 'none';
               loginOverlay.classList.add('hidden');
@@ -1128,6 +1154,13 @@ class TaskSphereApp {
 
             // Refresh views
             this.switchRoute(this.activeRoute);
+
+            // Transition from skeleton loader to appShell after 1000ms
+            setTimeout(() => {
+              const shell = document.getElementById('appShell');
+              if (shell) shell.classList.remove('hidden');
+              if (loader) loader.classList.add('hidden');
+            }, 1000);
           }
         } catch (err) {
           console.error('[AUTH-MFA] Code validation failed:', err);
@@ -2198,7 +2231,7 @@ class TaskSphereApp {
         if (shell) shell.classList.remove('app-shell--hide-chat');
         
         if (this.chatController) {
-          this.chatController.switchChatPartner(null);
+          this.chatController.switchChatPartner(undefined);
           const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
           this.chatController.drawAvatars(cachedUsers);
           this.chatController.drawGroups();
@@ -2247,7 +2280,7 @@ class TaskSphereApp {
       this.currentView = {
         render: async () => {
           if (this.chatController) {
-            this.chatController.switchChatPartner(null);
+            this.chatController.switchChatPartner(undefined);
             const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
             this.chatController.drawAvatars(cachedUsers);
             this.chatController.drawGroups();
