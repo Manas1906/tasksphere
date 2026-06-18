@@ -719,5 +719,107 @@ body:not(.light-theme) #themeLightBtn:hover {
   color: #FFFFFF !important;
 }
 
+/* ============================================================
+   Collapsible Sidebar Styles
+   ============================================================ */
+/* Target desktop collapsed state */
+@media (min-width: 1025px) {
+  /* Grid template overrides for collapsed sidebar */
+  .app-shell--collapsed-sidebar {
+    grid-template-columns: 70px 1fr var(--chat-panel-width) !important;
+  }
+
+  .app-shell--collapsed-sidebar.app-shell--hide-chat {
+    grid-template-columns: 70px 1fr 0px !important;
+  }
+
+  /* Title header layout in collapsed sidebar */
+  .app-shell--collapsed-sidebar .app-sidebar .chat-panel-header__title {
+    display: none !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .chat-panel-header {
+    justify-content: center !important;
+    padding: var(--spacing-sm) var(--spacing-xs) !important;
+  }
+
+  /* Hide close button (only for mobile drawer anyway) */
+  .app-shell--collapsed-sidebar .app-sidebar .mobile-nav-close {
+    display: none !important;
+  }
+
+  /* Center navigation list and items */
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-nav-list {
+    padding: var(--spacing-md) var(--spacing-xs) !important;
+    align-items: center !important;
+    gap: var(--spacing-md) !important;
+  }
+
+  /* Button styles when collapsed */
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-nav-btn {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-nav-btn span {
+    display: none !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-nav-btn svg {
+    margin: 0 !important;
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Appearance and theme toggles */
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-appearance-footer {
+    flex-direction: column !important;
+    padding: var(--spacing-md) var(--spacing-xs) !important;
+    align-items: center !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-appearance-footer > span {
+    display: none !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .theme-toggle-capsule {
+    flex-direction: column !important;
+    height: auto !important;
+    padding: 4px !important;
+    border-radius: var(--radius-lg) !important;
+    gap: 6px !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .theme-toggle-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  /* Connection status */
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-status-footer {
+    padding: var(--spacing-md) var(--spacing-xs) !important;
+    text-align: center !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-status-footer p {
+    font-size: 0 !important;
+    margin: 0 !important;
+  }
+
+  .app-shell--collapsed-sidebar .app-sidebar .sidebar-status-footer p span {
+    font-size: 16px !important;
+    display: inline-block !important;
+    width: 16px !important;
+    height: 16px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    line-height: 1 !important;
+  }
+}
+
 
 

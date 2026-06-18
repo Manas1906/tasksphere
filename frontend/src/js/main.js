@@ -309,6 +309,12 @@ class TaskSphereApp {
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
     const chatBackdrop = document.getElementById('chatBackdrop');
 
+    // Load persisted sidebar collapse state
+    const isCollapsed = localStorage.getItem('tasksphere_sidebar_collapsed') === 'true';
+    if (isCollapsed && window.innerWidth > 1024 && shell) {
+      shell.classList.add('app-shell--collapsed-sidebar');
+    }
+
     const closeMobileDrawers = () => {
       shell.classList.remove('app-shell--show-sidebar');
       shell.classList.remove('app-shell--show-chat');
@@ -322,7 +328,8 @@ class TaskSphereApp {
           shell.classList.toggle('app-shell--show-sidebar');
         } else {
           // Desktop sidebar collapse toggle
-          shell.classList.toggle('app-shell--hide-sidebar');
+          const collapsed = shell.classList.toggle('app-shell--collapsed-sidebar');
+          localStorage.setItem('tasksphere_sidebar_collapsed', collapsed ? 'true' : 'false');
         }
       };
     }
