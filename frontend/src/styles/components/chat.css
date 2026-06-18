@@ -1373,7 +1373,7 @@ body.light-theme .chat-panel--hub .group-item-wrap.selected {
 
 .chat-panel--hub .chat-messages-container {
   grid-area: auto !important;
-  background: var(--bg-primary) !important;
+  background-color: var(--bg-primary) !important;
   border-left: none !important;
   flex: 1 !important;
 }

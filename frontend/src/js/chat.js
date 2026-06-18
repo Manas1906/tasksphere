@@ -2325,21 +2325,35 @@ export class ChatController {
     this.input.placeholder = `Send message to ${group.name}...`;
 
     // Load group messages history
+    const hasCached = this.historyMessages.some(m => m.groupId === groupId);
+    if (hasCached) {
+      this.redrawMessages();
+    } else {
+      this.showMessageSkeleton();
+    }
+
     try {
       console.log(`[GROUP-CHAT-HISTORY] Fetching messages for group: ${groupId}...`);
       const groupMsgs = await api.request(`/groups/${groupId}/messages`) || [];
       
       // Merge group messages into our history
+      let changed = false;
       groupMsgs.forEach(msg => {
         const idx = this.historyMessages.findIndex(m => m.id === msg.id);
         if (idx !== -1) {
-          this.historyMessages[idx] = msg;
+          if (JSON.stringify(this.historyMessages[idx]) !== JSON.stringify(msg)) {
+            this.historyMessages[idx] = msg;
+            changed = true;
+          }
         } else {
           this.historyMessages.push(msg);
+          changed = true;
         }
       });
 
-      this.redrawMessages();
+      if (changed || !hasCached) {
+        this.redrawMessages();
+      }
     } catch (err) {
       console.error('[GROUP-CHAT-HISTORY-ERROR] Failed to load messages:', err);
     }
