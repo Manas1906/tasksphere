@@ -79,6 +79,10 @@ export class ChatController {
     this.loadChatHistory();
     this.loadUserDirectory();
     this.setupMentionsAutocomplete();
+
+    // Apply persisted wallpaper background (Settings-integrated)
+    const savedWallpaper = localStorage.getItem('tasksphere_chat_wallpaper') || 'grid';
+    this.applyWallpaper(savedWallpaper);
   }
 
 
@@ -2404,6 +2408,26 @@ export class ChatController {
       div.appendChild(label);
       container.appendChild(div);
     });
+  }
+
+  applyWallpaper(wallpaperName) {
+    const chatMessages = this.messagesContainer;
+    if (!chatMessages) return;
+
+    // Remove all previous wallpaper classes
+    const wallpaperClasses = [
+      'wallpaper-grid',
+      'wallpaper-doodles',
+      'wallpaper-sunset',
+      'wallpaper-nordic',
+      'wallpaper-forest',
+      'wallpaper-galaxy',
+      'wallpaper-solid'
+    ];
+    chatMessages.classList.remove(...wallpaperClasses);
+
+    // Add selected wallpaper class
+    chatMessages.classList.add(`wallpaper-${wallpaperName}`);
   }
 }
 

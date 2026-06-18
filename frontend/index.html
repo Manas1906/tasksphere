@@ -518,7 +518,7 @@
           <svg style="width: 18px; height: 18px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
             <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
           </svg>
-          <span>Workspace Security Settings</span>
+          <span>Workspace & Chat Settings</span>
         </h2>
         <button id="closeSecurityModal" class="modal-close-btn">&times;</button>
       </div>
@@ -555,12 +555,34 @@
         </div>
 
         <!-- Push Notification Toggle Row -->
-        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg)">
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-md)">
           <div>
             <label class="form-label" style="margin-bottom: 2px; cursor: pointer; user-select: none;" for="pushSettingsToggle">Desktop Push Notifications</label>
             <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Receive real-time background alerts when TaskSphere is closed.</p>
           </div>
           <input type="checkbox" id="pushSettingsToggle" style="width: 18px; height: 18px; accent-color: var(--accent-cyan); cursor: pointer;">
+        </div>
+
+        <!-- Chat Background Wallpaper Segment -->
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); margin-bottom: var(--spacing-lg)">
+          <label class="form-label" style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: 6px;">
+            <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+            </svg>
+            <span>Chat Background Wallpaper</span>
+          </label>
+          <div class="settings-wallpaper-selector" style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="settingsWallpaperSelect" class="form-input" style="width: 100%; height: 38px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer;">
+              <option value="grid">Default Blueprint Grid</option>
+              <option value="doodles">Telegram Doodle Pattern</option>
+              <option value="sunset">Sunset Aura (Unsplash API)</option>
+              <option value="nordic">Nordic Glow (Unsplash API)</option>
+              <option value="forest">Mist Forest (Unsplash API)</option>
+              <option value="galaxy">Orion Nebula (Unsplash API)</option>
+              <option value="solid">Minimalist Solid</option>
+            </select>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 4px 0 0 0;">Customize the background of your active chat screens.</p>
+          </div>
         </div>
 
         <!-- Change Password Segment -->

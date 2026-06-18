@@ -2097,6 +2097,16 @@ class TaskSphereApp {
         });
 
         if (res.success) {
+          // Save wallpaper settings
+          const wallpaperSelect = document.getElementById('settingsWallpaperSelect');
+          if (wallpaperSelect) {
+            const wpVal = wallpaperSelect.value;
+            localStorage.setItem('tasksphere_chat_wallpaper', wpVal);
+            if (this.chatController) {
+              this.chatController.applyWallpaper(wpVal);
+            }
+          }
+
           if (customAvatarDataUrl) {
             localStorage.setItem('chat_avatar', customAvatarDataUrl);
             
@@ -2146,6 +2156,11 @@ class TaskSphereApp {
     if (passFeedback) {
       passFeedback.textContent = "Leave blank if you do not want to modify your password.";
       passFeedback.style.color = "var(--text-muted)";
+    }
+
+    const wallpaperSelect = document.getElementById('settingsWallpaperSelect');
+    if (wallpaperSelect) {
+      wallpaperSelect.value = localStorage.getItem('tasksphere_chat_wallpaper') || 'grid';
     }
 
     const fileInput = document.getElementById('avatarFileInput');
