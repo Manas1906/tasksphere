@@ -1918,14 +1918,25 @@ body.light-theme .chat-blank-state__card {
 /* ============================================================
    Real-time Chat Wallpaper Customizer Styles
    ============================================================ */
-.chat-messages-container {
+.chat-messages-container, .chat-blank-state {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   transition: background-image 0.3s ease, background-color 0.3s ease;
 }
 
-.chat-messages-container.wallpaper-grid {
+/* Override blank state default grid when wallpaper settings class is active */
+.chat-blank-state.wallpaper-grid,
+.chat-blank-state.wallpaper-doodles,
+.chat-blank-state.wallpaper-sunset,
+.chat-blank-state.wallpaper-nordic,
+.chat-blank-state.wallpaper-forest,
+.chat-blank-state.wallpaper-galaxy,
+.chat-blank-state.wallpaper-solid {
+  background-image: none;
+}
+
+.chat-messages-container.wallpaper-grid, .chat-blank-state.wallpaper-grid {
   background-image: 
     linear-gradient(var(--border-color) 1px, transparent 1px),
     linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
@@ -1933,48 +1944,53 @@ body.light-theme .chat-blank-state__card {
   background-repeat: repeat;
 }
 
-.chat-messages-container.wallpaper-doodles {
+.chat-messages-container.wallpaper-doodles, .chat-blank-state.wallpaper-doodles {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3Cpath d='M40 10l5 5-5 5-5-5z'/%3E%3Crect x='55' y='55' width='8' height='8' rx='2'/%3E%3Ccircle cx='15' cy='60' r='2'/%3E%3Ccircle cx='65' cy='20' r='2'/%3E%3Cpath d='M30 50h10v10H30z' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E");
   background-size: 80px 80px;
   background-repeat: repeat;
 }
 
-body.light-theme .chat-messages-container.wallpaper-doodles {
+body.light-theme .chat-messages-container.wallpaper-doodles,
+body.light-theme .chat-blank-state.wallpaper-doodles {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%236366f1' fill-opacity='0.05'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3Cpath d='M40 10l5 5-5 5-5-5z'/%3E%3Crect x='55' y='55' width='8' height='8' rx='2'/%3E%3Ccircle cx='15' cy='60' r='2'/%3E%3Ccircle cx='65' cy='20' r='2'/%3E%3Cpath d='M30 50h10v10H30z' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-.chat-messages-container.wallpaper-sunset {
+.chat-messages-container.wallpaper-sunset, .chat-blank-state.wallpaper-sunset {
   background-image: linear-gradient(rgba(11, 14, 20, 0.55), rgba(11, 14, 20, 0.85)), url('https://images.unsplash.com/photo-1557683316-973673baf926?w=1000&q=80');
 }
 
-body.light-theme .chat-messages-container.wallpaper-sunset {
+body.light-theme .chat-messages-container.wallpaper-sunset,
+body.light-theme .chat-blank-state.wallpaper-sunset {
   background-image: linear-gradient(rgba(248, 250, 252, 0.75), rgba(248, 250, 252, 0.92)), url('https://images.unsplash.com/photo-1557683316-973673baf926?w=1000&q=80');
 }
 
-.chat-messages-container.wallpaper-nordic {
+.chat-messages-container.wallpaper-nordic, .chat-blank-state.wallpaper-nordic {
   background-image: linear-gradient(rgba(11, 14, 20, 0.55), rgba(11, 14, 20, 0.85)), url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&q=80');
 }
 
-body.light-theme .chat-messages-container.wallpaper-nordic {
+body.light-theme .chat-messages-container.wallpaper-nordic,
+body.light-theme .chat-blank-state.wallpaper-nordic {
   background-image: linear-gradient(rgba(248, 250, 252, 0.75), rgba(248, 250, 252, 0.92)), url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&q=80');
 }
 
-.chat-messages-container.wallpaper-forest {
+.chat-messages-container.wallpaper-forest, .chat-blank-state.wallpaper-forest {
   background-image: linear-gradient(rgba(11, 14, 20, 0.55), rgba(11, 14, 20, 0.85)), url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1000&q=80');
 }
 
-body.light-theme .chat-messages-container.wallpaper-forest {
+body.light-theme .chat-messages-container.wallpaper-forest,
+body.light-theme .chat-blank-state.wallpaper-forest {
   background-image: linear-gradient(rgba(248, 250, 252, 0.75), rgba(248, 250, 252, 0.92)), url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1000&q=80');
 }
 
-.chat-messages-container.wallpaper-galaxy {
+.chat-messages-container.wallpaper-galaxy, .chat-blank-state.wallpaper-galaxy {
   background-image: linear-gradient(rgba(11, 14, 20, 0.55), rgba(11, 14, 20, 0.85)), url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=1000&q=80');
 }
 
-body.light-theme .chat-messages-container.wallpaper-galaxy {
+body.light-theme .chat-messages-container.wallpaper-galaxy,
+body.light-theme .chat-blank-state.wallpaper-galaxy {
   background-image: linear-gradient(rgba(248, 250, 252, 0.75), rgba(248, 250, 252, 0.92)), url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=1000&q=80');
 }
 
-.chat-messages-container.wallpaper-solid {
+.chat-messages-container.wallpaper-solid, .chat-blank-state.wallpaper-solid {
   background-image: none !important;
 }

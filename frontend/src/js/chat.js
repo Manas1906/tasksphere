@@ -2412,8 +2412,8 @@ export class ChatController {
 
   applyWallpaper(wallpaperName) {
     const chatMessages = this.messagesContainer;
-    if (!chatMessages) return;
-
+    const blankState = document.getElementById('chatBlankState');
+    
     // Remove all previous wallpaper classes
     const wallpaperClasses = [
       'wallpaper-grid',
@@ -2424,10 +2424,16 @@ export class ChatController {
       'wallpaper-galaxy',
       'wallpaper-solid'
     ];
-    chatMessages.classList.remove(...wallpaperClasses);
+    
+    if (chatMessages) {
+      chatMessages.classList.remove(...wallpaperClasses);
+      chatMessages.classList.add(`wallpaper-${wallpaperName}`);
+    }
 
-    // Add selected wallpaper class
-    chatMessages.classList.add(`wallpaper-${wallpaperName}`);
+    if (blankState) {
+      blankState.classList.remove(...wallpaperClasses);
+      blankState.classList.add(`wallpaper-${wallpaperName}`);
+    }
   }
 }
 
