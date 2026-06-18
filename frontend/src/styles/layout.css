@@ -725,11 +725,11 @@ body:not(.light-theme) #themeLightBtn:hover {
 /* Target desktop collapsed state */
 @media (min-width: 1025px) {
   /* Grid template overrides for collapsed sidebar */
-  .app-shell--collapsed-sidebar {
+  .app-shell--collapsed-sidebar:not(.app-shell--chat-hub-fullscreen) {
     grid-template-columns: 70px 1fr var(--chat-panel-width) !important;
   }
 
-  .app-shell--collapsed-sidebar.app-shell--hide-chat {
+  .app-shell--collapsed-sidebar.app-shell--hide-chat:not(.app-shell--chat-hub-fullscreen) {
     grid-template-columns: 70px 1fr 0px !important;
   }
 
