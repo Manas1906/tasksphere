@@ -1157,7 +1157,7 @@ export class ChatController {
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}">${this.formatMessageMarkdown(textMsg)}</div>
+          <div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}${this.formatMessageMarkdown(textMsg).includes('code-block-wrapper') ? ' chat-msg__bubble--has-code' : ''}">${this.formatMessageMarkdown(textMsg)}</div>
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">

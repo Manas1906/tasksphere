@@ -294,6 +294,9 @@ body.light-theme .chat-msg__avatar {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .chat-msg__meta {
@@ -337,6 +340,8 @@ body.light-theme .chat-msg__sender {
   border: 1px solid rgba(255, 255, 255, 0.04);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 body.light-theme .chat-msg__bubble {
@@ -2060,12 +2065,51 @@ body.light-theme .chat-msg__bubble code {
 
 /* Code block wrapper with header */
 .code-block-wrapper {
-  margin: 12px 0;
+  margin: 8px -14px; /* Negative margin to break out of bubble padding */
+  width: calc(100% + 28px); /* Compensate for negative margin */
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   background: #1e1e1e;
+  font-size: 12px;
+}
+
+/* First code block removes top margin to snap to bubble edge */
+.chat-msg__bubble .code-block-wrapper:first-child {
+  margin-top: -10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Last code block removes bottom margin to snap to bubble edge */
+.chat-msg__bubble .code-block-wrapper:last-child {
+  margin-bottom: -10px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Self bubble: code blocks always use dark theme regardless of bubble color */
+.chat-msg--self .code-block-wrapper {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.chat-msg--self .code-block-header {
+  background: #1e1e1e;
+  border-bottom-color: #333;
+  color: #a3a3a3;
+}
+
+/* Prism pre block inside bubble: remove radius & margins */
+.chat-msg__bubble pre[class*="language-"] {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: #1e1e1e !important;
+  max-height: 280px;
+  overflow-y: auto;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
 }
 body.light-theme .code-block-wrapper {
   border-color: rgba(0, 0, 0, 0.1);
@@ -2121,3 +2165,29 @@ body.light-theme .code-block-header {
   fill: currentColor;
 }
 
+/* Bubble with code block: wider and reduced vertical padding for clean edge-flush rendering */
+.chat-msg__bubble--has-code {
+  padding: 10px 14px;
+  max-width: 480px;
+  width: 480px;
+}
+
+/* On smaller panels, cap at 90vw */
+@media (max-width: 600px) {
+  .chat-msg__bubble--has-code {
+    max-width: 90vw;
+    width: 90vw;
+  }
+}
+
+/* Self messages with code: fix blue gradient clash — switch to dark container */
+.chat-msg--self .chat-msg__bubble--has-code {
+  background: #1a1f2e;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.light-theme .chat-msg--self .chat-msg__bubble--has-code {
+  background: #1e1e2e;
+  border-color: rgba(99, 102, 241, 0.25);
+}
