@@ -61,6 +61,15 @@ export class ChatController {
     this.uploadCancelBtn = document.getElementById('chatUploadCancelBtn');
     this.selectedFile = null;
 
+    // Cache speech and sandbox controls
+    this.micBtn = document.getElementById('chatMicBtn');
+    this.sandboxModal = document.getElementById('codeSandboxModal');
+    this.sandboxCodeArea = document.getElementById('sandboxCodeArea');
+    this.sandboxFrame = document.getElementById('sandboxFrame');
+    this.sandboxCloseBtn = document.getElementById('sandboxCloseBtn');
+    this.sandboxCloseCross = document.getElementById('closeSandboxBtn');
+    this.sandboxRefreshBtn = document.getElementById('sandboxRefreshBtn');
+
     this.voiceCall = new VoiceCallController();
   }
 
@@ -463,6 +472,123 @@ export class ChatController {
         }
       };
     }
+
+    // Speech Recognition setup (Web Speech API)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition && this.micBtn) {
+      this.micBtn.style.display = 'flex'; // Make the mic button visible
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      let isRecognizing = false;
+
+      recognition.onstart = () => {
+        isRecognizing = true;
+        this.micBtn.classList.add('chat-mic-btn--active');
+        this.micBtn.title = 'Listening... Click to stop';
+      };
+
+      recognition.onerror = (event) => {
+        console.error('[SPEECH-RECOGNITION-ERROR]', event.error);
+        stopRecognition();
+      };
+
+      recognition.onend = () => {
+        stopRecognition();
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        if (this.input) {
+          const start = this.input.selectionStart;
+          const end = this.input.selectionEnd;
+          const val = this.input.value;
+          this.input.value = val.substring(0, start) + transcript + val.substring(end);
+          this.input.dispatchEvent(new Event('input', { bubbles: true }));
+          this.input.focus();
+        }
+      };
+
+      const stopRecognition = () => {
+        if (!isRecognizing) return;
+        isRecognizing = false;
+        try {
+          recognition.stop();
+        } catch (e) {}
+        this.micBtn.classList.remove('chat-mic-btn--active');
+        this.micBtn.title = 'Voice Typing (Speech to Text)';
+      };
+
+      this.micBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isRecognizing) {
+          stopRecognition();
+        } else {
+          try {
+            recognition.start();
+          } catch (err) {
+            console.error('[SPEECH-RECOGNITION-START-FAILED]', err);
+          }
+        }
+      };
+    }
+
+    // Code Sandbox trigger global listener
+    document.body.addEventListener('click', (e) => {
+      const runBtn = e.target.closest('.code-block-run-btn');
+      if (!runBtn) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const wrapper = runBtn.closest('.code-block-wrapper');
+      if (!wrapper) return;
+      
+      const codeElement = wrapper.querySelector('pre code');
+      if (!codeElement) return;
+      
+      let codeText = codeElement.textContent;
+      this.openSandboxModal(codeText);
+    });
+
+    // Code Sandbox Modal Close and Live Update handlers
+    const closeSandbox = () => {
+      if (this.sandboxModal) {
+        this.sandboxModal.style.display = 'none';
+        this.sandboxModal.classList.remove('modal-overlay--active');
+      }
+      if (this.sandboxFrame) {
+        this.sandboxFrame.srcdoc = ''; // Stop scripts running in frame
+      }
+    };
+
+    if (this.sandboxCloseBtn) {
+      this.sandboxCloseBtn.onclick = (e) => {
+        e.preventDefault();
+        closeSandbox();
+      };
+    }
+    if (this.sandboxCloseCross) {
+      this.sandboxCloseCross.onclick = (e) => {
+        e.preventDefault();
+        closeSandbox();
+      };
+    }
+    if (this.sandboxRefreshBtn) {
+      this.sandboxRefreshBtn.onclick = (e) => {
+        e.preventDefault();
+        this.updateSandboxPreview();
+      };
+    }
+    if (this.sandboxCodeArea) {
+      this.sandboxCodeArea.oninput = () => {
+        this.updateSandboxPreview();
+      };
+    }
   }
 
 
@@ -860,6 +986,16 @@ export class ChatController {
 
     filtered.forEach(msg => this.renderSingleMessage(msg));
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+
+    if (window.Prism) {
+      setTimeout(() => {
+        try {
+          window.Prism.highlightAllUnder(this.messagesContainer);
+        } catch (e) {
+          console.warn('[PRISM-ERROR] Failed to run Prism highlight:', e);
+        }
+      }, 50);
+    }
   }
 
 
@@ -1226,13 +1362,23 @@ export class ChatController {
           <span class="chat-msg__sender">${msg.username}</span>
           <span>${time}</span>
         </div>
-        <div class="chat-msg__bubble">${parsed.text}</div>
+        <div class="chat-msg__bubble">${this.formatMessageMarkdown(parsed.text)}</div>
       </div>
     `;
     parentContainer.appendChild(parentMsgEl);
     
     this.drawThreadReplies();
     if (replyInput) replyInput.focus();
+
+    if (window.Prism) {
+      setTimeout(() => {
+        try {
+          window.Prism.highlightAllUnder(parentContainer);
+        } catch (e) {
+          console.warn('[PRISM-ERROR] Failed to run Prism highlight:', e);
+        }
+      }, 50);
+    }
   }
 
   drawThreadReplies() {
@@ -1288,6 +1434,16 @@ export class ChatController {
     });
     
     repliesList.scrollTop = repliesList.scrollHeight;
+
+    if (window.Prism) {
+      setTimeout(() => {
+        try {
+          window.Prism.highlightAllUnder(repliesList);
+        } catch (e) {
+          console.warn('[PRISM-ERROR] Failed to run Prism highlight:', e);
+        }
+      }, 50);
+    }
   }
 
   async handleSendThreadReply() {
@@ -1515,8 +1671,32 @@ export class ChatController {
     });
 
     // Handle code blocks: ```lang ... ``` or ``` ... ```
-    html = html.replace(/```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)\n```/g, (match, code) => {
-      return `<pre class="chat-code-block"><code>${code}</code></pre>`;
+    html = html.replace(/```([a-zA-Z0-9+#-]+)?(?:\r?\n)([\s\S]*?)(?:\r?\n)```/g, (match, lang, code) => {
+      const displayLang = lang || 'plaintext';
+      const cleanLang = displayLang.toLowerCase();
+      
+      const isSandboxable = ['html', 'htm', 'xml', 'svg', 'javascript', 'js', 'css'].includes(cleanLang);
+      let headerBtn = '';
+      if (isSandboxable) {
+        headerBtn = `
+          <button type="button" class="code-block-run-btn" data-lang="${cleanLang}">
+            <svg style="width: 10px; height: 10px; fill: currentColor; margin-right: 4px;" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span>Run Preview</span>
+          </button>
+        `;
+      }
+      
+      return `
+        <div class="code-block-wrapper">
+          <div class="code-block-header">
+            <span class="code-block-lang">${displayLang}</span>
+            ${headerBtn}
+          </div>
+          <pre class="language-${cleanLang}"><code class="language-${cleanLang}">${code}</code></pre>
+        </div>
+      `;
     });
 
     // Handle inline code: `code`
@@ -1529,6 +1709,11 @@ export class ChatController {
       return `<strong>${content}</strong>`;
     });
 
+    // Handle italic: *text*
+    html = html.replace(/\*([^*]+)\*/g, (match, content) => {
+      return `<em>${content}</em>`;
+    });
+
     // Handle headers: ### text or ## text
     html = html.replace(/^(?:###|##|#)\s+(.+)$/gm, (match, content) => {
       return `<h4 class="chat-review-header">${content}</h4>`;
@@ -1539,10 +1724,10 @@ export class ChatController {
       return `<li class="chat-review-bullet">${content}</li>`;
     });
 
-    // Handle line breaks: \n -> <br> (but not inside <pre> tags)
-    const parts = html.split(/(<pre[\s\S]*?<\/pre>)/g);
+    // Handle line breaks: \n -> <br> (but not inside code blocks)
+    const parts = html.split(/(<div class="code-block-wrapper"[\s\S]*?<\/div>)/g);
     for (let i = 0; i < parts.length; i++) {
-      if (!parts[i].startsWith('<pre')) {
+      if (!parts[i].startsWith('<div class="code-block-wrapper"')) {
         parts[i] = parts[i].replace(/\n/g, '<br>');
       }
     }
@@ -2448,6 +2633,33 @@ export class ChatController {
       blankState.classList.remove(...wallpaperClasses);
       blankState.classList.add(`wallpaper-${wallpaperName}`);
     }
+  }
+
+  openSandboxModal(codeText) {
+    if (!this.sandboxModal) {
+      this.sandboxModal = document.getElementById('codeSandboxModal');
+      this.sandboxCodeArea = document.getElementById('sandboxCodeArea');
+      this.sandboxFrame = document.getElementById('sandboxFrame');
+      this.sandboxCloseBtn = document.getElementById('sandboxCloseBtn');
+      this.sandboxCloseCross = document.getElementById('closeSandboxBtn');
+      this.sandboxRefreshBtn = document.getElementById('sandboxRefreshBtn');
+    }
+
+    if (!this.sandboxModal) return;
+
+    if (this.sandboxCodeArea) {
+      this.sandboxCodeArea.value = codeText;
+    }
+
+    this.sandboxModal.style.display = 'flex';
+    this.sandboxModal.classList.add('modal-overlay--active');
+
+    this.updateSandboxPreview();
+  }
+
+  updateSandboxPreview() {
+    if (!this.sandboxFrame || !this.sandboxCodeArea) return;
+    this.sandboxFrame.srcdoc = this.sandboxCodeArea.value;
   }
 }
 

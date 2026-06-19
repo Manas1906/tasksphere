@@ -1994,3 +1994,130 @@ body.light-theme .chat-blank-state.wallpaper-galaxy {
 .chat-messages-container.wallpaper-solid, .chat-blank-state.wallpaper-solid {
   background-image: none !important;
 }
+
+/* ============================================================
+   TaskSphere Client-Side Chat Features additions
+   ============================================================ */
+
+/* Microphone button active animation */
+@keyframes micPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+}
+
+.chat-mic-btn--active {
+  display: flex !important;
+  animation: micPulse 1.5s infinite ease-in-out;
+  color: #ef4444 !important;
+}
+
+/* Markdown formatting styles */
+.chat-msg__bubble p {
+  margin: 0 0 8px 0;
+}
+.chat-msg__bubble p:last-child {
+  margin-bottom: 0;
+}
+.chat-msg__bubble ul, .chat-msg__bubble ol {
+  margin: 4px 0 8px 0;
+  padding-left: 20px;
+}
+.chat-msg__bubble li {
+  margin-bottom: 2px;
+}
+.chat-msg__bubble code {
+  font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-cyan, #06b6d4);
+}
+body.light-theme .chat-msg__bubble code {
+  background: rgba(0, 0, 0, 0.05);
+  color: #c2410c;
+}
+
+.chat-msg__bubble pre[class*="language-"] {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: #1e1e1e !important;
+}
+
+/* Code block wrapper with header */
+.code-block-wrapper {
+  margin: 12px 0;
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: #1e1e1e;
+}
+body.light-theme .code-block-wrapper {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #252526;
+  border-bottom: 1px solid #2d2d2d;
+  color: #cccccc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+body.light-theme .code-block-header {
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+  color: #475569;
+}
+
+.code-block-lang {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.code-block-run-btn {
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  color: var(--accent-cyan, #06b6d4);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+.code-block-run-btn:hover {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: rgba(6, 182, 212, 0.6);
+  transform: translateY(-1px);
+}
+.code-block-run-btn svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+}
+

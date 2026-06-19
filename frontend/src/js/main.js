@@ -1902,6 +1902,15 @@ class TaskSphereApp {
     if (closeBtn) closeBtn.onclick = closeModal;
     if (cancelBtn) cancelBtn.onclick = closeModal;
 
+    const testSoundBtn = document.getElementById('testSoundBtn');
+    if (testSoundBtn) {
+      testSoundBtn.onclick = () => {
+        const soundSelect = document.getElementById('settingsSoundSelect');
+        const soundVal = soundSelect ? soundSelect.value : 'minimal';
+        this.playNotificationSound(soundVal);
+      };
+    }
+
     let customAvatarDataUrl = null;
     const fileInput = document.getElementById('avatarFileInput');
     const avatarPreview = document.getElementById('settingsAvatarPreview');
@@ -2114,6 +2123,12 @@ class TaskSphereApp {
             }
           }
 
+          // Save sound settings
+          const soundSelect = document.getElementById('settingsSoundSelect');
+          if (soundSelect) {
+            localStorage.setItem('tasksphere_chat_sound', soundSelect.value);
+          }
+
           if (customAvatarDataUrl) {
             localStorage.setItem('chat_avatar', customAvatarDataUrl);
             
@@ -2168,6 +2183,11 @@ class TaskSphereApp {
     const wallpaperSelect = document.getElementById('settingsWallpaperSelect');
     if (wallpaperSelect) {
       wallpaperSelect.value = localStorage.getItem('tasksphere_chat_wallpaper') || 'grid';
+    }
+
+    const soundSelect = document.getElementById('settingsSoundSelect');
+    if (soundSelect) {
+      soundSelect.value = localStorage.getItem('tasksphere_chat_sound') || 'minimal';
     }
 
     const fileInput = document.getElementById('avatarFileInput');
@@ -2330,40 +2350,76 @@ class TaskSphereApp {
     }
   }
 
-  playNotificationSound() {
+  playNotificationSound(soundTheme) {
     try {
+      const theme = soundTheme || localStorage.getItem('tasksphere_chat_sound') || 'minimal';
+      if (theme === 'silent') return;
+
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
-      
-      // Node 1 - Base tone (C5 - 523.25 Hz)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      
-      // Node 2 - Delayed chime tone (G5 - 783.99 Hz)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.1);
-      gain2.gain.setValueAtTime(0, ctx.currentTime);
-      gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.1);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.3);
-      
-      osc2.start(ctx.currentTime + 0.1);
-      osc2.stop(ctx.currentTime + 0.4);
+
+      if (theme === 'cyber') {
+        // Cyber Sweep (Tech Click)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.12);
+        
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.12);
+      } else if (theme === 'bubble') {
+        // Retro Bubble (Pop Sound)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(250, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.15);
+        
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        // Default: Minimal Chime (Sine C5/G5 double beep)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.1); // G5
+        gain2.gain.setValueAtTime(0, ctx.currentTime);
+        gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.3);
+        
+        osc2.start(ctx.currentTime + 0.1);
+        osc2.stop(ctx.currentTime + 0.4);
+      }
     } catch (e) {
       console.warn('[AUDIO-CHIME-ERROR] Browser AudioContext blocked or unsupported:', e);
     }

@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="/src/styles/components/onboarding.css">
   <link rel="stylesheet" href="/src/styles/components/whiteboard.css">
   <link rel="stylesheet" href="/src/styles/components/timeline.css">
+  <!-- Prism.js Code Block Syntax Highlighting (Dark tomorrow theme) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
   <script>
     if (typeof global === 'undefined') {
       window.global = window;
@@ -380,6 +382,11 @@
               <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-3.31 2.69-6 6-6s6 2.69 6 6v10c0 4.42-3.58 8-8 8s-8-3.58-8-8V6h2v9c0 3.31 2.69 6 6 6s6-2.69 6-6V5c0-2.21-1.79-4-4-4s-4 1.79-4 4v11.5c0 1.1.9 2 2 2s2-.9 2-2V6h2z"/>
             </svg>
           </button>
+          <button id="chatMicBtn" class="chat-mic-btn" title="Voice Typing (Speech to Text)" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); transition: all var(--transition-fast); flex-shrink: 0;">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+            </svg>
+          </button>
           <input type="file" id="chatFileInput" style="display: none;">
           <div class="chat-input-wrapper">
             <input type="text" id="chatInput" placeholder="Send team message..." class="chat-input" autocomplete="off">
@@ -582,6 +589,28 @@
               <option value="solid">Minimalist Solid</option>
             </select>
             <p style="font-size: 10px; color: var(--text-muted); margin: 4px 0 0 0;">Customize the background of your active chat screens.</p>
+          </div>
+        </div>
+
+        <!-- Chat Notification Sound Segment -->
+        <div class="form-group" style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.01); margin-bottom: var(--spacing-lg)">
+          <label class="form-label" style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: 6px;">
+            <svg style="width: 14px; height: 14px; fill: currentColor" viewBox="0 0 24 24">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+            </svg>
+            <span>Message Notification Sound</span>
+          </label>
+          <div class="settings-sound-selector" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <select id="settingsSoundSelect" class="form-input" style="flex: 1; height: 38px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer;">
+                <option value="minimal">Minimal Chime (Synth Beeps)</option>
+                <option value="cyber">Cyber Sweep (Tech Click)</option>
+                <option value="bubble">Retro Bubble (Pop Sound)</option>
+                <option value="silent">Silent (No Sound)</option>
+              </select>
+              <button type="button" id="testSoundBtn" class="btn btn--secondary" style="height: 38px; padding: 0 16px; font-size: 11px; white-space: nowrap;">Test Audio</button>
+            </div>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 4px 0 0 0;">Select your custom sound scape synthesized locally in-browser.</p>
           </div>
         </div>
 
@@ -1059,11 +1088,43 @@
 </div>
 </div>
 
+  <!-- Code Sandbox Previewer Modal -->
+  <div id="codeSandboxModal" class="modal-overlay" style="z-index: 1500; display: none;">
+    <div class="modal-card" style="width: 85%; height: 85%; max-width: 960px; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+      <div class="modal-header" style="padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.08);">
+        <h3 style="margin: 0; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px; font-size: 14px;">
+          <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24">
+            <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+          </svg>
+          <span>Live Code Previewer Sandbox</span>
+        </h3>
+        <button id="closeSandboxBtn" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+      </div>
+      <div style="flex: 1; display: flex; flex-direction: row; background: #ffffff; min-height: 0;">
+        <div id="sandboxCodeEditorWrap" style="width: 50%; height: 100%; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: #1e1e1e;">
+          <div style="padding: 6px 12px; font-size: 10px; color: var(--text-muted); background: #252526; border-bottom: 1px solid #3c3c3c; text-transform: uppercase; font-family: monospace; font-weight: bold;">HTML/CSS Source</div>
+          <textarea id="sandboxCodeArea" style="flex: 1; width: 100%; padding: 12px; font-family: 'Fira Code', monospace; font-size: 13px; color: #d4d4d4; background: #1e1e1e; border: none; resize: none; outline: none; line-height: 1.5;" autocomplete="off" spellcheck="false"></textarea>
+        </div>
+        <div style="width: 50%; height: 100%; display: flex; flex-direction: column; background: #ffffff;">
+          <div style="padding: 6px 12px; font-size: 10px; color: #555; background: #f3f3f3; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-family: monospace; font-weight: bold; border-left: 1px solid #e2e8f0;">Render Preview</div>
+          <iframe id="sandboxFrame" style="flex: 1; width: 100%; border: none; background: #ffffff;" sandbox="allow-scripts"></iframe>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: var(--spacing-md) var(--spacing-lg); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: var(--spacing-sm); background: rgba(0,0,0,0.05);">
+        <button id="sandboxRefreshBtn" class="btn btn--secondary" style="font-size: 11px;">Update Preview</button>
+        <button id="sandboxCloseBtn" class="btn btn--submit" style="font-size: 11px;">Close Playground</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Collaborative Real-time Viewport Cursor Sync Layer - Phase 9 -->
   <div id="collaborativeCursorLayer" class="collaborative-cursor-layer"></div>
 
   <!-- Glassmorphic Floating Toast Notification Stack -->
   <div id="toastNotificationStack" class="toast-stack"></div>
+
+  <!-- Prism.js Syntax Highlighting Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 
   <!-- Bootstrapping Frontend Script -->
   <script type="module" src="/src/js/main.js"></script>
