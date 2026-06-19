@@ -296,7 +296,9 @@ body.light-theme .chat-msg__avatar {
   gap: 3px;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  /* NOTE: overflow must remain visible so the absolutely-positioned
+     emoji quick-reaction picker (.chat-msg__quick-reactions top:-32px)
+     is not clipped. Only clip at bubble level. */
 }
 
 .chat-msg__meta {
@@ -2165,11 +2167,12 @@ body.light-theme .code-block-header {
   fill: currentColor;
 }
 
-/* Bubble with code block: wider and reduced vertical padding for clean edge-flush rendering */
+/* Bubble with code block: wider fixed width, ensure text is always white since code block bg is always dark */
 .chat-msg__bubble--has-code {
   padding: 10px 14px;
   max-width: 480px;
   width: 480px;
+  color: #f1f5f9; /* force light text - code block bg is always #1e1e1e dark */
 }
 
 /* On smaller panels, cap at 90vw */
@@ -2180,14 +2183,41 @@ body.light-theme .code-block-header {
   }
 }
 
-/* Self messages with code: fix blue gradient clash — switch to dark container */
+/* Self messages with code: switch from blue gradient to dark so code block looks native */
 .chat-msg--self .chat-msg__bubble--has-code {
   background: #1a1f2e;
   border: 1px solid rgba(99, 102, 241, 0.2);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  color: #f1f5f9;
 }
 
+/* Light theme: non-self bubble with code — use white card background with dark text above code block */
+body.light-theme .chat-msg__bubble--has-code {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+/* Light theme self bubble with code — keep dark navy so code block looks good */
 body.light-theme .chat-msg--self .chat-msg__bubble--has-code {
-  background: #1e1e2e;
+  background: #1e293b;
+  color: #f1f5f9;
   border-color: rgba(99, 102, 241, 0.25);
+}
+
+/* Code block pre: wrap long single-line code so it doesn't overflow horizontally */
+.code-block-wrapper pre[class*='language-'],
+.code-block-wrapper pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: #1e1e1e !important;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: pre-wrap !important;   /* wrap long single-line code */
+  word-break: break-all !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  padding: 12px 14px !important;
 }
