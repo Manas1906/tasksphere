@@ -1671,7 +1671,7 @@ export class ChatController {
     });
 
     // Handle code blocks: ```lang ... ``` or ``` ... ```
-    html = html.replace(/```([a-zA-Z0-9+#-]+)?(?:\r?\n)([\s\S]*?)(?:\r?\n)```/g, (match, lang, code) => {
+    html = html.replace(/```([a-zA-Z0-9+#-]+)?\s*([\s\S]*?)\s*```/g, (match, lang, code) => {
       const displayLang = lang || 'plaintext';
       const cleanLang = displayLang.toLowerCase();
       
