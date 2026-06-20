@@ -49,6 +49,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/payments/config").permitAll()
+                .requestMatchers("/api/payments/webhook").permitAll()
                 .requestMatchers("/api/ping", "/api/ping/**").permitAll()
                 .requestMatchers("/api/uploads/**").permitAll()
                 .requestMatchers("/api/upload").permitAll()
