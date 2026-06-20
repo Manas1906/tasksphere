@@ -185,7 +185,18 @@ public class PaymentController {
         try {
             WorkspaceUpgradeSession session = sessionRepository
                     .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
-                    .orElseThrow(() -> new IllegalStateException("No active co-funding session exists."));
+                    .orElseGet(() -> {
+                        log.info("[PAYMENTS] No active co-funding session found. Automatically creating one.");
+                        WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
+                                .workspaceName("Workspace Alpha")
+                                .targetPledges(5)
+                                .pledgesCount(0)
+                                .status("ACTIVE")
+                                .expiryTime(Instant.now().plus(Duration.ofDays(1)))
+                                .createdAt(Instant.now())
+                                .build();
+                        return sessionRepository.save(newSession);
+                    });
 
             // Parse payment amount from payload (amount in paise, e.g. 49900)
             Object amountObj = payload.get("amount");
@@ -638,58 +649,172 @@ public class PaymentController {
         String orderId = payload.get("razorpay_order_id");
         String signature = payload.get("razorpay_signature");
 
-        if (paymentId == null || orderId == null || signature == null) {
-            log.warn("[PAYMENTS] Rejecting verification: missing fields in payload.");
-            return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Missing verify fields."));
+        if (paymentId == null) {
+            log.warn("[PAYMENTS] Rejecting verification: missing razorpay_payment_id in payload.");
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Missing razorpay_payment_id."));
         }
 
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(razorpayKeySecret.getBytes("UTF-8"), "HmacSHA256");
-            mac.init(secretKey);
+            boolean isRealGateway = razorpayKeyId != null && !razorpayKeyId.equals("rzp_test_mockKeyId123") && !razorpayKeyId.startsWith("rzp_test_mock");
 
-            String signaturePayload = orderId + "|" + paymentId;
-            byte[] calculatedHash = mac.doFinal(signaturePayload.getBytes("UTF-8"));
+            // Case A: Full order signature verification
+            if (orderId != null && signature != null) {
+                Mac mac = Mac.getInstance("HmacSHA256");
+                SecretKeySpec secretKey = new SecretKeySpec(razorpayKeySecret.getBytes("UTF-8"), "HmacSHA256");
+                mac.init(secretKey);
 
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : calculatedHash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
+                String signaturePayload = orderId + "|" + paymentId;
+                byte[] calculatedHash = mac.doFinal(signaturePayload.getBytes("UTF-8"));
+
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : calculatedHash) {
+                    String hex = Integer.toHexString(0xff & b);
+                    if (hex.length() == 1) hexString.append('0');
+                    hexString.append(hex);
+                }
+                String calculatedSignature = hexString.toString();
+
+                boolean isValid = MessageDigest.isEqual(
+                    calculatedSignature.getBytes("UTF-8"),
+                    signature.getBytes("UTF-8")
+                );
+
+                log.info("[PAYMENTS] Cryptographic verification complete. isValid: {}", isValid);
+
+                if (!isValid) {
+                    log.warn("[PAYMENTS] Signature verification failed! Calculated: {}, Received: {}", calculatedSignature, signature);
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Collections.singletonMap("error", "Signature verification failed."));
+                }
+
+                log.info("[PAYMENTS] Signature valid. Updating pledge in database for order: {}", orderId);
+                Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
+                if (pledgeOpt.isPresent()) {
+                    UserPledge pledge = pledgeOpt.get();
+                    pledge.setStatus("AUTHORIZED");
+                    pledge.setPaymentId(paymentId);
+                    pledgeRepository.save(pledge);
+                    log.info("[PAYMENTS] Updated pledge status to AUTHORIZED: {}", pledge);
+                    updateSessionAndUnlock(pledge.getSessionId());
+                } else {
+                    log.warn("[PAYMENTS] Order ID {} not found in local database. Creating dynamically.", orderId);
+                    WorkspaceUpgradeSession session = sessionRepository
+                            .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
+                            .orElseGet(() -> {
+                                WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
+                                        .workspaceName("Workspace Alpha")
+                                        .targetPledges(5)
+                                        .pledgesCount(0)
+                                        .status("ACTIVE")
+                                        .expiryTime(Instant.now().plus(Duration.ofDays(1)))
+                                        .createdAt(Instant.now())
+                                        .build();
+                                return sessionRepository.save(newSession);
+                            });
+                    
+                    UserPledge pledge = UserPledge.builder()
+                            .sessionId(session.getId())
+                            .username("MANAS ACHARYA") // Fallback
+                            .orderId(orderId)
+                            .paymentId(paymentId)
+                            .preAuthAmount(new BigDecimal("1.00")) // Fallback
+                            .paymentMethod("CARD")
+                            .status("AUTHORIZED")
+                            .createdAt(Instant.now())
+                            .build();
+                    pledgeRepository.save(pledge);
+                    updateSessionAndUnlock(session.getId());
+                }
+
+                return ResponseEntity.ok(Collections.singletonMap("success", true));
             }
-            String calculatedSignature = hexString.toString();
+            
+            // Case B: Direct payment verification fallback (when order ID / signature are not provided)
+            log.info("[PAYMENTS] Missing order ID / signature. Falling back to direct payment details check.");
+            if (isRealGateway) {
+                Map<?, ?> paymentDetails = fetchRazorpayPaymentDetails(paymentId);
+                String status = (String) paymentDetails.get("status");
+                log.info("[PAYMENTS] Direct payment details fetched. Status: {}", status);
 
-            boolean isValid = MessageDigest.isEqual(
-                calculatedSignature.getBytes("UTF-8"),
-                signature.getBytes("UTF-8")
-            );
+                if ("captured".equals(status) || "authorized".equals(status)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> notes = (Map<String, String>) paymentDetails.get("notes");
+                    String username = "MANAS ACHARYA";
+                    String planId = "pro_monthly";
+                    
+                    if (notes != null) {
+                        if (notes.containsKey("username")) username = notes.get("username");
+                        if (notes.containsKey("planId")) planId = notes.get("planId");
+                    }
+                    
+                    log.info("[PAYMENTS] Extracted notes - Username: {}, Plan ID: {}", username, planId);
 
-            log.info("[PAYMENTS] Cryptographic verification complete. isValid: {}", isValid);
+                    final String finalUsername = username;
+                    final String finalPlanId = planId;
 
-            if (!isValid) {
-                log.warn("[PAYMENTS] Signature verification failed! Calculated: {}, Received: {}", calculatedSignature, signature);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Collections.singletonMap("error", "Signature verification failed."));
-            }
+                    WorkspaceUpgradeSession session = sessionRepository
+                            .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
+                            .orElseGet(() -> {
+                                WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
+                                        .workspaceName("Workspace Alpha")
+                                        .targetPledges(5)
+                                        .pledgesCount(0)
+                                        .status("ACTIVE")
+                                        .expiryTime(Instant.now().plus(Duration.ofDays(1)))
+                                        .createdAt(Instant.now())
+                                        .build();
+                                return sessionRepository.save(newSession);
+                            });
 
-            log.info("[PAYMENTS] Signature valid. Updating pledge in database for order: {}", orderId);
-            Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
-            if (pledgeOpt.isPresent()) {
-                UserPledge pledge = pledgeOpt.get();
-                pledge.setStatus("AUTHORIZED");
-                pledge.setPaymentId(paymentId);
-                pledgeRepository.save(pledge);
-                log.info("[PAYMENTS] Updated pledge status to AUTHORIZED: {}", pledge);
-
-                updateSessionAndUnlock(pledge.getSessionId());
+                    UserPledge pledge = pledgeRepository.findByOrderId(paymentId).orElseGet(() -> {
+                        return UserPledge.builder()
+                                .sessionId(session.getId())
+                                .username(finalUsername)
+                                .orderId(paymentId) // use payment ID as order ID to prevent key constraint violations
+                                .paymentId(paymentId)
+                                .preAuthAmount(new BigDecimal("1.00"))
+                                .paymentMethod(finalPlanId.toUpperCase())
+                                .status("AUTHORIZED")
+                                .createdAt(Instant.now())
+                                .build();
+                    });
+                    
+                    pledge.setStatus("AUTHORIZED");
+                    pledgeRepository.save(pledge);
+                    log.info("[PAYMENTS] Saved direct payment pledge: {}", pledge);
+                    
+                    updateSessionAndUnlock(session.getId());
+                    return ResponseEntity.ok(Collections.singletonMap("success", true));
+                } else {
+                    log.warn("[PAYMENTS] Direct payment check failed. Status was not captured/authorized: {}", status);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(Collections.singletonMap("error", "Payment is not successfully captured/authorized. Status: " + status));
+                }
             } else {
-                log.warn("[PAYMENTS] Order ID {} not found in local pledge database.", orderId);
+                log.info("[PAYMENTS] Mock mode - allowing direct payment verification.");
+                return ResponseEntity.ok(Collections.singletonMap("success", true));
             }
-
-            return ResponseEntity.ok(Collections.singletonMap("success", true));
         } catch (Exception e) {
             log.error("[PAYMENTS] Exception in verifyPayment: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    private Map<?, ?> fetchRazorpayPaymentDetails(String paymentId) throws Exception {
+        String url = "https://api.razorpay.com/v1/payments/" + paymentId;
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((razorpayKeyId + ":" + razorpayKeySecret).getBytes("UTF-8")))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), Map.class);
+        } else {
+            throw new RuntimeException("Failed to fetch payment details from Razorpay: HTTP " + response.statusCode() + " - " + response.body());
         }
     }
 
