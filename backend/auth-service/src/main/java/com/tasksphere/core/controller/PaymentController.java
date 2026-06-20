@@ -14,6 +14,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -32,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     @Value("${razorpay.key.id:rzp_test_mockKeyId123}")
     private String razorpayKeyId;
@@ -147,7 +151,9 @@ public class PaymentController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody Map<String, Object> payload) {
 
+        log.info("[PAYMENTS] POST /api/payments/co-fund/order hit with payload: {}", payload);
         if (idempotencyKey == null || idempotencyKey.trim().isEmpty()) {
+            log.warn("[PAYMENTS] Rejecting request: Idempotency-Key header is missing.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Collections.singletonMap("error", "Idempotency-Key header is required."));
         }
@@ -155,6 +161,7 @@ public class PaymentController {
         String username = (String) payload.get("username");
         String paymentMethod = (String) payload.get("paymentMethod");
         if (username == null || paymentMethod == null) {
+            log.warn("[PAYMENTS] Rejecting request: Missing username or paymentMethod. Username: {}, Method: {}", username, paymentMethod);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Collections.singletonMap("error", "Missing username or paymentMethod in body."));
         }
@@ -165,9 +172,11 @@ public class PaymentController {
         String cachedResponse = getCache(redisLockKey);
         if (cachedResponse != null) {
             if ("PROCESSING".equals(cachedResponse)) {
+                log.warn("[PAYMENTS] Conflict: Idempotency key {} is currently processing.", idempotencyKey);
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(Collections.singletonMap("error", "A duplicate pledge is currently in progress."));
             }
+            log.info("[PAYMENTS] Idempotency key {} matched cached order ID: {}", idempotencyKey, cachedResponse);
             return ResponseEntity.ok(Collections.singletonMap("cachedOrderId", cachedResponse));
         }
 
@@ -178,25 +187,35 @@ public class PaymentController {
                     .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
                     .orElseThrow(() -> new IllegalStateException("No active co-funding session exists."));
 
-            // Check if user already pledged in this active session
-            Optional<UserPledge> existingPledge = pledgeRepository.findBySessionIdAndUsername(session.getId(), username);
-            if (existingPledge.isPresent()) {
-                deleteCache(redisLockKey);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Collections.singletonMap("error", "You have already pledged in this active session."));
+            // Parse payment amount from payload (amount in paise, e.g. 49900)
+            Object amountObj = payload.get("amount");
+            BigDecimal amountInRupees;
+            if (amountObj != null) {
+                double paise = 0;
+                if (amountObj instanceof Number) {
+                    paise = ((Number) amountObj).doubleValue();
+                } else {
+                    paise = Double.parseDouble(amountObj.toString());
+                }
+                amountInRupees = BigDecimal.valueOf(paise).divide(BigDecimal.valueOf(100));
+                log.info("[PAYMENTS] Received amount in paise: {}. Converted to rupees: {}", paise, amountInRupees);
+            } else {
+                amountInRupees = new BigDecimal("999.00"); // Fallback
+                log.info("[PAYMENTS] Missing amount in payload. Using fallback: {} rupees", amountInRupees);
             }
 
             // Create gateway representation
             String finalOrderId = "order_mock_" + UUID.randomUUID().toString().substring(0, 8);
-            BigDecimal amount = new BigDecimal("999.00");
-
             boolean isRealGateway = razorpayKeyId != null && !razorpayKeyId.equals("rzp_test_mockKeyId123") && !razorpayKeyId.startsWith("rzp_test_mock");
+
+            log.info("[PAYMENTS] isRealGateway flag resolved to: {}. razorpayKeyId is: {}", isRealGateway, razorpayKeyId);
 
             if (isRealGateway) {
                 try {
-                    finalOrderId = createRealRazorpayOrder(amount);
+                    finalOrderId = createRealRazorpayOrder(amountInRupees);
+                    log.info("[PAYMENTS] Real Razorpay Order successfully created with ID: {}", finalOrderId);
                 } catch (Exception e) {
-                    System.err.println("[PAYMENTS] Failed to create real Razorpay Order: " + e.getMessage());
+                    log.error("[PAYMENTS] Failed to create real Razorpay Order, falling back to mock: {}", e.getMessage(), e);
                 }
             }
 
@@ -204,23 +223,27 @@ public class PaymentController {
                     .sessionId(session.getId())
                     .username(username)
                     .orderId(finalOrderId)
-                    .preAuthAmount(amount) // Base max price held
+                    .preAuthAmount(amountInRupees)
                     .paymentMethod(paymentMethod.toUpperCase())
                     .status("PENDING")
                     .createdAt(Instant.now())
                     .build();
 
             pledgeRepository.save(pledge);
+            log.info("[PAYMENTS] Pledge entry saved to DB: {}", pledge);
 
             setCache(redisLockKey, finalOrderId, 86400); // cache for 24h
 
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", finalOrderId);
-            response.put("amount", 999.00);
+            response.put("amount", amountInRupees);
             response.put("sessionId", session.getId());
+            
+            log.info("[PAYMENTS] Returning createOrder response: {}", response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("[PAYMENTS] Exception in createPledgeOrder: {}", e.getMessage(), e);
             deleteCache(redisLockKey);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("error", "Failed to create order: " + e.getMessage()));
@@ -598,8 +621,10 @@ public class PaymentController {
      */
     @GetMapping("/config")
     public ResponseEntity<?> getPaymentConfig() {
+        log.info("[PAYMENTS] GET /api/payments/config hit.");
         Map<String, String> config = new HashMap<>();
         config.put("razorpayKeyId", razorpayKeyId);
+        log.info("[PAYMENTS] Returning key: {}", (razorpayKeyId != null ? (razorpayKeyId.substring(0, Math.min(razorpayKeyId.length(), 12)) + "...") : "null"));
         return ResponseEntity.ok(config);
     }
 
@@ -608,11 +633,13 @@ public class PaymentController {
      */
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> payload) {
+        log.info("[PAYMENTS] POST /api/payments/verify hit with payload: {}", payload);
         String paymentId = payload.get("razorpay_payment_id");
         String orderId = payload.get("razorpay_order_id");
         String signature = payload.get("razorpay_signature");
 
         if (paymentId == null || orderId == null || signature == null) {
+            log.warn("[PAYMENTS] Rejecting verification: missing fields in payload.");
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Missing verify fields."));
         }
 
@@ -637,23 +664,31 @@ public class PaymentController {
                 signature.getBytes("UTF-8")
             );
 
+            log.info("[PAYMENTS] Cryptographic verification complete. isValid: {}", isValid);
+
             if (!isValid) {
+                log.warn("[PAYMENTS] Signature verification failed! Calculated: {}, Received: {}", calculatedSignature, signature);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Collections.singletonMap("error", "Signature verification failed."));
             }
 
+            log.info("[PAYMENTS] Signature valid. Updating pledge in database for order: {}", orderId);
             Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
             if (pledgeOpt.isPresent()) {
                 UserPledge pledge = pledgeOpt.get();
                 pledge.setStatus("AUTHORIZED");
                 pledge.setPaymentId(paymentId);
                 pledgeRepository.save(pledge);
+                log.info("[PAYMENTS] Updated pledge status to AUTHORIZED: {}", pledge);
 
                 updateSessionAndUnlock(pledge.getSessionId());
+            } else {
+                log.warn("[PAYMENTS] Order ID {} not found in local pledge database.", orderId);
             }
 
             return ResponseEntity.ok(Collections.singletonMap("success", true));
         } catch (Exception e) {
+            log.error("[PAYMENTS] Exception in verifyPayment: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
@@ -661,6 +696,7 @@ public class PaymentController {
     private String createRealRazorpayOrder(BigDecimal amount) throws Exception {
         String url = "https://api.razorpay.com/v1/orders";
         int amountInPaise = amount.multiply(new BigDecimal("100")).intValue();
+        log.info("[PAYMENTS] Creating real Razorpay Order for amount (paise): {}", amountInPaise);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("amount", amountInPaise);
@@ -669,19 +705,26 @@ public class PaymentController {
 
         String json = objectMapper.writeValueAsString(requestBody);
 
+        String authHeader = "Basic " + Base64.getEncoder().encodeToString((razorpayKeyId + ":" + razorpayKeySecret).getBytes("UTF-8"));
+
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
-                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((razorpayKeyId + ":" + razorpayKeySecret).getBytes("UTF-8")))
+                .header("Authorization", authHeader)
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();
 
+        log.info("[PAYMENTS] Sending POST to Razorpay API: {} with body: {}", url, json);
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        log.info("[PAYMENTS] Razorpay API Response Status: {}", response.statusCode());
+        log.info("[PAYMENTS] Razorpay API Response Body: {}", response.body());
 
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             Map<?, ?> responseMap = objectMapper.readValue(response.body(), Map.class);
-            return (String) responseMap.get("id");
+            String orderId = (String) responseMap.get("id");
+            log.info("[PAYMENTS] Razorpay Order ID created successfully: {}", orderId);
+            return orderId;
         } else {
             throw new RuntimeException("Razorpay API HTTP " + response.statusCode() + ": " + response.body());
         }

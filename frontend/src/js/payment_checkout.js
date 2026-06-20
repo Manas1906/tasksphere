@@ -121,6 +121,7 @@ class PaymentCheckoutController {
       prefill: {
         name: username,
         email: username.toLowerCase() + '@tasksphere.com',
+        contact: '9999999999',
       },
       notes: {
         planId: planId,
