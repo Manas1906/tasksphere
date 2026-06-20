@@ -855,3 +855,311 @@ body.light-theme .recruiter-dev-console {
   color: #0f172a !important;
 }
 
+/* ============================================================
+   PRO PLAN PRICING PAGE - New Clean Design
+   ============================================================ */
+
+.pro-upgrade-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Hero Section */
+.pro-hero {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.pro-hero-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(192,132,252,0.2) 100%);
+  border: 1px solid rgba(99,102,241,0.35);
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.pro-hero-title {
+  font-size: 2.75rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c084fc 60%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 14px;
+  line-height: 1.1;
+}
+
+.pro-hero-subtitle {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Plans Grid */
+.pro-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+/* Plan Card */
+.pro-plan-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+
+.pro-plan-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Featured/Popular Card */
+.pro-plan-card--featured {
+  background: linear-gradient(160deg, rgba(79, 70, 229, 0.2) 0%, rgba(147, 51, 234, 0.15) 100%);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 20px 40px rgba(99, 102, 241, 0.1);
+}
+
+.pro-plan-card--featured:hover {
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.5), 0 25px 50px rgba(99, 102, 241, 0.2);
+}
+
+.pro-plan-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.pro-plan-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.pro-plan-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.pro-plan-tagline {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Price Display */
+.pro-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.pro-price-currency {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #a5b4fc;
+}
+
+.pro-price-amount {
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.pro-price-period {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Features List */
+.pro-plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.pro-plan-features li {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* CTA Buttons */
+.pro-plan-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.pro-plan-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.pro-plan-btn--primary {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.pro-plan-btn--primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Trust Bar */
+.pro-trust-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  padding: 18px 24px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Light Theme Overrides for Pro Plan Pricing Page
+   ============================================================ */
+
+body.light-theme .pro-hero-badge {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.25);
+  color: #4f46e5;
+}
+
+body.light-theme .pro-hero-title {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .pro-hero-subtitle {
+  color: #64748b;
+}
+
+body.light-theme .pro-plan-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme .pro-plan-card:hover {
+  border-color: rgba(79, 70, 229, 0.25);
+  box-shadow: 0 12px 32px rgba(79, 70, 229, 0.1);
+}
+
+body.light-theme .pro-plan-card--featured {
+  background: linear-gradient(160deg, rgba(79, 70, 229, 0.05) 0%, rgba(147, 51, 234, 0.04) 100%);
+  border-color: rgba(79, 70, 229, 0.3);
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.15), 0 12px 32px rgba(79, 70, 229, 0.08);
+}
+
+body.light-theme .pro-plan-name {
+  color: #0f172a;
+}
+
+body.light-theme .pro-plan-tagline {
+  color: #64748b;
+}
+
+body.light-theme .pro-price-currency {
+  color: #4f46e5;
+}
+
+body.light-theme .pro-price-amount {
+  color: #0f172a;
+}
+
+body.light-theme .pro-price-period {
+  color: #94a3b8;
+}
+
+body.light-theme .pro-plan-features li {
+  color: #334155;
+}
+
+body.light-theme .pro-plan-btn {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #1e293b;
+}
+
+body.light-theme .pro-plan-btn:hover {
+  background: #e2e8f0;
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+body.light-theme .pro-plan-btn--primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+body.light-theme .pro-plan-btn--primary:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+}
+
+body.light-theme .pro-trust-bar {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.06);
+  color: #64748b;
+}

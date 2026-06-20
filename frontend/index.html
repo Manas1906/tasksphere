@@ -1127,63 +1127,137 @@
     </div>
   </div>
 
-  <!-- Workspace Co-funding Upgrade template -->
-  <template id="coFundingUpgradeTemplate">
-    <div class="cofund-dashboard-container">
-      <div class="cofund-header">
-        <h1>Workspace Premium Co-Funding</h1>
-        <p>Unlock Advanced Multi-threaded Task Analytics, Synthesized Chimes & Custom Animated Wallpapers for the entire team.</p>
+   <template id="coFundingUpgradeTemplate">
+    <div class="pro-upgrade-container">
+
+      <!-- Hero Banner -->
+      <div class="pro-hero">
+        <div class="pro-hero-badge">⚡ TaskSphere Pro</div>
+        <h1 class="pro-hero-title">Upgrade Your Workspace</h1>
+        <p class="pro-hero-subtitle">Everything you need to work faster, smarter, and look great doing it.</p>
       </div>
 
-      <div class="cofund-metrics-card">
-        <div class="cofund-metrics-header">
-          <div class="cofund-metrics-title">WORKSPACE STATUS</div>
-          <div class="cofund-pledge-stats">
-            <span id="cofundPledgeCount" class="cofund-pledge-count">0</span>
-            <span id="cofundTargetCount" class="cofund-pledge-target">Target: 5 Pledges</span>
+      <!-- Plan Cards Grid -->
+      <div class="pro-plans-grid">
+
+        <!-- Plan 1: Pro Monthly Subscription -->
+        <div class="pro-plan-card pro-plan-card--featured" id="planCardPro">
+          <div class="pro-plan-badge">⭐ Most Popular</div>
+          <div class="pro-plan-icon">🚀</div>
+          <h2 class="pro-plan-name">TaskSphere Pro</h2>
+          <p class="pro-plan-tagline">The full experience, every month.</p>
+          <div class="pro-plan-price">
+            <span class="pro-price-currency">₹</span>
+            <span class="pro-price-amount">499</span>
+            <span class="pro-price-period">/month</span>
           </div>
+          <ul class="pro-plan-features">
+            <li>✅ Unlimited tasks &amp; subtasks</li>
+            <li>✅ AI Smart Assistant (Gemini)</li>
+            <li>✅ Advanced analytics dashboard</li>
+            <li>✅ Priority customer support</li>
+            <li>✅ All premium themes unlocked</li>
+            <li>✅ Export reports as PDF</li>
+          </ul>
+          <button class="pro-plan-btn pro-plan-btn--primary" onclick="window.PaymentCheckout.startCheckout('pro_monthly', 49900, 'TaskSphere Pro – Monthly Subscription')">
+            Get Pro Now
+          </button>
         </div>
-        
-        <div class="cofund-progress-track">
-          <div id="cofundProgressBar" class="cofund-progress-fill"></div>
+
+        <!-- Plan 2: PDF Report Export -->
+        <div class="pro-plan-card" id="planCardPdf">
+          <div class="pro-plan-icon">📄</div>
+          <h2 class="pro-plan-name">PDF Report Export</h2>
+          <p class="pro-plan-tagline">Download your project as a professional report.</p>
+          <div class="pro-plan-price">
+            <span class="pro-price-currency">₹</span>
+            <span class="pro-price-amount">49</span>
+            <span class="pro-price-period">one-time</span>
+          </div>
+          <ul class="pro-plan-features">
+            <li>✅ Full project report as PDF</li>
+            <li>✅ Task status &amp; timelines</li>
+            <li>✅ Team member summary</li>
+            <li>✅ Branded with your logo</li>
+            <li>✅ Instant download</li>
+          </ul>
+          <button class="pro-plan-btn" onclick="window.PaymentCheckout.startCheckout('pdf_export', 4900, 'TaskSphere PDF Report Export')">
+            Buy Export
+          </button>
         </div>
 
-        <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6; margin-bottom: 20px;">
-          Pledge your share! The final price charged to your card/bank decreases exponentially as more team members co-fund. 
-          We use <strong>pre-authorization holds</strong> (funds locked but not captured). If the target is met, the discounted rate is captured. 
-          If target is missed, holds are voided instantly with zero refund fees.
-        </p>
+        <!-- Plan 3: Premium Themes Pack -->
+        <div class="pro-plan-card" id="planCardTheme">
+          <div class="pro-plan-icon">🎨</div>
+          <h2 class="pro-plan-name">Premium Themes Pack</h2>
+          <p class="pro-plan-tagline">Make your workspace uniquely yours — forever.</p>
+          <div class="pro-plan-price">
+            <span class="pro-price-currency">₹</span>
+            <span class="pro-price-amount">149</span>
+            <span class="pro-price-period">one-time</span>
+          </div>
+          <ul class="pro-plan-features">
+            <li>✅ 8 animated wallpapers</li>
+            <li>✅ Neon, Cosmic &amp; Sunset themes</li>
+            <li>✅ Custom sound packs (4 styles)</li>
+            <li>✅ Permanent unlock (no expiry)</li>
+            <li>✅ Works across all devices</li>
+          </ul>
+          <button class="pro-plan-btn" onclick="window.PaymentCheckout.startCheckout('theme_pack', 14900, 'TaskSphere Premium Themes Pack')">
+            Get Themes
+          </button>
+        </div>
 
-        <!-- Pricing scale display -->
-        <div id="pricingScaleGrid" class="pricing-scale-grid"></div>
+        <!-- Plan 4: Team Seat -->
+        <div class="pro-plan-card" id="planCardTeam">
+          <div class="pro-plan-icon">👥</div>
+          <h2 class="pro-plan-name">Add Team Member</h2>
+          <p class="pro-plan-tagline">Invite collaborators and build together.</p>
+          <div class="pro-plan-price">
+            <span class="pro-price-currency">₹</span>
+            <span class="pro-price-amount">199</span>
+            <span class="pro-price-period">/seat/month</span>
+          </div>
+          <ul class="pro-plan-features">
+            <li>✅ 1 additional workspace seat</li>
+            <li>✅ Full task assignment access</li>
+            <li>✅ Real-time chat &amp; collaboration</li>
+            <li>✅ Shared Kanban &amp; Gantt view</li>
+            <li>✅ Remove anytime</li>
+          </ul>
+          <button class="pro-plan-btn" onclick="window.PaymentCheckout.startCheckout('team_seat', 19900, 'TaskSphere Team Seat – 1 Member')">
+            Add Seat
+          </button>
+        </div>
 
-        <button id="pledgeShareBtn" class="pledge-share-btn">
-          Pledge Share (Hold ₹999)
-        </button>
       </div>
 
-      <!-- Recruiter / Developer Testbed Dashboard -->
-      <div class="recruiter-dev-panel">
-        <div class="recruiter-dev-title">
-          <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
-            <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.3C.5 6.7.9 9.8 2.9 11.8c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.5z"/>
-          </svg>
-          <span>Recruiter Security & Verification Sandbox</span>
-        </div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.5;">
-          Use this control panel to verify enterprise security features locally. Inspect signature calculations, replay protections, and dynamic capture workflows in real time.
-        </div>
-        <div class="recruiter-dev-actions">
-          <button id="devMockPledgesBtn" class="recruiter-dev-btn">Fill Pledges (Add 4 Mocks)</button>
-          <button id="devWebhookBtn" class="recruiter-dev-btn">Verify HMAC Webhook</button>
-          <button id="devReplayBtn" class="recruiter-dev-btn">Test Replay (10m Drift)</button>
-          <button id="devSignatureBtn" class="recruiter-dev-btn">Test Bad Signature</button>
-          <button id="devResetBtn" class="recruiter-dev-btn" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">Reset Funding Pool</button>
-        </div>
-        <div id="devConsoleLog" class="recruiter-dev-console">
-          [00:00:00] Webhook security logs initialized. Click "Pledge Share" to generate checkout rails.
-        </div>
+      <!-- Trust bar -->
+      <div class="pro-trust-bar">
+        <span>🔒 256-bit SSL Encryption</span>
+        <span>•</span>
+        <span>✅ Powered by Razorpay</span>
+        <span>•</span>
+        <span>💳 UPI, Cards &amp; Net Banking</span>
+        <span>•</span>
+        <span>↩ Instant Refund on Failure</span>
       </div>
+
+      <!-- Hidden legacy elements needed by old controller (keeps JS working) -->
+      <div style="display:none">
+        <span id="cofundPledgeCount">0</span>
+        <span id="cofundTargetCount">Target: 5 Pledges</span>
+        <div id="cofundProgressBar"></div>
+        <div id="pricingScaleGrid"></div>
+        <button id="pledgeShareBtn"></button>
+        <button id="devMockPledgesBtn"></button>
+        <button id="devWebhookBtn"></button>
+        <button id="devReplayBtn"></button>
+        <button id="devSignatureBtn"></button>
+        <button id="devResetBtn"></button>
+        <div id="devConsoleLog"></div>
+      </div>
+
     </div>
   </template>
 
