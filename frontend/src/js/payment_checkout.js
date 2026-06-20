@@ -8,8 +8,11 @@ class PaymentCheckoutController {
     this.selectedMethod = 'card';
     this.currentOrderId = null;
     this.idempotencyKey = null;
+    this.razorpayKey = null;
+  }
 
-    // Cache elements
+  async init() {
+    // Query elements dynamically since they are loaded inside a routing template
     this.tabContainer = document.getElementById('paymentUpgradeTab');
     this.coFundingSection = document.getElementById('coFundingSection');
     this.pledgeBtn = document.getElementById('pledgeShareBtn');
@@ -32,11 +35,22 @@ class PaymentCheckoutController {
     this.devSignatureBtn = document.getElementById('devSignatureBtn');
     this.devMockPledgesBtn = document.getElementById('devMockPledgesBtn');
     this.devResetBtn = document.getElementById('devResetBtn');
+
+    this.bindEvents();
+    await this.loadConfig();
+    await this.loadActiveSession();
   }
 
-  init() {
-    this.bindEvents();
-    this.loadActiveSession();
+  async loadConfig() {
+    try {
+      const res = await fetch('/api/payments/config');
+      const data = await res.json();
+      this.razorpayKey = data.razorpayKeyId;
+      this.logDevConsole(`Loaded gateway config. Key ID: ${this.razorpayKey}`, 'info');
+    } catch (err) {
+      console.warn('Failed to load payment config, defaulting to mock mode:', err);
+      this.razorpayKey = 'rzp_test_mockKeyId123';
+    }
   }
 
   bindEvents() {
@@ -174,6 +188,11 @@ class PaymentCheckoutController {
   async initiatePledgeCheckout() {
     const currentUser = localStorage.getItem('tasksphere_username') || 'Anonymous';
     
+    // Load config if not loaded
+    if (!this.razorpayKey) {
+      await this.loadConfig();
+    }
+
     // Set a unique idempotency key for this checkout attempt
     if (!this.idempotencyKey) {
       this.idempotencyKey = 'pledge_idemp_' + Math.random().toString(36).substring(2, 15);
@@ -200,16 +219,88 @@ class PaymentCheckoutController {
       }
 
       this.currentOrderId = data.orderId;
-      this.logDevConsole(`Order created successfully on gateway rails. Order ID: ${this.currentOrderId}. Loading checkout iframe...`, 'success');
+      this.logDevConsole(`Order created successfully on gateway rails. Order ID: ${this.currentOrderId}.`, 'success');
 
-      // Open Payment overlay
-      if (this.portalOverlay) {
-        this.portalOverlay.classList.add('payment-portal-overlay--active');
-        this.switchPaymentMethod('card');
+      const isMockKey = !this.razorpayKey || this.razorpayKey === 'rzp_test_mockKeyId123' || this.currentOrderId.startsWith('order_mock_');
+
+      if (!isMockKey) {
+        this.logDevConsole('Real Razorpay credentials found. Opening official Razorpay Checkout SDK popup...', 'info');
+        this.openRealRazorpayCheckout(data.orderId, data.amount);
+      } else {
+        this.logDevConsole('Mock mode active. Opening simulated checkout portal...', 'info');
+        // Open Payment overlay
+        if (this.portalOverlay) {
+          this.portalOverlay.classList.add('payment-portal-overlay--active');
+          this.switchPaymentMethod('card');
+        }
       }
     } catch (err) {
       this.logDevConsole(`Failed to initialize Order: ${err.message}`, 'error');
       alert(`Initialization failed: ${err.message}`);
+    }
+  }
+
+  openRealRazorpayCheckout(orderId, amount) {
+    const currentUser = localStorage.getItem('tasksphere_username') || 'Anonymous';
+    
+    const options = {
+      "key": this.razorpayKey,
+      "amount": Math.round(amount * 100).toString(), // in paise
+      "currency": "INR",
+      "name": "TaskSphere Workspace",
+      "description": "Workspace Premium Co-Funding Upgrade",
+      "order_id": orderId,
+      "handler": async (response) => {
+        this.logDevConsole('Official checkout authorization success. Dispatching signature for verification...', 'success');
+        await this.verifyRealPayment(response);
+      },
+      "prefill": {
+        "name": currentUser,
+        "email": currentUser.toLowerCase() + "@tasksphere.com"
+      },
+      "theme": {
+        "color": "#6366f1"
+      }
+    };
+    
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response) => {
+        this.logDevConsole(`Payment Failed: ${response.error.description}`, 'error');
+        alert(`Payment Failed: ${response.error.description}`);
+      });
+      rzp.open();
+    } catch (err) {
+      this.logDevConsole(`Failed to open Razorpay SDK: ${err.message}`, 'error');
+      alert(`Razorpay SDK Error: ${err.message}`);
+    }
+  }
+
+  async verifyRealPayment(response) {
+    try {
+      const res = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Signature check failed');
+      }
+      
+      this.logDevConsole('Cryptographic signature verified successfully by backend. Unlocking premium features!', 'success');
+      this.showSuccessOverlay();
+      this.idempotencyKey = null;
+    } catch (err) {
+      this.logDevConsole(`Verification failed: ${err.message}`, 'error');
+      alert(`Payment Verification Failed: ${err.message}`);
     }
   }
 

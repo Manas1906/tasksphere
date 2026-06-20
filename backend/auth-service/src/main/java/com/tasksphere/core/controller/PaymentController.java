@@ -9,6 +9,7 @@ import com.tasksphere.core.repository.WorkspaceUpgradeSessionRepository;
 import com.tasksphere.core.repository.UserPledgeRepository;
 import com.tasksphere.core.repository.PaymentTransactionAuditRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,6 +32,12 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
+
+    @Value("${razorpay.key.id:rzp_test_mockKeyId123}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key.secret:mockKeySecret456}")
+    private String razorpayKeySecret;
 
     @Autowired
     private WorkspaceUpgradeSessionRepository sessionRepository;
@@ -176,13 +187,24 @@ public class PaymentController {
             }
 
             // Create gateway representation
-            String mockOrderId = "order_mock_" + UUID.randomUUID().toString().substring(0, 8);
+            String finalOrderId = "order_mock_" + UUID.randomUUID().toString().substring(0, 8);
+            BigDecimal amount = new BigDecimal("999.00");
+
+            boolean isRealGateway = razorpayKeyId != null && !razorpayKeyId.equals("rzp_test_mockKeyId123") && !razorpayKeyId.startsWith("rzp_test_mock");
+
+            if (isRealGateway) {
+                try {
+                    finalOrderId = createRealRazorpayOrder(amount);
+                } catch (Exception e) {
+                    System.err.println("[PAYMENTS] Failed to create real Razorpay Order: " + e.getMessage());
+                }
+            }
 
             UserPledge pledge = UserPledge.builder()
                     .sessionId(session.getId())
                     .username(username)
-                    .orderId(mockOrderId)
-                    .preAuthAmount(new BigDecimal("999.00")) // Base max price held
+                    .orderId(finalOrderId)
+                    .preAuthAmount(amount) // Base max price held
                     .paymentMethod(paymentMethod.toUpperCase())
                     .status("PENDING")
                     .createdAt(Instant.now())
@@ -190,10 +212,10 @@ public class PaymentController {
 
             pledgeRepository.save(pledge);
 
-            setCache(redisLockKey, mockOrderId, 86400); // cache for 24h
+            setCache(redisLockKey, finalOrderId, 86400); // cache for 24h
 
             Map<String, Object> response = new HashMap<>();
-            response.put("orderId", mockOrderId);
+            response.put("orderId", finalOrderId);
             response.put("amount", 999.00);
             response.put("sessionId", session.getId());
             return ResponseEntity.ok(response);
@@ -569,5 +591,161 @@ public class PaymentController {
             }
         }
         idempotencyFallbackMap.remove(key);
+    }
+
+    /**
+     * Retrieve client payment configs dynamically.
+     */
+    @GetMapping("/config")
+    public ResponseEntity<?> getPaymentConfig() {
+        Map<String, String> config = new HashMap<>();
+        config.put("razorpayKeyId", razorpayKeyId);
+        return ResponseEntity.ok(config);
+    }
+
+    /**
+     * Cryptographically verifies Razorpay standard payment signature.
+     */
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> payload) {
+        String paymentId = payload.get("razorpay_payment_id");
+        String orderId = payload.get("razorpay_order_id");
+        String signature = payload.get("razorpay_signature");
+
+        if (paymentId == null || orderId == null || signature == null) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Missing verify fields."));
+        }
+
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(razorpayKeySecret.getBytes("UTF-8"), "HmacSHA256");
+            mac.init(secretKey);
+
+            String signaturePayload = orderId + "|" + paymentId;
+            byte[] calculatedHash = mac.doFinal(signaturePayload.getBytes("UTF-8"));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : calculatedHash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            String calculatedSignature = hexString.toString();
+
+            boolean isValid = MessageDigest.isEqual(
+                calculatedSignature.getBytes("UTF-8"),
+                signature.getBytes("UTF-8")
+            );
+
+            if (!isValid) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Collections.singletonMap("error", "Signature verification failed."));
+            }
+
+            Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
+            if (pledgeOpt.isPresent()) {
+                UserPledge pledge = pledgeOpt.get();
+                pledge.setStatus("AUTHORIZED");
+                pledge.setPaymentId(paymentId);
+                pledgeRepository.save(pledge);
+
+                updateSessionAndUnlock(pledge.getSessionId());
+            }
+
+            return ResponseEntity.ok(Collections.singletonMap("success", true));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    private String createRealRazorpayOrder(BigDecimal amount) throws Exception {
+        String url = "https://api.razorpay.com/v1/orders";
+        int amountInPaise = amount.multiply(new BigDecimal("100")).intValue();
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("amount", amountInPaise);
+        requestBody.put("currency", "INR");
+        requestBody.put("receipt", "rcpt_" + UUID.randomUUID().toString().substring(0, 8));
+
+        String json = objectMapper.writeValueAsString(requestBody);
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((razorpayKeyId + ":" + razorpayKeySecret).getBytes("UTF-8")))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            Map<?, ?> responseMap = objectMapper.readValue(response.body(), Map.class);
+            return (String) responseMap.get("id");
+        } else {
+            throw new RuntimeException("Razorpay API HTTP " + response.statusCode() + ": " + response.body());
+        }
+    }
+
+    private void updateSessionAndUnlock(String sessionId) {
+        Optional<WorkspaceUpgradeSession> sessionOpt = sessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent() && "ACTIVE".equals(sessionOpt.get().getStatus())) {
+            WorkspaceUpgradeSession session = sessionOpt.get();
+            List<UserPledge> activePledges = pledgeRepository.findBySessionId(session.getId());
+            
+            int authorizedCount = (int) activePledges.stream()
+                    .filter(p -> "AUTHORIZED".equals(p.getStatus()))
+                    .count();
+            
+            session.setPledgesCount(authorizedCount);
+            sessionRepository.save(session);
+
+            if (authorizedCount >= session.getTargetPledges()) {
+                session.setStatus("SUCCESS");
+                sessionRepository.save(session);
+
+                BigDecimal finalUnitRate = calculateDiscount(authorizedCount);
+
+                List<UserPledge> pledgesToCapture = pledgeRepository.findBySessionId(session.getId());
+                for (UserPledge p : pledgesToCapture) {
+                    if ("AUTHORIZED".equals(p.getStatus())) {
+                        p.setStatus("CAPTURED");
+                        p.setFinalCapturedAmount(finalUnitRate);
+                        pledgeRepository.save(p);
+
+                        Optional<UserSession> userOpt = userRepository.findByUsername(p.getUsername());
+                        if (userOpt.isPresent()) {
+                            UserSession user = userOpt.get();
+                            
+                            String wallpapers = user.getUnlockedWallpapers();
+                            if (wallpapers == null || wallpapers.isEmpty()) {
+                                wallpapers = "grid";
+                            }
+                            if (!wallpapers.contains("wallpaper_neon")) {
+                                wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic";
+                            }
+                            user.setUnlockedWallpapers(wallpapers);
+
+                            String sounds = user.getUnlockedSounds();
+                            if (sounds == null || sounds.isEmpty()) {
+                                sounds = "minimal";
+                            }
+                            if (!sounds.contains("sound_cyber")) {
+                                sounds += ",sound_cyber,sound_bubble";
+                            }
+                            user.setUnlockedSounds(sounds);
+                            
+                            user.packMetadata(
+                                user.getPureAvatarUrl(),
+                                user.getExtractedEmail(),
+                                user.getPasswordHash(),
+                                user.isMfaEnabled()
+                            );
+                            userRepository.save(user);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
