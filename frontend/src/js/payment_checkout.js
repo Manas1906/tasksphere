@@ -38,13 +38,23 @@ class PaymentCheckoutController {
   }
 
   async loadConfig() {
+    // Priority 1: Vite build-time env variable (KEY_ID only — secret never in frontend)
+    const envKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    if (envKey) {
+      this.razorpayKey = envKey;
+      console.log(`[PAYMENTS] Key loaded from env: ${this.razorpayKey}`);
+      return;
+    }
+
+    // Priority 2: Backend /payments/config endpoint (returns key ID from server config)
     try {
       const data = await api.request('/payments/config');
       this.razorpayKey = data.razorpayKeyId;
-      console.log(`[PAYMENTS] Gateway key loaded: ${this.razorpayKey}`);
+      console.log(`[PAYMENTS] Key loaded from backend: ${this.razorpayKey}`);
     } catch (err) {
+      // Priority 3: Hardcoded test fallback (dev safety net only)
       console.warn('[PAYMENTS] Config load failed, using test fallback key:', err);
-      this.razorpayKey = 'rzp_test_T3wVWQaMX74f40';
+      this.razorpayKey = 'rzp_test_T3ynwX5IgTROHr';
     }
   }
 
