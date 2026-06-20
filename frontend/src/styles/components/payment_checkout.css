@@ -1,0 +1,857 @@
+/* ============================================================
+   TaskSphere Co-Funding Upgrade & Payment Portal CSS Additions
+   ============================================================ */
+
+/* Premium Store & Co-funding Dashboard */
+.cofund-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 24px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.cofund-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.cofund-header h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.cofund-header p {
+  color: var(--text-muted, #94a3b8);
+  font-size: 1rem;
+}
+
+/* Glassmorphic Metrics Card */
+.cofund-metrics-card {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.cofund-metrics-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.cofund-metrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cofund-metrics-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #c084fc;
+}
+
+.cofund-pledge-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cofund-pledge-count {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+
+.cofund-pledge-target {
+  font-size: 1rem;
+  color: #94a3b8;
+}
+
+/* Premium Gradient Progress Bar */
+.cofund-progress-track {
+  width: 100%;
+  height: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cofund-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #c084fc 50%, #ec4899 100%);
+  width: 0%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+}
+
+/* Interactive Pricing scale */
+.pricing-scale-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.pricing-scale-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.pricing-scale-card--active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+  transform: translateY(-4px);
+}
+
+.pricing-scale-card--passed {
+  opacity: 0.6;
+}
+
+.pricing-scale-card .members-num {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.pricing-scale-card .price-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Payment Gateway Portal Iframe/Overlay Mode */
+.payment-portal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.payment-portal-overlay--active {
+  display: flex;
+}
+
+.payment-portal-modal {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-portal-header {
+  background: #1f2937;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-portal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.payment-portal-header .close-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.payment-portal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Method Selector Tabs */
+.payment-methods-tabs {
+  display: flex;
+  background: #1f2937;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.payment-method-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.payment-method-tab--active {
+  background: #374151;
+  color: #fff;
+}
+
+/* Isolated Card Form (PCI DSS compliance) */
+.checkout-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkout-card-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkout-card-input-container label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.checkout-card-input-container input {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: monospace;
+}
+
+.checkout-card-input-container input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.checkout-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.checkout-consent-row input {
+  margin-top: 2px;
+}
+
+/* UPI Payment Panel */
+.checkout-upi-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.upi-qr-box {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.upi-qr-box canvas {
+  display: block;
+}
+
+.upi-or-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  color: #4b5563;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.upi-or-divider::before, .upi-or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #1f2937;
+  margin: 0 10px;
+}
+
+.checkout-vpa-input-row {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+.checkout-vpa-input-row input {
+  flex: 1;
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.checkout-vpa-input-row button {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Netbanking Selector */
+.checkout-netbanking-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bank-option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bank-option-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: #2563eb10;
+}
+
+.bank-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 0.75rem;
+}
+
+/* Secure Bank Redirect / OTP Portal overlay */
+.bank-portal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.bank-portal-container {
+  background: #ffffff;
+  color: #1e293b;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.bank-portal-header {
+  background: #1e3a8a;
+  color: #fff;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bank-portal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bank-portal-body input {
+  border: 1px solid #cbd5e1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-family: monospace;
+}
+
+.bank-submit-btn {
+  background: #1e3a8a;
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.bank-submit-btn:hover {
+  opacity: 0.9;
+}
+
+/* Recruiter Sandbox Tool Floating Console */
+.recruiter-dev-panel {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px dashed rgba(99, 102, 241, 0.4);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 24px;
+  position: relative;
+}
+
+.recruiter-dev-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.recruiter-dev-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.recruiter-dev-btn {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.recruiter-dev-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+.recruiter-dev-console {
+  background: #020617;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  max-height: 140px;
+  overflow-y: auto;
+  color: #34d399;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Shared Unlock Animation Checkmark */
+.payment-success-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.success-checkmark-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px solid #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  font-size: 2.2rem;
+  animation: pulseCheck 2s infinite;
+}
+
+@keyframes pulseCheck {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Premium Neon Wallpaper background styles */
+.chat-messages-container.wallpaper-wallpaper_neon,
+.chat-blank-state.wallpaper-wallpaper_neon {
+  background-color: #0b0f19 !important;
+  background-image: 
+    linear-gradient(rgba(18, 24, 38, 0.95), rgba(18, 24, 38, 0.95)),
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(192, 132, 252, 0.15) 0%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 30px 30px, 30px 30px !important;
+  background-position: 0 0, 0 0, 0 0, center center, center center !important;
+  animation: neonPulse 10s ease-in-out infinite alternate;
+}
+
+@keyframes neonPulse {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(15deg); }
+}
+
+/* ============================================================
+   Vanilla Button and Custom Component Styling
+   ============================================================ */
+.pledge-share-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #ffffff !important;
+  font-weight: 800;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pledge-share-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.pledge-share-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pledge-share-btn:disabled {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pledge-share-btn--secured {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.pledge-share-btn--completed {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1 !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.pricing-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.65rem;
+  background: #6366f1;
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.bank-selection-title {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.bank-option-name {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+/* ============================================================
+   Aesthetic Light Theme Overrides (Bright Mode)
+   ============================================================ */
+body.light-theme .cofund-header h1 {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .cofund-header p {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .cofund-metrics-card {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.08)) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05) !important;
+}
+
+body.light-theme .cofund-metrics-title {
+  color: var(--accent-purple, #4f46e5) !important;
+}
+
+body.light-theme .cofund-pledge-count {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .cofund-pledge-target {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .cofund-metrics-card > p {
+  color: var(--text-light, #334155) !important;
+}
+
+body.light-theme .cofund-progress-track {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.05)) !important;
+}
+
+body.light-theme .pricing-scale-card {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.05)) !important;
+}
+
+body.light-theme .pricing-scale-card--active {
+  background: rgba(79, 70, 229, 0.08) !important;
+  border-color: var(--accent-purple, #4f46e5) !important;
+  box-shadow: 0 0 15px rgba(79, 70, 229, 0.15) !important;
+}
+
+body.light-theme .pricing-scale-card .members-num {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .pricing-scale-card .price-val {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .pricing-card-badge {
+  background: var(--accent-purple, #4f46e5);
+}
+
+body.light-theme .pledge-share-btn:disabled {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .pledge-share-btn--secured {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+body.light-theme .pledge-share-btn--completed {
+  background: rgba(79, 70, 229, 0.08) !important;
+  color: #4f46e5 !important;
+  border: 1px solid rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Modal and Portals */
+body.light-theme .payment-portal-modal {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.08)) !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15) !important;
+}
+
+body.light-theme .payment-portal-header {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  border-bottom: 1px solid var(--border-color, rgba(15, 23, 42, 0.08)) !important;
+}
+
+body.light-theme .payment-portal-header h3 {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .payment-portal-header .close-btn {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .payment-methods-tabs {
+  background: var(--bg-secondary, #f1f5f9) !important;
+}
+
+body.light-theme .payment-method-tab {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .payment-method-tab--active {
+  background: var(--bg-card, #ffffff) !important;
+  color: var(--text-primary, #0f172a) !important;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .checkout-card-input-container label {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .checkout-card-input-container input {
+  background: var(--bg-primary, #f8fafc) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.12)) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .checkout-card-input-container input::placeholder {
+  color: #94a3b8;
+}
+
+body.light-theme .checkout-card-input-container input:focus {
+  border-color: var(--accent-purple, #4f46e5) !important;
+}
+
+body.light-theme .checkout-consent-row {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .checkout-upi-panel div {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .upi-or-divider {
+  color: #94a3b8;
+}
+
+body.light-theme .upi-or-divider::before,
+body.light-theme .upi-or-divider::after {
+  background: var(--border-color, rgba(15, 23, 42, 0.08));
+}
+
+body.light-theme .checkout-vpa-input-row input {
+  background: var(--bg-primary, #f8fafc) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.12)) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .checkout-vpa-input-row button {
+  background: var(--accent-purple, #4f46e5) !important;
+  color: #ffffff !important;
+}
+
+body.light-theme .bank-selection-title {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .bank-option-card {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.06)) !important;
+}
+
+body.light-theme .bank-option-name {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+body.light-theme .bank-option-card:hover {
+  background: rgba(79, 70, 229, 0.05) !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Recruiter Testbed Panel */
+body.light-theme .recruiter-dev-panel {
+  background: rgba(2, 132, 199, 0.03) !important;
+  border: 1px dashed rgba(2, 132, 199, 0.2) !important;
+}
+
+body.light-theme .recruiter-dev-title {
+  color: var(--accent-cyan, #0284c7) !important;
+}
+
+body.light-theme .recruiter-dev-panel div {
+  color: var(--text-muted, #64748b) !important;
+}
+
+body.light-theme .recruiter-dev-btn {
+  background: rgba(2, 132, 199, 0.05) !important;
+  border: 1px solid rgba(2, 132, 199, 0.18) !important;
+  color: var(--accent-cyan, #0284c7) !important;
+}
+
+body.light-theme .recruiter-dev-btn:hover {
+  background: rgba(2, 132, 199, 0.1) !important;
+}
+
+body.light-theme .recruiter-dev-console {
+  background: var(--bg-primary, #f8fafc) !important;
+  border: 1px solid var(--border-color, rgba(15, 23, 42, 0.08)) !important;
+  color: #0f172a !important;
+}
+

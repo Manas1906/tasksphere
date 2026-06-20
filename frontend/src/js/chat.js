@@ -2621,7 +2621,8 @@ export class ChatController {
       'wallpaper-nordic',
       'wallpaper-forest',
       'wallpaper-galaxy',
-      'wallpaper-solid'
+      'wallpaper-solid',
+      'wallpaper-wallpaper_neon'
     ];
     
     if (chatMessages) {

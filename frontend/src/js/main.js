@@ -1427,6 +1427,7 @@ class TaskSphereApp {
     const timelineBtn = document.getElementById('navTimeline');
     const adminBtn = document.getElementById('navAdmin');
     const chatHubBtn = document.getElementById('navChatHub');
+    const upgradeBtn = document.getElementById('navUpgrade');
  
     const clearActive = () => {
       dashboardBtn.classList.remove('sidebar-nav-btn--active');
@@ -1436,6 +1437,7 @@ class TaskSphereApp {
       if (timelineBtn) timelineBtn.classList.remove('sidebar-nav-btn--active');
       if (adminBtn) adminBtn.classList.remove('sidebar-nav-btn--active');
       if (chatHubBtn) chatHubBtn.classList.remove('sidebar-nav-btn--active');
+      if (upgradeBtn) upgradeBtn.classList.remove('sidebar-nav-btn--active');
     };
  
     dashboardBtn.onclick = () => { clearActive(); dashboardBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('DASHBOARD'); };
@@ -1452,6 +1454,9 @@ class TaskSphereApp {
     }
     if (chatHubBtn) {
       chatHubBtn.onclick = () => { clearActive(); chatHubBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('CHAT_HUB'); };
+    }
+    if (upgradeBtn) {
+      upgradeBtn.onclick = () => { clearActive(); upgradeBtn.classList.add('sidebar-nav-btn--active'); this.switchRoute('UPGRADE_WORKSPACE'); };
     }
 
     // Bind Hub Navigation Buttons (WhatsApp Style Fullscreen mode support)
@@ -1911,6 +1916,62 @@ class TaskSphereApp {
       };
     }
 
+    const wallpaperSelect = document.getElementById('settingsWallpaperSelect');
+    if (wallpaperSelect) {
+      let previousWallpaper = wallpaperSelect.value;
+      wallpaperSelect.addEventListener('focus', () => {
+        previousWallpaper = wallpaperSelect.value;
+      });
+      wallpaperSelect.addEventListener('change', async () => {
+        const val = wallpaperSelect.value;
+        if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon') {
+          try {
+            const users = await api.getUsers() || [];
+            const username = localStorage.getItem('chat_username');
+            const me = users.find(u => u.username === username);
+            const unlockedWallpapers = me ? (me.unlockedWallpapers || 'grid') : 'grid';
+            
+            if (!unlockedWallpapers.includes('wallpaper_neon')) {
+              alert('✨ This premium wallpaper is locked! Co-fund the Workspace Premium Pool with your team to unlock custom wallpapers and sounds. 🚀');
+              wallpaperSelect.value = previousWallpaper;
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to verify wallpaper lock:', err);
+          }
+        }
+        previousWallpaper = wallpaperSelect.value;
+      });
+    }
+
+    const soundSelectEl = document.getElementById('settingsSoundSelect');
+    if (soundSelectEl) {
+      let previousSound = soundSelectEl.value;
+      soundSelectEl.addEventListener('focus', () => {
+        previousSound = soundSelectEl.value;
+      });
+      soundSelectEl.addEventListener('change', async () => {
+        const val = soundSelectEl.value;
+        if (val === 'cyber' || val === 'bubble') {
+          try {
+            const users = await api.getUsers() || [];
+            const username = localStorage.getItem('chat_username');
+            const me = users.find(u => u.username === username);
+            const unlockedSounds = me ? (me.unlockedSounds || 'minimal') : 'minimal';
+            
+            if (!unlockedSounds.includes('sound_cyber')) {
+              alert('✨ This premium message chime is locked! Co-fund the Workspace Premium Pool with your team to unlock custom wallpapers and sounds. 🚀');
+              soundSelectEl.value = previousSound;
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to verify sound lock:', err);
+          }
+        }
+        previousSound = soundSelectEl.value;
+      });
+    }
+
     let customAvatarDataUrl = null;
     const fileInput = document.getElementById('avatarFileInput');
     const avatarPreview = document.getElementById('settingsAvatarPreview');
@@ -2210,6 +2271,50 @@ class TaskSphereApp {
           const me = users.find(u => u.username === username);
           if (me) {
             mfaToggle.checked = me.status === 'PENDING_APPROVAL' ? false : me.avatarUrl.includes('||mfa:true');
+
+            // Dynamically unlock options based on co-funded upgrade inventory
+            const unlockedWallpapers = me.unlockedWallpapers || 'grid';
+            const unlockedSounds = me.unlockedSounds || 'minimal';
+
+            // Check wallpapers
+            const wpSelect = document.getElementById('settingsWallpaperSelect');
+            if (wpSelect) {
+              for (let i = 0; i < wpSelect.options.length; i++) {
+                const opt = wpSelect.options[i];
+                const val = opt.value;
+                if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon') {
+                  if (unlockedWallpapers.includes('wallpaper_neon')) {
+                    opt.disabled = false;
+                    opt.textContent = opt.textContent.replace('🔒 Locked - ', '✨ ');
+                  } else {
+                    opt.disabled = false;
+                    if (!opt.textContent.startsWith('🔒')) {
+                      opt.textContent = '🔒 Locked - ' + opt.textContent;
+                    }
+                  }
+                }
+              }
+            }
+
+            // Check sounds
+            const sdSelect = document.getElementById('settingsSoundSelect');
+            if (sdSelect) {
+              for (let i = 0; i < sdSelect.options.length; i++) {
+                const opt = sdSelect.options[i];
+                const val = opt.value;
+                if (val === 'cyber' || val === 'bubble') {
+                  if (unlockedSounds.includes('sound_cyber')) {
+                    opt.disabled = false;
+                    opt.textContent = opt.textContent.replace('🔒 Locked - ', '✨ ');
+                  } else {
+                    opt.disabled = false;
+                    if (!opt.textContent.startsWith('🔒')) {
+                      opt.textContent = '🔒 Locked - ' + opt.textContent;
+                    }
+                  }
+                }
+              }
+            }
           }
         } catch (err) {
           console.warn('[SECURITY-SETTINGS-LOAD] Failed to load user security details:', err);
@@ -2327,6 +2432,22 @@ class TaskSphereApp {
             this.chatController.drawAvatars(cachedUsers);
             this.chatController.drawGroups();
             this.chatController.redrawMessages();
+          }
+        }
+      };
+    } else if (route === 'UPGRADE_WORKSPACE') {
+      const mainContainer = document.getElementById('mainContainer');
+      if (mainContainer) {
+        mainContainer.innerHTML = document.getElementById('coFundingUpgradeTemplate').innerHTML;
+        // Re-initialize payment checks or trigger controller reload
+        if (window.PaymentCheckout) {
+          window.PaymentCheckout.init();
+        }
+      }
+      this.currentView = {
+        render: async () => {
+          if (window.PaymentCheckout) {
+            await window.PaymentCheckout.loadActiveSession();
           }
         }
       };

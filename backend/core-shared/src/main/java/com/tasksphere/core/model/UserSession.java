@@ -41,6 +41,14 @@ public class UserSession {
     @Builder.Default
     private boolean mfaEnabled = false;
 
+    @Column(name = "unlocked_wallpapers", length = 1024)
+    @Builder.Default
+    private String unlockedWallpapers = "grid";
+
+    @Column(name = "unlocked_sounds", length = 1024)
+    @Builder.Default
+    private String unlockedSounds = "minimal";
+
     @Transient
     private String password;
 

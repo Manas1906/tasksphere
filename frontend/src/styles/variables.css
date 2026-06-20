@@ -22,8 +22,8 @@
   --accent-rose-rgb: 244, 63, 94;
 
   /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'Fira Code', 'Courier New', Courier, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: 'Fira Code', Consolas, 'Courier New', Courier, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   
   /* Fluid Typographical scale using clamp() - Day 4 Curriculum */
   --font-size-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.8rem);
