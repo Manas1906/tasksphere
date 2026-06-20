@@ -1,3 +1,5 @@
+import { api } from './api.js';
+
 /**
  * TaskSphere Secure Payment Checkout & Workspace Co-Funding Coordinator
  */
@@ -43,8 +45,7 @@ class PaymentCheckoutController {
 
   async loadConfig() {
     try {
-      const res = await fetch('/api/payments/config');
-      const data = await res.json();
+      const data = await api.request('/payments/config');
       this.razorpayKey = data.razorpayKeyId;
       this.logDevConsole(`Loaded gateway config. Key ID: ${this.razorpayKey}`, 'info');
     } catch (err) {
@@ -96,8 +97,7 @@ class PaymentCheckoutController {
   // Retrieve current active co-funding details
   async loadActiveSession() {
     try {
-      const res = await fetch('/api/payments/co-fund/active');
-      const data = await res.json();
+      const data = await api.request('/payments/co-fund/active');
       
       this.activeSession = data.session;
       this.pledges = data.pledges;
@@ -201,10 +201,9 @@ class PaymentCheckoutController {
     this.logDevConsole(`Initiating Order creation with Idempotency-Key: ${this.idempotencyKey}...`, 'info');
 
     try {
-      const res = await fetch('/api/payments/co-fund/order', {
+      const data = await api.request('/payments/co-fund/order', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Idempotency-Key': this.idempotencyKey
         },
         body: JSON.stringify({
@@ -212,11 +211,6 @@ class PaymentCheckoutController {
           paymentMethod: this.selectedMethod
         })
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Server error');
-      }
 
       this.currentOrderId = data.orderId;
       this.logDevConsole(`Order created successfully on gateway rails. Order ID: ${this.currentOrderId}.`, 'success');
@@ -278,22 +272,14 @@ class PaymentCheckoutController {
 
   async verifyRealPayment(response) {
     try {
-      const res = await fetch('/api/payments/verify', {
+      await api.request('/payments/verify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_order_id: response.razorpay_order_id,
           razorpay_signature: response.razorpay_signature
         })
       });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Signature check failed');
-      }
       
       this.logDevConsole('Cryptographic signature verified successfully by backend. Unlocking premium features!', 'success');
       this.showSuccessOverlay();
@@ -486,11 +472,8 @@ class PaymentCheckoutController {
     this.logDevConsole(`[API-SANDBOX] Dispatched webhook with config { drift=${causeTimeDrift}, signatureSecret='${secret.substring(0, 10)}...' }`, 'info');
 
     try {
-      const res = await fetch('/api/payments/dev/simulate-webhook', {
+      await api.request('/payments/dev/simulate-webhook', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           event: "payment.authorized",
           orderId: this.currentOrderId,
@@ -499,15 +482,7 @@ class PaymentCheckoutController {
         })
       });
 
-      const bodyText = await res.text();
-      
-      if (!res.ok) {
-        this.logDevConsole(`[SECURITY-DENIED] Webhook validation blocked by backend: HTTP ${res.status} - ${bodyText}`, 'error');
-        alert(`Validation Blocked: ${bodyText}`);
-        return;
-      }
-
-      this.logDevConsole(`[SECURITY-VERIFIED] Webhook parsed successfully: HTTP 200 - ${bodyText}`, 'success');
+      this.logDevConsole(`[SECURITY-VERIFIED] Webhook parsed successfully: HTTP 200`, 'success');
       
       // Close portals & reload metrics
       this.closePortal();
@@ -526,11 +501,7 @@ class PaymentCheckoutController {
     this.logDevConsole('[SANDBOX] Requesting fill-mock-pledges setup from server...', 'info');
 
     try {
-      const res = await fetch('/api/payments/dev/fill-mock-pledges', { method: 'POST' });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error);
-
+      await api.request('/payments/dev/fill-mock-pledges', { method: 'POST' });
       this.logDevConsole('[SANDBOX] Populated 4 mock pledges successfully: alice, bob, charlie, david added.', 'success');
       this.loadActiveSession();
 
@@ -544,11 +515,7 @@ class PaymentCheckoutController {
     this.logDevConsole('[SANDBOX] Resetting workspace co-funding pool...', 'info');
 
     try {
-      const res = await fetch('/api/payments/co-fund/reset', { method: 'POST' });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error);
-
+      await api.request('/payments/co-fund/reset', { method: 'POST' });
       this.logDevConsole('[SANDBOX] Reset completed. All pledges voided and new active session initialized.', 'success');
       this.currentOrderId = null;
       this.idempotencyKey = null;
