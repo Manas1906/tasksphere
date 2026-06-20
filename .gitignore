@@ -15,6 +15,10 @@
 .env.production.local
 .eslintcache
 
+# --- Backend local credential files (never commit these) ---
+backend/.env
+backend/**/.env
+
 # --- IDE and Editor Exclusions ---
 .idea/
 .vscode/

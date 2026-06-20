@@ -38,23 +38,26 @@ class PaymentCheckoutController {
   }
 
   async loadConfig() {
-    // Priority 1: Vite build-time env variable (KEY_ID only — secret never in frontend)
+    // Priority 1: Vite build-time env variable (KEY_ID only — secret never reaches frontend)
     const envKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
     if (envKey) {
       this.razorpayKey = envKey;
-      console.log(`[PAYMENTS] Key loaded from env: ${this.razorpayKey}`);
+      console.log('[PAYMENTS] Key loaded from env variable.');
       return;
     }
 
     // Priority 2: Backend /payments/config endpoint (returns key ID from server config)
     try {
       const data = await api.request('/payments/config');
-      this.razorpayKey = data.razorpayKeyId;
-      console.log(`[PAYMENTS] Key loaded from backend: ${this.razorpayKey}`);
+      if (data && data.razorpayKeyId) {
+        this.razorpayKey = data.razorpayKeyId;
+        console.log('[PAYMENTS] Key loaded from backend config API.');
+      } else {
+        console.warn('[PAYMENTS] Backend returned no key. Set RAZORPAY_KEY_ID env var on the server.');
+      }
     } catch (err) {
-      // Priority 3: Hardcoded test fallback (dev safety net only)
-      console.warn('[PAYMENTS] Config load failed, using test fallback key:', err);
-      this.razorpayKey = 'rzp_test_T3ynwX5IgTROHr';
+      console.warn('[PAYMENTS] Could not load Razorpay key. Set VITE_RAZORPAY_KEY_ID in frontend/.env:', err.message);
+      // Do NOT hardcode any key here — keys must come from environment variables only
     }
   }
 
