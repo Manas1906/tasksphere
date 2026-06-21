@@ -8,6 +8,7 @@ import com.tasksphere.core.repository.UserSessionRepository;
 import com.tasksphere.core.repository.WorkspaceUpgradeSessionRepository;
 import com.tasksphere.core.repository.UserPledgeRepository;
 import com.tasksphere.core.repository.PaymentTransactionAuditRepository;
+import com.tasksphere.core.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -54,6 +55,9 @@ public class PaymentController {
 
     @Autowired
     private UserSessionRepository userRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
@@ -375,7 +379,7 @@ public class PaymentController {
                     List<UserPledge> activePledges = pledgeRepository.findBySessionId(session.getId());
                     
                     int authorizedCount = (int) activePledges.stream()
-                            .filter(p -> "AUTHORIZED".equals(p.getStatus()))
+                            .filter(p -> "AUTHORIZED".equals(p.getStatus()) || "CAPTURED".equals(p.getStatus()))
                             .count();
                     
                     session.setPledgesCount(authorizedCount);
@@ -688,112 +692,30 @@ public class PaymentController {
                 }
 
                 log.info("[PAYMENTS] Signature valid. Updating pledge in database for order: {}", orderId);
+                
+                String username = "MANAS ACHARYA";
+                String planId = "pro_monthly";
                 Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
                 if (pledgeOpt.isPresent()) {
                     UserPledge pledge = pledgeOpt.get();
-                    pledge.setStatus("AUTHORIZED");
-                    pledge.setPaymentId(paymentId);
-                    pledgeRepository.save(pledge);
-                    log.info("[PAYMENTS] Updated pledge status to AUTHORIZED: {}", pledge);
-                    updateSessionAndUnlock(pledge.getSessionId());
-                } else {
-                    log.warn("[PAYMENTS] Order ID {} not found in local database. Creating dynamically.", orderId);
-                    WorkspaceUpgradeSession session = sessionRepository
-                            .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
-                            .orElseGet(() -> {
-                                WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
-                                        .workspaceName("Workspace Alpha")
-                                        .targetPledges(5)
-                                        .pledgesCount(0)
-                                        .status("ACTIVE")
-                                        .expiryTime(Instant.now().plus(Duration.ofDays(1)))
-                                        .createdAt(Instant.now())
-                                        .build();
-                                return sessionRepository.save(newSession);
-                            });
-                    
-                    UserPledge pledge = UserPledge.builder()
-                            .sessionId(session.getId())
-                            .username("MANAS ACHARYA") // Fallback
-                            .orderId(orderId)
-                            .paymentId(paymentId)
-                            .preAuthAmount(new BigDecimal("1.00")) // Fallback
-                            .paymentMethod("CARD")
-                            .status("AUTHORIZED")
-                            .createdAt(Instant.now())
-                            .build();
-                    pledgeRepository.save(pledge);
-                    updateSessionAndUnlock(session.getId());
+                    username = pledge.getUsername();
+                    planId = pledge.getPaymentMethod();
                 }
+                
+                processPaymentCaptureAndUnlock(paymentId, username, planId, isRealGateway);
 
                 return ResponseEntity.ok(Collections.singletonMap("success", true));
             }
             
             // Case B: Direct payment verification fallback (when order ID / signature are not provided)
             log.info("[PAYMENTS] Missing order ID / signature. Falling back to direct payment details check.");
-            if (isRealGateway) {
-                Map<?, ?> paymentDetails = fetchRazorpayPaymentDetails(paymentId);
-                String status = (String) paymentDetails.get("status");
-                log.info("[PAYMENTS] Direct payment details fetched. Status: {}", status);
-
-                if ("captured".equals(status) || "authorized".equals(status)) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> notes = (Map<String, String>) paymentDetails.get("notes");
-                    String username = "MANAS ACHARYA";
-                    String planId = "pro_monthly";
-                    
-                    if (notes != null) {
-                        if (notes.containsKey("username")) username = notes.get("username");
-                        if (notes.containsKey("planId")) planId = notes.get("planId");
-                    }
-                    
-                    log.info("[PAYMENTS] Extracted notes - Username: {}, Plan ID: {}", username, planId);
-
-                    final String finalUsername = username;
-                    final String finalPlanId = planId;
-
-                    WorkspaceUpgradeSession session = sessionRepository
-                            .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
-                            .orElseGet(() -> {
-                                WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
-                                        .workspaceName("Workspace Alpha")
-                                        .targetPledges(5)
-                                        .pledgesCount(0)
-                                        .status("ACTIVE")
-                                        .expiryTime(Instant.now().plus(Duration.ofDays(1)))
-                                        .createdAt(Instant.now())
-                                        .build();
-                                return sessionRepository.save(newSession);
-                            });
-
-                    UserPledge pledge = pledgeRepository.findByOrderId(paymentId).orElseGet(() -> {
-                        return UserPledge.builder()
-                                .sessionId(session.getId())
-                                .username(finalUsername)
-                                .orderId(paymentId) // use payment ID as order ID to prevent key constraint violations
-                                .paymentId(paymentId)
-                                .preAuthAmount(new BigDecimal("1.00"))
-                                .paymentMethod(finalPlanId.toUpperCase())
-                                .status("AUTHORIZED")
-                                .createdAt(Instant.now())
-                                .build();
-                    });
-                    
-                    pledge.setStatus("AUTHORIZED");
-                    pledgeRepository.save(pledge);
-                    log.info("[PAYMENTS] Saved direct payment pledge: {}", pledge);
-                    
-                    updateSessionAndUnlock(session.getId());
-                    return ResponseEntity.ok(Collections.singletonMap("success", true));
-                } else {
-                    log.warn("[PAYMENTS] Direct payment check failed. Status was not captured/authorized: {}", status);
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body(Collections.singletonMap("error", "Payment is not successfully captured/authorized. Status: " + status));
-                }
-            } else {
-                log.info("[PAYMENTS] Mock mode - allowing direct payment verification.");
-                return ResponseEntity.ok(Collections.singletonMap("success", true));
-            }
+            
+            String username = "MANAS ACHARYA";
+            String planId = "pro_monthly";
+            
+            processPaymentCaptureAndUnlock(paymentId, username, planId, isRealGateway);
+            return ResponseEntity.ok(Collections.singletonMap("success", true));
+            
         } catch (Exception e) {
             log.error("[PAYMENTS] Exception in verifyPayment: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
@@ -862,7 +784,7 @@ public class PaymentController {
             List<UserPledge> activePledges = pledgeRepository.findBySessionId(session.getId());
             
             int authorizedCount = (int) activePledges.stream()
-                    .filter(p -> "AUTHORIZED".equals(p.getStatus()))
+                    .filter(p -> "AUTHORIZED".equals(p.getStatus()) || "CAPTURED".equals(p.getStatus()))
                     .count();
             
             session.setPledgesCount(authorizedCount);
@@ -913,6 +835,199 @@ public class PaymentController {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private Map<?, ?> captureRazorpayPayment(String paymentId, int amountInPaise, String currency) throws Exception {
+        String url = "https://api.razorpay.com/v1/payments/" + paymentId + "/capture";
+        log.info("[PAYMENTS] Programmatically capturing payment: {} with amount (paise): {} {}", paymentId, amountInPaise, currency);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("amount", amountInPaise);
+        requestBody.put("currency", currency != null ? currency : "INR");
+
+        String json = objectMapper.writeValueAsString(requestBody);
+        String authHeader = "Basic " + Base64.getEncoder().encodeToString((razorpayKeyId + ":" + razorpayKeySecret).getBytes("UTF-8"));
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("Authorization", authHeader)
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        log.info("[PAYMENTS] Razorpay Capture API Response Status: {}", response.statusCode());
+        log.info("[PAYMENTS] Razorpay Capture API Response Body: {}", response.body());
+
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return objectMapper.readValue(response.body(), Map.class);
+        } else {
+            throw new RuntimeException("Razorpay Capture API HTTP " + response.statusCode() + ": " + response.body());
+        }
+    }
+
+    private void processPaymentCaptureAndUnlock(String paymentId, String username, String planId, boolean isRealGateway) {
+        log.info("[PAYMENTS] Processing capture/unlock for paymentId: {}, username: {}, plan: {}", paymentId, username, planId);
+        
+        try {
+            String status = "captured";
+            int amountInPaise = 100;
+            String currency = "INR";
+            String resolvedUsername = username;
+            String resolvedPlanId = planId;
+            
+            if (isRealGateway) {
+                Map<?, ?> paymentDetails = fetchRazorpayPaymentDetails(paymentId);
+                status = (String) paymentDetails.get("status");
+                
+                Object amtObj = paymentDetails.get("amount");
+                if (amtObj instanceof Number) {
+                    amountInPaise = ((Number) amtObj).intValue();
+                } else if (amtObj != null) {
+                    amountInPaise = Integer.parseInt(amtObj.toString());
+                }
+                currency = (String) paymentDetails.get("currency");
+                
+                @SuppressWarnings("unchecked")
+                Map<String, String> notes = (Map<String, String>) paymentDetails.get("notes");
+                if (notes != null) {
+                    if (notes.containsKey("username")) resolvedUsername = notes.get("username");
+                    if (notes.containsKey("planId")) resolvedPlanId = notes.get("planId");
+                }
+                
+                log.info("[PAYMENTS] Real payment fetched: status={}, amount={}, currency={}", status, amountInPaise, currency);
+                
+                if ("authorized".equals(status)) {
+                    log.info("[PAYMENTS] Payment {} is authorized. Capturing now...", paymentId);
+                    Map<?, ?> captureResponse = captureRazorpayPayment(paymentId, amountInPaise, currency);
+                    status = (String) captureResponse.get("status");
+                    log.info("[PAYMENTS] Capture response status: {}", status);
+                }
+            } else {
+                log.info("[PAYMENTS] Mock mode. Skipping real Razorpay capture.");
+            }
+            
+            WorkspaceUpgradeSession session = sessionRepository
+                    .findFirstByStatusOrderByCreatedAtDesc("ACTIVE")
+                    .orElseGet(() -> {
+                        WorkspaceUpgradeSession newSession = WorkspaceUpgradeSession.builder()
+                                .workspaceName("Workspace Alpha")
+                                .targetPledges(5)
+                                .pledgesCount(0)
+                                .status("ACTIVE")
+                                .expiryTime(Instant.now().plus(Duration.ofDays(1)))
+                                .createdAt(Instant.now())
+                                .build();
+                        return sessionRepository.save(newSession);
+                    });
+
+            String finalUsername = resolvedUsername;
+            String finalPlanId = resolvedPlanId;
+            String finalStatus = status;
+            int finalAmountInPaise = amountInPaise;
+            
+            Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(paymentId);
+            if (pledgeOpt.isEmpty()) {
+                List<UserPledge> usernamePledges = pledgeRepository.findByUsername(finalUsername);
+                pledgeOpt = usernamePledges.stream()
+                        .filter(p -> paymentId.equals(p.getPaymentId()) || paymentId.equals(p.getOrderId()))
+                        .findFirst();
+            }
+            
+            UserPledge pledge = pledgeOpt.orElseGet(() -> {
+                return UserPledge.builder()
+                        .sessionId(session.getId())
+                        .username(finalUsername)
+                        .orderId(paymentId)
+                        .paymentId(paymentId)
+                        .preAuthAmount(BigDecimal.valueOf(finalAmountInPaise).divide(BigDecimal.valueOf(100)))
+                        .paymentMethod(finalPlanId.toUpperCase())
+                        .status("PENDING")
+                        .createdAt(Instant.now())
+                        .build();
+            });
+            
+            pledge.setStatus("captured".equals(finalStatus) ? "CAPTURED" : "AUTHORIZED");
+            pledge.setPaymentId(paymentId);
+            pledge.setFinalCapturedAmount(BigDecimal.valueOf(finalAmountInPaise).divide(BigDecimal.valueOf(100)));
+            pledgeRepository.save(pledge);
+            log.info("[PAYMENTS] Saved pledge: {}", pledge);
+            
+            Optional<UserSession> userOpt = userRepository.findByUsername(finalUsername);
+            if (userOpt.isPresent()) {
+                UserSession user = userOpt.get();
+                log.info("[PAYMENTS] Unlocking features for user: {}", finalUsername);
+                
+                if ("pro_monthly".equalsIgnoreCase(finalPlanId) || "theme_pack".equalsIgnoreCase(finalPlanId)) {
+                    String wallpapers = user.getUnlockedWallpapers();
+                    if (wallpapers == null || wallpapers.isEmpty()) {
+                        wallpapers = "grid";
+                    }
+                    if (!wallpapers.contains("wallpaper_neon")) {
+                        wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic";
+                    }
+                    user.setUnlockedWallpapers(wallpapers);
+
+                    String sounds = user.getUnlockedSounds();
+                    if (sounds == null || sounds.isEmpty()) {
+                        sounds = "minimal";
+                    }
+                    if (!sounds.contains("sound_cyber")) {
+                        sounds += ",sound_cyber,sound_bubble";
+                    }
+                    user.setUnlockedSounds(sounds);
+                }
+                
+                user.packMetadata(
+                    user.getPureAvatarUrl(),
+                    user.getExtractedEmail(),
+                    user.getPasswordHash(),
+                    user.isMfaEnabled()
+                );
+                userRepository.save(user);
+                
+                String userEmail = user.getExtractedEmail();
+                if (userEmail != null && !userEmail.trim().isEmpty()) {
+                    try {
+                        emailService.sendPurchaseSuccessEmail(userEmail, finalUsername, finalPlanId);
+                        log.info("[PAYMENTS] Sent purchase success email to: {}", userEmail);
+                    } catch (Exception ex) {
+                        log.error("[PAYMENTS] Failed to send purchase success email: {}", ex.getMessage(), ex);
+                    }
+                } else {
+                    log.warn("[PAYMENTS] User has no registered email. Email notification skipped.");
+                }
+            } else {
+                log.warn("[PAYMENTS] UserSession not found for username: {}. Features not unlocked, email skipped.", finalUsername);
+            }
+            
+            updateSessionMetrics(session.getId());
+            
+        } catch (Exception e) {
+            log.error("[PAYMENTS] Error in processPaymentCaptureAndUnlock: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void updateSessionMetrics(String sessionId) {
+        Optional<WorkspaceUpgradeSession> sessionOpt = sessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent() && "ACTIVE".equals(sessionOpt.get().getStatus())) {
+            WorkspaceUpgradeSession session = sessionOpt.get();
+            List<UserPledge> activePledges = pledgeRepository.findBySessionId(session.getId());
+            
+            int authorizedCount = (int) activePledges.stream()
+                    .filter(p -> "AUTHORIZED".equals(p.getStatus()) || "CAPTURED".equals(p.getStatus()))
+                    .count();
+            
+            session.setPledgesCount(authorizedCount);
+            sessionRepository.save(session);
+
+            if (authorizedCount >= session.getTargetPledges()) {
+                session.setStatus("SUCCESS");
+                sessionRepository.save(session);
             }
         }
     }

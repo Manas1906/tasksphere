@@ -35,6 +35,7 @@ class PaymentCheckoutController {
     this.devResetBtn      = document.getElementById('devResetBtn');
 
     await this.loadConfig();
+    await this.loadActiveSession();
   }
 
   async loadConfig() {
@@ -68,7 +69,7 @@ class PaymentCheckoutController {
    * @param {string} description   - Human-readable product name shown inside Razorpay modal
    */
   async startCheckout(planId, amountInPaise, description) {
-    const currentUser = localStorage.getItem('tasksphere_username') || 'user';
+    const currentUser = localStorage.getItem('chat_username') || localStorage.getItem('tasksphere_username') || 'user';
 
     if (!this.razorpayKey) {
       await this.loadConfig();
@@ -170,6 +171,7 @@ class PaymentCheckoutController {
 
       document.querySelectorAll('.pro-plan-card').forEach(c => c.style.outline = '');
       this._showSuccessModal(planId);
+      await this.loadActiveSession();
 
     } catch (err) {
       console.error('[PAYMENTS] Signature verification failed:', err.message);
@@ -217,7 +219,72 @@ class PaymentCheckoutController {
   }
 
   // Legacy stubs (keep hidden elements from throwing errors)
-  async loadActiveSession() {}
+  async loadActiveSession() {
+    try {
+      console.log('[PAYMENTS] Loading active session/pledges from backend...');
+      const data = await api.request('/payments/co-fund/active');
+      if (data && data.pledges) {
+        this.pledges = data.pledges;
+        this.updateUpgradeUI();
+      }
+    } catch (err) {
+      console.error('[PAYMENTS] Error loading active session / pledges:', err);
+    }
+  }
+
+  updateUpgradeUI() {
+    const currentUser = localStorage.getItem('chat_username') || localStorage.getItem('tasksphere_username') || 'user';
+    console.log('[PAYMENTS] Updating Upgrade UI for user:', currentUser);
+    
+    // Find all successful/active/authorized/captured pledges for the current user
+    const userPledges = this.pledges.filter(p => 
+      p.username.toLowerCase() === currentUser.toLowerCase() && 
+      (p.status === 'AUTHORIZED' || p.status === 'CAPTURED' || p.status === 'SUCCESS' || p.status === 'ACTIVE')
+    );
+    
+    console.log('[PAYMENTS] Found user pledges:', userPledges);
+    
+    // Reset all buttons to default first to handle resets or updates
+    const plans = {
+      'pro_monthly': { cardId: 'planCardPro', defaultText: 'Get Pro Now', successText: '✨ Active' },
+      'pdf_export':  { cardId: 'planCardPdf', defaultText: 'Buy Export', successText: '✨ Unlocked / Download' },
+      'theme_pack':  { cardId: 'planCardTheme', defaultText: 'Get Themes', successText: '✨ Unlocked / Active' },
+      'team_seat':   { cardId: 'planCardTeam', defaultText: 'Add Seat', successText: '✨ Seat Unlocked' }
+    };
+    
+    Object.keys(plans).forEach(planId => {
+      const plan = plans[planId];
+      const card = document.getElementById(plan.cardId);
+      if (card) {
+        const btn = card.querySelector('.pro-plan-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = plan.defaultText;
+          btn.style.background = '';
+          btn.style.cursor = '';
+        }
+      }
+    });
+    
+    // Now disable/update buttons for purchased/unlocked plans
+    userPledges.forEach(pledge => {
+      const planId = pledge.paymentMethod.toLowerCase(); // paymentMethod contains the planId (e.g. 'PRO_MONTHLY', 'PDF_EXPORT')
+      const plan = plans[planId];
+      if (plan) {
+        const card = document.getElementById(plan.cardId);
+        if (card) {
+          const btn = card.querySelector('.pro-plan-btn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = plan.successText;
+            btn.style.background = 'var(--accent-green, #10b981)';
+            btn.style.cursor = 'default';
+          }
+        }
+      }
+    });
+  }
+
   renderMetrics() {}
   renderPricingScale() {}
   checkUserPledgeStatus() {}

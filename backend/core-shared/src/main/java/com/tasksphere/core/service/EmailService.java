@@ -126,6 +126,29 @@ public class EmailService {
         executeDirectEmailDispatch("GROUP_ADD", cleanEmail, subject, htmlMessage);
     }
 
+    /**
+     * Dispatch purchase confirmation email asynchronously.
+     */
+    @Async
+    public void sendPurchaseSuccessEmail(String toEmail, String username, String planId) {
+        String cleanEmail = toEmail.toLowerCase().trim();
+        String htmlMessage = getPurchaseTemplate(username, planId);
+        String subject = "Subscription Confirmed! Unlocked " + getPlanDisplayName(planId) + " for " + username;
+
+        log.info("[EMAIL-SERVICE] SENDING PURCHASE SUCCESS EMAIL - Deliver to: {}, PLAN: {}", cleanEmail, planId);
+
+        // Try enqueuing onto Redis first
+        boolean enqueued = redisQueueService.enqueueEmail("PURCHASE_SUCCESS", cleanEmail, subject, htmlMessage);
+        if (enqueued) {
+            log.info("[EMAIL-SERVICE] Purchase Success EmailEvent successfully enqueued onto Redis.");
+            return;
+        }
+
+        // Fallback: Direct execution if Redis is offline
+        executeDirectEmailDispatch("PURCHASE_SUCCESS", cleanEmail, subject, htmlMessage);
+    }
+
+
 
     /**
      * Direct synchronous dispatch of transactional emails.
@@ -369,6 +392,54 @@ public class EmailService {
              + "  <div style=\"text-align: center; margin-top: 35px; border-top: 1px solid #1e293b; padding-top: 25px;\">"
              + "    <p style=\"color: #64748b; font-size: 11px; margin: 0; line-height: 1.6;\">"
              + "      To join the conversation, open your TaskSphere app, log in to your account, and select the group from the groups bar."
+             + "    </p>"
+             + "  </div>"
+             + "</div>";
+    }
+
+    private String getPlanDisplayName(String planId) {
+        if (planId == null) return "Premium Features";
+        switch (planId.toLowerCase()) {
+            case "pro_monthly": return "TaskSphere Pro";
+            case "pdf_export": return "PDF Report Export";
+            case "theme_pack": return "Premium Themes Pack";
+            case "team_seat": return "Additional Team Seat";
+            default: return planId;
+        }
+    }
+
+    private String getPurchaseTemplate(String username, String planId) {
+        String planName = getPlanDisplayName(planId);
+        return "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; background: #0c0f1d; padding: 40px; color: #f3f4f6; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5);\">"
+             + "  <div style=\"text-align: center; margin-bottom: 35px;\">"
+             + "    <div style=\"display: inline-block; padding: 8px 16px; background: rgba(16, 185, 129, 0.1); border-radius: 20px; margin-bottom: 12px; border: 1px solid rgba(16, 185, 129, 0.3);\">"
+             + "      <span style=\"color: #10b981; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;\">Payment Successful</span>"
+             + "    </div>"
+             + "    <h1 style=\"color: #ffffff; font-size: 32px; font-weight: 800; margin: 0; letter-spacing: 2px; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;\">TASKSPHERE</h1>"
+             + "    <p style=\"color: #94a3b8; font-size: 14px; margin: 5px 0 0 0;\">Enterprise Upgrade Confirmed</p>"
+             + "  </div>"
+             + "  "
+             + "  <div style=\"background: linear-gradient(135deg, #111827 0%, #080b19 100%); padding: 30px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px;\">"
+             + "    <h2 style=\"margin-top: 0; color: #ffffff; font-size: 20px; font-weight: 700; border-bottom: 1px solid #1e293b; padding-bottom: 15px;\">Purchase Complete! 🎉</h2>"
+             + "    <p style=\"color: #cbd5e1; font-size: 15px; line-height: 1.6; margin-bottom: 20px;\">"
+             + "      Hello " + username + ", your payment has been processed successfully. Your subscription for **" + planName + "** is now active, and the respective features have been unlocked on your workspace."
+             + "    </p>"
+             + "    "
+             + "    <div style=\"margin: 15px 0; display: grid; gap: 10px;\">"
+             + "      <div style=\"background: rgba(16, 185, 129, 0.05); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.15);\">"
+             + "        <div style=\"color: #10b981; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;\">Subscription / Add-on</div>"
+             + "        <div style=\"color: #ffffff; font-size: 16px; font-weight: 600; margin-top: 4px;\">✨ " + planName + "</div>"
+             + "      </div>"
+             + "      <div style=\"background: rgba(0, 240, 255, 0.05); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.15);\">"
+             + "        <div style=\"color: #00f0ff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;\">Status</div>"
+             + "        <div style=\"color: #ffffff; font-size: 16px; font-weight: 600; margin-top: 4px;\">👑 ACTIVE / UNLOCKED</div>"
+             + "      </div>"
+             + "    </div>"
+             + "  </div>"
+             + "  "
+             + "  <div style=\"text-align: center; margin-top: 35px; border-top: 1px solid #1e293b; padding-top: 25px;\">"
+             + "    <p style=\"color: #64748b; font-size: 11px; margin: 0; line-height: 1.6;\">"
+             + "      Thank you for supporting TaskSphere. If you have any questions, feel free to reply to this email or reach out to our team."
              + "    </p>"
              + "  </div>"
              + "</div>";
