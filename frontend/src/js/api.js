@@ -6,8 +6,7 @@
 const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) return envUrl;
-  const hostname = window.location.hostname || 'localhost';
-  return `http://${hostname}:8080`;
+  return '';
 };
 
 const API_URL = getApiUrl();
