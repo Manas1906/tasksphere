@@ -1924,7 +1924,7 @@ class TaskSphereApp {
       });
       wallpaperSelect.addEventListener('change', async () => {
         const val = wallpaperSelect.value;
-        if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon') {
+        if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon' || val === 'chatbox') {
           try {
             const users = await api.getUsers() || [];
             const username = localStorage.getItem('chat_username');
@@ -2282,7 +2282,7 @@ class TaskSphereApp {
               for (let i = 0; i < wpSelect.options.length; i++) {
                 const opt = wpSelect.options[i];
                 const val = opt.value;
-                if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon') {
+                if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon' || val === 'chatbox') {
                   if (unlockedWallpapers.includes('wallpaper_neon')) {
                     opt.disabled = false;
                     opt.textContent = opt.textContent.replace('🔒 Locked - ', '✨ ');
