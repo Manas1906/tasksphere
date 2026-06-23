@@ -911,40 +911,53 @@ body.light-theme .recruiter-dev-console {
 /* Plans Grid */
 .pro-plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .pro-plans-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pro-plans-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Plan Card */
 .pro-plan-card {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
-  padding: 28px 24px;
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   position: relative;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
+  backdrop-filter: blur(8px);
 }
 
 .pro-plan-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-6px);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 /* Featured/Popular Card */
 .pro-plan-card--featured {
-  background: linear-gradient(160deg, rgba(79, 70, 229, 0.2) 0%, rgba(147, 51, 234, 0.15) 100%);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 20px 40px rgba(99, 102, 241, 0.1);
+  background: linear-gradient(165deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25), 0 20px 40px rgba(99, 102, 241, 0.12);
 }
 
 .pro-plan-card--featured:hover {
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.5), 0 25px 50px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.55), 0 25px 50px rgba(99, 102, 241, 0.22);
 }
 
 .pro-plan-badge {
@@ -956,7 +969,7 @@ body.light-theme .recruiter-dev-console {
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   text-transform: uppercase;
 }
@@ -964,12 +977,24 @@ body.light-theme .recruiter-dev-console {
 .pro-plan-icon {
   font-size: 2.2rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pro-plan-svg-icon {
+  width: 44px;
+  height: 44px;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pro-plan-card:hover .pro-plan-svg-icon {
+  transform: scale(1.15) rotate(6deg);
 }
 
 .pro-plan-name {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: #fff;
+  color: #ffffff;
   letter-spacing: -0.02em;
   margin: 0;
 }
@@ -990,15 +1015,15 @@ body.light-theme .recruiter-dev-console {
 }
 
 .pro-price-currency {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: #a5b4fc;
 }
 
 .pro-price-amount {
-  font-size: 2.8rem;
+  font-size: 3rem;
   font-weight: 900;
-  color: #fff;
+  color: #ffffff;
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -1016,14 +1041,25 @@ body.light-theme .recruiter-dev-console {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
 }
 
 .pro-plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 0.85rem;
   color: #cbd5e1;
   line-height: 1.4;
+}
+
+.feat-check-svg {
+  width: 16px;
+  height: 16px;
+  fill: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* CTA Buttons */
@@ -1032,7 +1068,7 @@ body.light-theme .recruiter-dev-console {
   padding: 13px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: #e2e8f0;
   font-size: 0.95rem;
   font-weight: 700;
@@ -1042,8 +1078,8 @@ body.light-theme .recruiter-dev-console {
 }
 
 .pro-plan-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
 }
 
@@ -1051,29 +1087,118 @@ body.light-theme .recruiter-dev-console {
   background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
 }
 
 .pro-plan-btn--primary:hover {
   background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
   transform: translateY(-2px);
 }
 
-/* Trust Bar */
-.pro-trust-bar {
+/* Premium Standard Payment Footer */
+.pro-payment-footer {
   display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  margin-top: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.pro-trust-badges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.trust-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.trust-badge-icon {
+  width: 24px;
+  height: 24px;
+  fill: #818cf8;
+  flex-shrink: 0;
+}
+
+.trust-badge-text h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 4px 0;
+}
+
+.trust-badge-text p {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.pro-payment-methods {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 16px;
+}
+
+.payment-methods-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.payment-methods-logos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.method-logo-card {
+  height: 28px;
+  padding: 0 10px;
+  background: #ffffff;
+  border-radius: 6px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px 20px;
-  padding: 18px 24px;
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.method-logo-card svg {
+  height: 14px;
+  max-height: 14px;
+}
+
+.pcidss-badge {
+  background: #1e293b;
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0 8px;
+  display: flex;
+  gap: 4px;
+  letter-spacing: 0.03em;
+}
+
+.pcidss-badge .pci-sec {
+  color: #34d399;
 }
 
 /* ============================================================
@@ -1158,8 +1283,36 @@ body.light-theme .pro-plan-btn--primary:hover {
   background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
 }
 
-body.light-theme .pro-trust-bar {
-  background: #f8fafc;
-  border-color: rgba(15, 23, 42, 0.06);
+body.light-theme .pro-payment-footer {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+body.light-theme .pro-payment-methods {
+  border-top-color: #e2e8f0;
+}
+
+body.light-theme .trust-badge-text h4 {
+  color: #0f172a;
+}
+
+body.light-theme .trust-badge-text p {
   color: #64748b;
 }
+
+body.light-theme .trust-badge-icon {
+  fill: #4f46e5;
+}
+
+@media (max-width: 768px) {
+  .pro-trust-badges {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .pro-payment-methods {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
