@@ -6,7 +6,18 @@
 const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) return envUrl;
-  return '';
+  const hostname = window.location.hostname;
+  const isLocal = !hostname || 
+                  hostname === 'localhost' || 
+                  hostname === '127.0.0.1' || 
+                  hostname.startsWith('192.168.') || 
+                  hostname.startsWith('10.') || 
+                  hostname.startsWith('172.');
+  if (isLocal) {
+    return '';
+  } else {
+    return 'https://tasksphere-backend-w0pb.onrender.com';
+  }
 };
 
 const API_URL = getApiUrl();
