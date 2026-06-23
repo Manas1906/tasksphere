@@ -420,7 +420,7 @@ public class PaymentController {
                                         sounds = "minimal";
                                     }
                                     if (!sounds.contains("sound_cyber")) {
-                                        sounds += ",sound_cyber,sound_bubble";
+                                        sounds += ",sound_cyber,sound_bubble,sound_digital,sound_cosmic,sound_classic";
                                     }
                                     user.setUnlockedSounds(sounds);
                                     
@@ -821,7 +821,7 @@ public class PaymentController {
                                 sounds = "minimal";
                             }
                             if (!sounds.contains("sound_cyber")) {
-                                sounds += ",sound_cyber,sound_bubble";
+                                sounds += ",sound_cyber,sound_bubble,sound_digital,sound_cosmic,sound_classic";
                             }
                             user.setUnlockedSounds(sounds);
                             
@@ -976,7 +976,7 @@ public class PaymentController {
                         sounds = "minimal";
                     }
                     if (!sounds.contains("sound_cyber")) {
-                        sounds += ",sound_cyber,sound_bubble";
+                        sounds += ",sound_cyber,sound_bubble,sound_digital,sound_cosmic,sound_classic";
                     }
                     user.setUnlockedSounds(sounds);
                 }

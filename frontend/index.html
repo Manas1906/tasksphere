@@ -357,6 +357,11 @@
                 </svg>
                 <span class="btn-text">Clear</span>
               </button>
+              <button id="chatSettingsBtn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; transition: all var(--transition-fast);" title="Workspace & Chat Settings">
+                <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                </svg>
+              </button>
               <button id="closeChatBtn" class="mobile-nav-close" style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1">&times;</button>
             </div>
           </div>
@@ -619,8 +624,19 @@
                 <option value="silent">Silent (No Sound)</option>
                 <option value="cyber">🔒 Locked - Cyber Sweep (Tech Click)</option>
                 <option value="bubble">🔒 Locked - Retro Bubble (Pop Sound)</option>
+                <option value="digital">🔒 Locked - Digital Chime (Double-Synth)</option>
+                <option value="cosmic">🔒 Locked - Cosmic Ping (Sweep Sound)</option>
+                <option value="bell">🔒 Locked - Classic Bell (Multi-Tone Chord)</option>
+                <option value="custom">🔒 Locked - Upload Custom Audio (.mp3/.wav)</option>
               </select>
               <button type="button" id="testSoundBtn" class="btn btn--secondary" style="height: 38px; padding: 0 16px; font-size: 11px; white-space: nowrap;">Test Audio</button>
+            </div>
+            <div id="customSoundUploadRow" style="display: none; align-items: center; gap: 8px; margin-top: 8px; width: 100%;">
+              <label for="customSoundFileInput" class="btn btn--outline" style="padding: 6px 12px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin: 0; flex: 1; text-align: center; white-space: nowrap;">
+                <span>Choose Audio File</span>
+                <input type="file" id="customSoundFileInput" accept="audio/*" style="display: none;">
+              </label>
+              <span id="customSoundFileName" style="font-size: 11px; color: var(--text-muted); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
             </div>
             <p style="font-size: 10px; color: var(--text-muted); margin: 4px 0 0 0;">Select your custom sound scape synthesized locally in-browser.</p>
           </div>
