@@ -2641,6 +2641,12 @@ export class ChatController {
       chatContainer.classList.remove(...wallpaperClasses);
       chatContainer.classList.add(`wallpaper-${wallpaperName}`);
     }
+
+    const chatPanel = document.querySelector('.chat-panel');
+    if (chatPanel) {
+      chatPanel.classList.remove(...wallpaperClasses);
+      chatPanel.classList.add(`wallpaper-${wallpaperName}`);
+    }
   }
 
   openSandboxModal(codeText) {

@@ -159,6 +159,8 @@ class PaymentCheckoutController {
     console.log('[PAYMENTS] Authorized. Verifying signature...');
     this._showToast('Payment received! Verifying...', 'info');
 
+    const currentUser = localStorage.getItem('chat_username') || localStorage.getItem('tasksphere_username') || 'user';
+
     try {
       await api.request('/payments/verify', {
         method: 'POST',
@@ -166,6 +168,8 @@ class PaymentCheckoutController {
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_order_id:   response.razorpay_order_id,
           razorpay_signature:  response.razorpay_signature,
+          username:            currentUser,
+          planId:              planId
         })
       });
 

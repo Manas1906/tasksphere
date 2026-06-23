@@ -5,7 +5,7 @@
    ============================================================ */
 
 /* Scoped variables for Chatbox Theme */
-.app-chat.wallpaper-chatbox {
+.wallpaper-chatbox {
   --cb-primary: #6F6CD9;
   --cb-primary-light: #8B89E7;
   --cb-bg-dark-sidebar: #0F0E17;
@@ -33,36 +33,36 @@
 }
 
 /* Light Theme Outer Scoping */
-body.light-theme .app-chat.wallpaper-chatbox {
+body.light-theme .wallpaper-chatbox {
   background: var(--cb-bg-light-sidebar) !important;
   border-left: 1px solid var(--cb-border-light-bubble) !important;
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.04) !important;
 }
 
 /* Left Sidebar (Channels + DMs list) Redesign */
-.app-chat.wallpaper-chatbox .chat-hub-left-col {
+.wallpaper-chatbox .chat-hub-left-col {
   background: var(--cb-bg-dark-sidebar) !important;
   border-right: 1px solid rgba(111, 108, 217, 0.1) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-hub-left-col {
+body.light-theme .wallpaper-chatbox .chat-hub-left-col {
   background: var(--cb-bg-light-sidebar) !important;
   border-right: 1px solid var(--cb-border-light-bubble) !important;
 }
 
 /* Search Area */
-.app-chat.wallpaper-chatbox .chat-search-container {
+.wallpaper-chatbox .chat-search-container {
   background: var(--cb-bg-dark-header) !important;
   border-bottom: 1px solid rgba(111, 108, 217, 0.1) !important;
   padding: 16px 20px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-search-container {
+body.light-theme .wallpaper-chatbox .chat-search-container {
   background: var(--cb-bg-light-header) !important;
   border-bottom: 1px solid var(--cb-border-light-bubble) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-search-input {
+.wallpaper-chatbox .chat-search-input {
   background: var(--cb-bg-dark-bubble) !important;
   border: 1px solid var(--cb-border-dark-bubble) !important;
   color: var(--cb-text-dark) !important;
@@ -71,57 +71,57 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-search-container {
   font-size: 12px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-search-input {
+body.light-theme .wallpaper-chatbox .chat-search-input {
   background: var(--cb-bg-light-panel) !important;
   border: 1px solid var(--cb-border-light-bubble) !important;
   color: var(--cb-text-light) !important;
 }
 
 /* Channel & User List Styling */
-.app-chat.wallpaper-chatbox .chat-unified-list-item {
+.wallpaper-chatbox .chat-unified-list-item {
   border-radius: 12px !important;
   margin: 4px 8px !important;
   padding: 10px 12px !important;
   transition: all 0.2s ease !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-unified-list-item:hover {
+.wallpaper-chatbox .chat-unified-list-item:hover {
   background: var(--cb-active-dark) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-unified-list-item:hover {
+body.light-theme .wallpaper-chatbox .chat-unified-list-item:hover {
   background: var(--cb-active-light) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-unified-list-item--active {
+.wallpaper-chatbox .chat-unified-list-item--active {
   background: var(--cb-primary) !important;
   color: #FFFFFF !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-unified-list-item--active .chat-item-name,
-.app-chat.wallpaper-chatbox .chat-unified-list-item--active .chat-item-subtext,
-.app-chat.wallpaper-chatbox .chat-unified-list-item--active .chat-item-time {
+.wallpaper-chatbox .chat-unified-list-item--active .chat-item-name,
+.wallpaper-chatbox .chat-unified-list-item--active .chat-item-subtext,
+.wallpaper-chatbox .chat-unified-list-item--active .chat-item-time {
   color: #FFFFFF !important;
 }
 
 /* Right Panel Conversation Pane */
-.app-chat.wallpaper-chatbox .chat-hub-right-col {
+.wallpaper-chatbox .chat-hub-right-col {
   background: var(--cb-bg-dark-panel) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-hub-right-col {
+body.light-theme .wallpaper-chatbox .chat-hub-right-col {
   background: var(--cb-bg-light-panel) !important;
 }
 
 /* Blank State Redesign */
-.app-chat.wallpaper-chatbox .chat-blank-state {
+.wallpaper-chatbox .chat-blank-state {
   background-color: var(--cb-bg-dark-panel) !important;
   background-image: 
     radial-gradient(circle at 10% 20%, rgba(111, 108, 217, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(139, 137, 231, 0.12) 0%, transparent 45%) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-blank-state {
+body.light-theme .wallpaper-chatbox .chat-blank-state {
   background-color: var(--cb-bg-light-panel) !important;
   background-image: 
     radial-gradient(circle at 10% 20%, rgba(111, 108, 217, 0.05) 0%, transparent 40%),
@@ -129,31 +129,31 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-blank-state {
 }
 
 /* Chat Room Header */
-.app-chat.wallpaper-chatbox .chat-panel-header {
+.wallpaper-chatbox .chat-panel-header {
   background: var(--cb-bg-dark-header) !important;
   border-bottom: 1px solid rgba(111, 108, 217, 0.1) !important;
   padding: 16px 24px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-panel-header {
+body.light-theme .wallpaper-chatbox .chat-panel-header {
   background: var(--cb-bg-light-header) !important;
   border-bottom: 1px solid var(--cb-border-light-bubble) !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-panel-header__title {
+.wallpaper-chatbox .chat-panel-header__title {
   color: var(--cb-text-dark) !important;
   font-weight: 700 !important;
   font-size: 15px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-panel-header__title {
+body.light-theme .wallpaper-chatbox .chat-panel-header__title {
   color: var(--cb-text-light) !important;
 }
 
 /* Chat Messages Scroll Feed */
-.app-chat.wallpaper-chatbox .chat-messages-container {
+.wallpaper-chatbox .chat-messages-container {
   background-color: var(--cb-bg-dark-panel) !important;
   background-image: 
     radial-gradient(circle at 80% 20%, rgba(111, 108, 217, 0.15) 0%, transparent 50%),
@@ -162,7 +162,7 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-panel-header__title {
   gap: 20px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-messages-container {
+body.light-theme .wallpaper-chatbox .chat-messages-container {
   background-color: var(--cb-bg-light-panel) !important;
   background-image: 
     radial-gradient(circle at 80% 20%, rgba(111, 108, 217, 0.04) 0%, transparent 50%),
@@ -170,12 +170,12 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-messages-container {
 }
 
 /* Chat Message Row */
-.app-chat.wallpaper-chatbox .chat-msg {
+.wallpaper-chatbox .chat-msg {
   max-width: 82% !important;
 }
 
 /* Premium Figma Style Message Bubbles */
-.app-chat.wallpaper-chatbox .chat-msg__bubble {
+.wallpaper-chatbox .chat-msg__bubble {
   background-color: var(--cb-bg-dark-bubble) !important;
   color: var(--cb-text-dark) !important;
   border: 1px solid var(--cb-border-dark-bubble) !important;
@@ -185,7 +185,7 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-messages-container {
   font-size: 13.5px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-msg__bubble {
+body.light-theme .wallpaper-chatbox .chat-msg__bubble {
   background-color: var(--cb-bg-light-bubble) !important;
   color: var(--cb-text-light) !important;
   border: 1px solid var(--cb-border-light-bubble) !important;
@@ -193,7 +193,7 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-msg__bubble {
 }
 
 /* Self/User Message Bubble */
-.app-chat.wallpaper-chatbox .chat-msg--self .chat-msg__bubble {
+.wallpaper-chatbox .chat-msg--self .chat-msg__bubble {
   background: linear-gradient(135deg, var(--cb-primary), var(--cb-primary-light)) !important;
   color: #FFFFFF !important;
   border-radius: 18px 18px 4px 18px !important;
@@ -201,101 +201,101 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-msg__bubble {
   box-shadow: 0 6px 18px rgba(111, 108, 217, 0.28) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-msg--self .chat-msg__bubble {
+body.light-theme .wallpaper-chatbox .chat-msg--self .chat-msg__bubble {
   background: linear-gradient(135deg, var(--cb-primary), var(--cb-primary-light)) !important;
   box-shadow: 0 4px 14px rgba(111, 108, 217, 0.2) !important;
 }
 
 /* Quick Reaction Picker Bar (Glassmorphic) */
-.app-chat.wallpaper-chatbox .chat-msg__quick-reactions {
+.wallpaper-chatbox .chat-msg__quick-reactions {
   background: rgba(21, 20, 33, 0.9) !important;
   border: 1px solid rgba(111, 108, 217, 0.3) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-msg__quick-reactions {
+body.light-theme .wallpaper-chatbox .chat-msg__quick-reactions {
   background: rgba(255, 255, 255, 0.9) !important;
   border: 1px solid var(--cb-border-light-bubble) !important;
 }
 
 /* Floating Input Capsule Area */
-.app-chat.wallpaper-chatbox .chat-input-area {
+.wallpaper-chatbox .chat-input-area {
   background-color: var(--cb-bg-dark-header) !important;
   border-top: 1px solid rgba(111, 108, 217, 0.1) !important;
   padding: 16px 20px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-input-area {
+body.light-theme .wallpaper-chatbox .chat-input-area {
   background-color: var(--cb-bg-light-header) !important;
   border-top: 1px solid var(--cb-border-light-bubble) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-input-wrapper {
+.wallpaper-chatbox .chat-input-wrapper {
   background-color: var(--cb-bg-dark-bubble) !important;
   border: 1px solid var(--cb-border-dark-bubble) !important;
   border-radius: 24px !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-input-wrapper {
+body.light-theme .wallpaper-chatbox .chat-input-wrapper {
   background-color: var(--cb-bg-light-panel) !important;
   border: 1px solid var(--cb-border-light-bubble) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-input-wrapper:focus-within {
+.wallpaper-chatbox .chat-input-wrapper:focus-within {
   border-color: var(--cb-primary) !important;
   box-shadow: 0 0 10px rgba(111, 108, 217, 0.25) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-input {
+.wallpaper-chatbox .chat-input {
   color: var(--cb-text-dark) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-input {
+body.light-theme .wallpaper-chatbox .chat-input {
   color: var(--cb-text-light) !important;
 }
 
 /* Mic, Attach, Send Buttons styling */
-.app-chat.wallpaper-chatbox .chat-attach-btn,
-.app-chat.wallpaper-chatbox .chat-mic-btn {
+.wallpaper-chatbox .chat-attach-btn,
+.wallpaper-chatbox .chat-mic-btn {
   color: var(--cb-text-muted-dark) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-attach-btn,
-body.light-theme .app-chat.wallpaper-chatbox .chat-mic-btn {
+body.light-theme .wallpaper-chatbox .chat-attach-btn,
+body.light-theme .wallpaper-chatbox .chat-mic-btn {
   color: var(--cb-text-muted-light) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-attach-btn:hover,
-.app-chat.wallpaper-chatbox .chat-mic-btn:hover {
+.wallpaper-chatbox .chat-attach-btn:hover,
+.wallpaper-chatbox .chat-mic-btn:hover {
   color: var(--cb-primary) !important;
   background: rgba(111, 108, 217, 0.1) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-send-btn {
+.wallpaper-chatbox .chat-send-btn {
   background: linear-gradient(135deg, var(--cb-primary), var(--cb-primary-light)) !important;
 }
 
-.app-chat.wallpaper-chatbox .chat-send-btn:hover {
+.wallpaper-chatbox .chat-send-btn:hover {
   box-shadow: 0 0 14px rgba(111, 108, 217, 0.45) !important;
 }
 
 /* Thread drawer */
-.app-chat.wallpaper-chatbox .thread-drawer {
+.wallpaper-chatbox .thread-drawer {
   background: var(--cb-bg-dark-sidebar) !important;
   border-left: 1px solid rgba(111, 108, 217, 0.15) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .thread-drawer {
+body.light-theme .wallpaper-chatbox .thread-drawer {
   background: var(--cb-bg-light-sidebar) !important;
   border-left: 1px solid var(--cb-border-light-bubble) !important;
 }
 
 /* Call log badge inside chatbox */
-.app-chat.wallpaper-chatbox .chat-msg__bubble--call-log {
+.wallpaper-chatbox .chat-msg__bubble--call-log {
   background: var(--cb-bg-dark-bubble) !important;
   border: 1px solid var(--cb-border-dark-bubble) !important;
 }
 
-body.light-theme .app-chat.wallpaper-chatbox .chat-msg__bubble--call-log {
+body.light-theme .wallpaper-chatbox .chat-msg__bubble--call-log {
   background: var(--cb-bg-light-bubble) !important;
   border: 1px solid var(--cb-border-light-bubble) !important;
 }
@@ -305,7 +305,7 @@ body.light-theme .app-chat.wallpaper-chatbox .chat-msg__bubble--call-log {
    ============================================================ */
 @media (max-width: 1024px) {
   /* Scoped layout shifts on mobile viewport sizes */
-  .app-chat.wallpaper-chatbox {
+  .wallpaper-chatbox {
     width: 100% !important;
     border-left: none !important;
   }

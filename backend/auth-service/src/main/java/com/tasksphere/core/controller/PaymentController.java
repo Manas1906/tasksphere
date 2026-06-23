@@ -411,7 +411,7 @@ public class PaymentController {
                                         wallpapers = "grid";
                                     }
                                     if (!wallpapers.contains("wallpaper_neon")) {
-                                        wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic";
+                                        wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic,chatbox";
                                     }
                                     user.setUnlockedWallpapers(wallpapers);
 
@@ -693,8 +693,8 @@ public class PaymentController {
 
                 log.info("[PAYMENTS] Signature valid. Updating pledge in database for order: {}", orderId);
                 
-                String username = "MANAS ACHARYA";
-                String planId = "pro_monthly";
+                String username = payload.getOrDefault("username", "MANAS ACHARYA");
+                String planId = payload.getOrDefault("planId", "pro_monthly");
                 Optional<UserPledge> pledgeOpt = pledgeRepository.findByOrderId(orderId);
                 if (pledgeOpt.isPresent()) {
                     UserPledge pledge = pledgeOpt.get();
@@ -710,8 +710,8 @@ public class PaymentController {
             // Case B: Direct payment verification fallback (when order ID / signature are not provided)
             log.info("[PAYMENTS] Missing order ID / signature. Falling back to direct payment details check.");
             
-            String username = "MANAS ACHARYA";
-            String planId = "pro_monthly";
+            String username = payload.getOrDefault("username", "MANAS ACHARYA");
+            String planId = payload.getOrDefault("planId", "pro_monthly");
             
             processPaymentCaptureAndUnlock(paymentId, username, planId, isRealGateway);
             return ResponseEntity.ok(Collections.singletonMap("success", true));
@@ -812,7 +812,7 @@ public class PaymentController {
                                 wallpapers = "grid";
                             }
                             if (!wallpapers.contains("wallpaper_neon")) {
-                                wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic";
+                                wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic,chatbox";
                             }
                             user.setUnlockedWallpapers(wallpapers);
 
@@ -967,7 +967,7 @@ public class PaymentController {
                         wallpapers = "grid";
                     }
                     if (!wallpapers.contains("wallpaper_neon")) {
-                        wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic";
+                        wallpapers += ",wallpaper_neon,wallpaper_sunset,wallpaper_cosmic,chatbox";
                     }
                     user.setUnlockedWallpapers(wallpapers);
 
