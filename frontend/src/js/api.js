@@ -3,7 +3,14 @@
  * Elegant OOP wrapper utilizing Fetch API to interact with Spring Boot REST API
  * Features automated fallback to localStorage if backend is offline.
  */
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+  const hostname = window.location.hostname || 'localhost';
+  return `http://${hostname}:8080`;
+};
+
+const API_URL = getApiUrl();
 const CLEAN_API_URL = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
 
 class ApiService {

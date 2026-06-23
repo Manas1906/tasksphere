@@ -25,6 +25,18 @@ class TaskSphereApp {
 
   async start() {
     console.log('[APP-START] Bootstrapping TaskSphere Enterprise Workspace...');
+    
+    // Global fallback for broken avatars/logos (Dicebear fallback)
+    document.addEventListener('error', (event) => {
+      const target = event.target;
+      if (target && target.tagName === 'IMG') {
+        const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%236F6CD9"><circle cx="50" cy="35" r="20"/><path d="M50 60c-25 0-35 15-35 25h70c0-10-10-25-35-25z"/></svg>`;
+        if (target.src !== fallbackSvg) {
+          target.src = fallbackSvg;
+        }
+      }
+    }, true);
+
     this.seedDemoData();
     this.bindNavigation();
     this.setupModals();
@@ -2291,7 +2303,7 @@ class TaskSphereApp {
 
     const wallpaperSelect = document.getElementById('settingsWallpaperSelect');
     if (wallpaperSelect) {
-      wallpaperSelect.value = localStorage.getItem('tasksphere_chat_wallpaper') || 'grid';
+      wallpaperSelect.value = localStorage.getItem('tasksphere_chat_wallpaper') || 'chatbox';
     }
 
     const soundSelect = document.getElementById('settingsSoundSelect');

@@ -1138,7 +1138,7 @@ body.light-theme .chat-hub-nav-sidebar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -1146,6 +1146,7 @@ body.light-theme .chat-hub-nav-sidebar {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 12px;
   width: 100%;
 }
 
@@ -1156,13 +1157,15 @@ body.light-theme .chat-hub-nav-sidebar {
   color: #8b949e;
   width: 42px;
   height: 42px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  padding: 0;
+  margin: 2px 0;
 }
 
 body.light-theme .chat-hub-nav-btn {
@@ -1766,20 +1769,22 @@ body.light-theme .skeleton-base {
   background: none;
   border: none;
   color: #8b949e;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
   padding: 0;
+  margin: 2px 0;
 }
 
 .hub-theme-toggle:hover {
   background: rgba(255,255,255,0.08);
   color: var(--accent-cyan);
+  transform: scale(1.05);
 }
 
 body.light-theme .hub-theme-toggle {
@@ -1798,21 +1803,22 @@ body.light-theme .hub-theme-toggle:hover {
   background: none;
   border: none;
   color: #8b949e;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
   padding: 0;
-  margin-bottom: 4px;
+  margin: 2px 0;
 }
 
 .hub-home-btn:hover {
   background: rgba(255,255,255,0.08);
   color: var(--accent-emerald);
+  transform: scale(1.05);
 }
 
 body.light-theme .hub-home-btn {

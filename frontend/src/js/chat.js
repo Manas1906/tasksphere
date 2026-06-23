@@ -90,7 +90,7 @@ export class ChatController {
     this.setupMentionsAutocomplete();
 
     // Apply persisted wallpaper background (Settings-integrated)
-    const savedWallpaper = localStorage.getItem('tasksphere_chat_wallpaper') || 'grid';
+    const savedWallpaper = localStorage.getItem('tasksphere_chat_wallpaper') || 'chatbox';
     this.applyWallpaper(savedWallpaper);
   }
 

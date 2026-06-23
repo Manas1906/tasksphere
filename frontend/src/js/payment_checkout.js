@@ -270,6 +270,9 @@ class PaymentCheckoutController {
       }
     });
     
+    // Check if the user has an active pro subscription
+    const hasPro = userPledges.some(p => p.paymentMethod.toLowerCase() === 'pro_monthly');
+
     // Now disable/update buttons for purchased/unlocked plans
     userPledges.forEach(pledge => {
       const planId = pledge.paymentMethod.toLowerCase(); // paymentMethod contains the planId (e.g. 'PRO_MONTHLY', 'PDF_EXPORT')
@@ -287,6 +290,23 @@ class PaymentCheckoutController {
         }
       }
     });
+
+    // If user has Pro, automatically unlock and activate all features in the bundle!
+    if (hasPro) {
+      Object.keys(plans).forEach(planId => {
+        const plan = plans[planId];
+        const card = document.getElementById(plan.cardId);
+        if (card) {
+          const btn = card.querySelector('.pro-plan-btn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = plan.successText;
+            btn.style.background = 'var(--accent-green, #10b981)';
+            btn.style.cursor = 'default';
+          }
+        }
+      });
+    }
   }
 
   renderMetrics() {}

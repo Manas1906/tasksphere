@@ -67,6 +67,11 @@ body.light-theme .wallpaper-chatbox .chat-hub-nav-sidebar {
 .wallpaper-chatbox .hub-theme-toggle {
   color: var(--cb-text-dark-muted) !important;
   transition: all 0.2s ease !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 10px !important;
+  margin: 2px 0 !important;
+  padding: 0 !important;
 }
 
 body.light-theme .wallpaper-chatbox .chat-hub-nav-btn,
@@ -80,6 +85,7 @@ body.light-theme .wallpaper-chatbox .hub-theme-toggle {
 .wallpaper-chatbox .hub-theme-toggle:hover {
   color: var(--cb-primary-light) !important;
   background: rgba(111, 108, 217, 0.1) !important;
+  transform: scale(1.05) !important;
 }
 
 .wallpaper-chatbox .chat-hub-nav-btn--active {

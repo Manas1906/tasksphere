@@ -1,7 +1,7 @@
 /* Outer Grid Shell - Day 5 Flexbox & Grid */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr 0px;
+  grid-template-columns: var(--sidebar-width) 1fr var(--chat-panel-width);
   grid-template-rows: var(--header-height) 1fr;
   grid-template-areas: 
     "sidebar header header"
@@ -55,7 +55,7 @@
   grid-area: chat;
   background-color: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
-  display: none !important;
+  display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
