@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS chat_group_members (
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS group_id BIGINT;
 
 -- Ensure users table has co-funding custom fields
-ALTER TABLE users ADD COLUMN IF NOT EXISTS unlocked_wallpapers VARCHAR(1024) DEFAULT 'grid';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS unlocked_wallpapers VARCHAR(1024) DEFAULT 'grid,wallpaper_neon';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS unlocked_sounds VARCHAR(1024) DEFAULT 'minimal';
 
 -- Create workspace co-funding and payment audit tables

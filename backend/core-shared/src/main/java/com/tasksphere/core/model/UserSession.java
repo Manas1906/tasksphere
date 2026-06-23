@@ -43,7 +43,7 @@ public class UserSession {
 
     @Column(name = "unlocked_wallpapers", length = 1024)
     @Builder.Default
-    private String unlockedWallpapers = "grid";
+    private String unlockedWallpapers = "grid,wallpaper_neon";
 
     @Column(name = "unlocked_sounds", length = 1024)
     @Builder.Default
