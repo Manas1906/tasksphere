@@ -4,12 +4,12 @@
   grid-template-columns: var(--sidebar-width) 1fr var(--chat-panel-width);
   grid-template-rows: var(--header-height) 1fr;
   grid-template-areas: 
-    "sidebar header header"
-    "sidebar main main";
+    "sidebar header chat"
+    "sidebar main chat";
   width: 100vw;
   height: 100vh;
   transition: grid-template-columns var(--transition-normal);
-  background-color: var(--bg-primary);
+  background: var(--bg-radial) !important;
 }
 
 /* Areas mapping */

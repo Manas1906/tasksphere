@@ -1943,23 +1943,6 @@ class TaskSphereApp {
         previousWallpaper = wallpaperSelect.value;
       });
       wallpaperSelect.addEventListener('change', async () => {
-        const val = wallpaperSelect.value;
-        if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon' || val === 'chatbox') {
-          try {
-            const users = await api.getUsers() || [];
-            const username = localStorage.getItem('chat_username');
-            const me = users.find(u => u.username === username);
-            const unlockedWallpapers = me ? (me.unlockedWallpapers || 'grid') : 'grid';
-            
-            if (!unlockedWallpapers.includes('wallpaper_neon')) {
-              alert('✨ This premium wallpaper is locked! Co-fund the Workspace Premium Pool with your team to unlock custom wallpapers and sounds. 🚀');
-              wallpaperSelect.value = previousWallpaper;
-              return;
-            }
-          } catch (err) {
-            console.error('Failed to verify wallpaper lock:', err);
-          }
-        }
         previousWallpaper = wallpaperSelect.value;
       });
     }
@@ -1975,25 +1958,6 @@ class TaskSphereApp {
         const uploadRow = document.getElementById('customSoundUploadRow');
         if (uploadRow) {
           uploadRow.style.display = (val === 'custom') ? 'flex' : 'none';
-        }
-        if (['cyber', 'bubble', 'digital', 'cosmic', 'bell', 'custom'].includes(val)) {
-          try {
-            const users = await api.getUsers() || [];
-            const username = localStorage.getItem('chat_username');
-            const me = users.find(u => u.username === username);
-            const unlockedSounds = me ? (me.unlockedSounds || 'minimal') : 'minimal';
-            
-            if (!unlockedSounds.includes('sound_cyber')) {
-              alert('✨ This premium message chime is locked! Co-fund the Workspace Premium Pool with your team to unlock custom wallpapers and sounds. 🚀');
-              soundSelectEl.value = previousSound;
-              if (uploadRow) {
-                uploadRow.style.display = (previousSound === 'custom') ? 'flex' : 'none';
-              }
-              return;
-            }
-          } catch (err) {
-            console.error('Failed to verify sound lock:', err);
-          }
         }
         previousSound = soundSelectEl.value;
       });
@@ -2347,26 +2311,11 @@ class TaskSphereApp {
             mfaToggle.checked = me.status === 'PENDING_APPROVAL' ? false : me.avatarUrl.includes('||mfa:true');
 
             // Dynamically unlock options based on co-funded upgrade inventory
-            const unlockedWallpapers = me.unlockedWallpapers || 'grid';
-            const unlockedSounds = me.unlockedSounds || 'minimal';
-
             // Check wallpapers
             const wpSelect = document.getElementById('settingsWallpaperSelect');
             if (wpSelect) {
               for (let i = 0; i < wpSelect.options.length; i++) {
-                const opt = wpSelect.options[i];
-                const val = opt.value;
-                if (val === 'sunset' || val === 'nordic' || val === 'forest' || val === 'galaxy' || val === 'wallpaper_neon' || val === 'chatbox') {
-                  if (unlockedWallpapers.includes('wallpaper_neon')) {
-                    opt.disabled = false;
-                    opt.textContent = opt.textContent.replace('🔒 Locked - ', '✨ ');
-                  } else {
-                    opt.disabled = false;
-                    if (!opt.textContent.startsWith('🔒')) {
-                      opt.textContent = '🔒 Locked - ' + opt.textContent;
-                    }
-                  }
-                }
+                wpSelect.options[i].disabled = false;
               }
             }
 
@@ -2374,19 +2323,7 @@ class TaskSphereApp {
             const sdSelect = document.getElementById('settingsSoundSelect');
             if (sdSelect) {
               for (let i = 0; i < sdSelect.options.length; i++) {
-                const opt = sdSelect.options[i];
-                const val = opt.value;
-                if (['cyber', 'bubble', 'digital', 'cosmic', 'bell', 'custom'].includes(val)) {
-                  if (unlockedSounds.includes('sound_cyber')) {
-                    opt.disabled = false;
-                    opt.textContent = opt.textContent.replace('🔒 Locked - ', '✨ ');
-                  } else {
-                    opt.disabled = false;
-                    if (!opt.textContent.startsWith('🔒')) {
-                      opt.textContent = '🔒 Locked - ' + opt.textContent;
-                    }
-                  }
-                }
+                sdSelect.options[i].disabled = false;
               }
             }
           }
@@ -2434,6 +2371,7 @@ class TaskSphereApp {
     if (shell) {
       shell.classList.remove('app-shell--show-sidebar');
       shell.classList.remove('app-shell--show-chat');
+      shell.classList.add('app-shell--hide-chat'); // Always hide the duplicate right-side column
     }
 
     // Restore chat panel if leaving CHAT_HUB
@@ -2447,9 +2385,8 @@ class TaskSphereApp {
         if (leftHeader) leftHeader.style.display = 'none';
         if (chatContainer) {
           chatContainer.appendChild(chatPanel);
-          chatContainer.style.display = '';
+          chatContainer.style.display = 'none'; // Keep hidden on other views
         }
-        if (shell) shell.classList.remove('app-shell--hide-chat');
         
         if (this.chatController) {
           this.chatController.switchChatPartner(undefined);
@@ -2484,7 +2421,7 @@ class TaskSphereApp {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) {
         mainContainer.classList.add('app-main--full');
-        if (shell) shell.classList.add('app-shell--chat-hub-fullscreen');
+        // Do not add app-shell--chat-hub-fullscreen to keep left sidebar & header visible
         mainContainer.innerHTML = `<div class="chat-hub-container" style="height: 100%; width: 100%;"></div>`;
         const hubContainer = mainContainer.querySelector('.chat-hub-container');
         if (chatPanel && hubContainer) {

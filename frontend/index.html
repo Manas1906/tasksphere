@@ -238,7 +238,7 @@
     </main>
 
     <!-- Chat Sidebar Panel - Real-time active collaboration room -->
-    <aside class="app-chat" id="chatContainer">
+    <aside class="app-chat" id="chatContainer" style="display: none;">
       <div class="chat-panel">
         <!-- Far-left narrow vertical navigation bar (WhatsApp Web Style) -->
         <div class="chat-hub-nav-sidebar">
@@ -318,6 +318,36 @@
           <!-- Unified scrollable list (channels + DMs merged) -->
           <div class="chat-unified-list" id="chatUnifiedList">
             <!-- Sections injected dynamically by drawUnifiedList() -->
+          </div>
+
+          <!-- Calls scrollable list -->
+          <div class="chat-unified-list hidden" id="chatCallsList" style="display: none;">
+            <!-- Sections injected dynamically -->
+          </div>
+
+          <!-- Contacts scrollable list -->
+          <div class="chat-unified-list hidden" id="chatContactsList" style="display: none;">
+            <!-- Sections injected dynamically -->
+          </div>
+
+          <!-- Bottom Navigation Bar inside left column -->
+          <div class="chat-bottom-nav">
+            <button class="chat-bottom-nav-btn chat-bottom-nav-btn--active" id="chatTabMsg">
+              <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+              <span>Message</span>
+            </button>
+            <button class="chat-bottom-nav-btn" id="chatTabCalls">
+              <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+              <span>Calls</span>
+            </button>
+            <button class="chat-bottom-nav-btn" id="chatTabContacts">
+              <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              <span>Contacts</span>
+            </button>
+            <button class="chat-bottom-nav-btn" id="chatTabSettings">
+              <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+              <span>Settings</span>
+            </button>
           </div>
         </div>
 
@@ -598,12 +628,12 @@
               <option value="grid">Default Blueprint Grid</option>
               <option value="doodles">Telegram Doodle Pattern</option>
               <option value="solid">Minimalist Solid</option>
-              <option value="sunset">🔒 Locked - Sunset Aura</option>
-              <option value="nordic">🔒 Locked - Nordic Glow</option>
-              <option value="forest">🔒 Locked - Mist Forest</option>
-              <option value="galaxy">🔒 Locked - Orion Nebula</option>
-              <option value="wallpaper_neon">🔒 Locked - Neon Synthwave</option>
-              <option value="chatbox">🔒 Locked - Chatbox Premium</option>
+              <option value="sunset">Sunset Aura</option>
+              <option value="nordic">Nordic Glow</option>
+              <option value="forest">Mist Forest</option>
+              <option value="galaxy">Orion Nebula</option>
+              <option value="wallpaper_neon">Neon Synthwave</option>
+              <option value="chatbox">Chatbox Premium</option>
             </select>
             <p style="font-size: 10px; color: var(--text-muted); margin: 4px 0 0 0;">Customize the background of your active chat screens.</p>
           </div>
@@ -622,12 +652,12 @@
               <select id="settingsSoundSelect" class="form-input" style="flex: 1; height: 38px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer;">
                 <option value="minimal">Minimal Chime (Synth Beeps)</option>
                 <option value="silent">Silent (No Sound)</option>
-                <option value="cyber">🔒 Locked - Cyber Sweep (Tech Click)</option>
-                <option value="bubble">🔒 Locked - Retro Bubble (Pop Sound)</option>
-                <option value="digital">🔒 Locked - Digital Chime (Double-Synth)</option>
-                <option value="cosmic">🔒 Locked - Cosmic Ping (Sweep Sound)</option>
-                <option value="bell">🔒 Locked - Classic Bell (Multi-Tone Chord)</option>
-                <option value="custom">🔒 Locked - Upload Custom Audio (.mp3/.wav)</option>
+                <option value="cyber">Cyber Sweep (Tech Click)</option>
+                <option value="bubble">Retro Bubble (Pop Sound)</option>
+                <option value="digital">Digital Chime (Double-Synth)</option>
+                <option value="cosmic">Cosmic Ping (Sweep Sound)</option>
+                <option value="bell">Classic Bell (Multi-Tone Chord)</option>
+                <option value="custom">Upload Custom Audio (.mp3/.wav)</option>
               </select>
               <button type="button" id="testSoundBtn" class="btn btn--secondary" style="height: 38px; padding: 0 16px; font-size: 11px; white-space: nowrap;">Test Audio</button>
             </div>
@@ -669,35 +699,52 @@
 
   <!-- Create Group Modal -->
   <div id="createGroupModal" class="modal-overlay">
-    <div class="modal-container" style="max-width: 440px; max-height: 85vh; overflow-y: auto;">
-      <div class="modal-header">
-        <h2 class="modal-header__title" style="display: flex; align-items: center; gap: 8px;">
-          <svg style="width: 18px; height: 18px; fill: var(--accent-cyan)" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+    <div class="modal-container" style="max-width: 400px; max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+        <button id="closeCreateGroupModal" class="modal-close-btn" style="position: absolute; left: 16px; top: 16px; font-size: 20px; background: transparent; border: none; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
           </svg>
-          <span>Create Group Chat</span>
-        </h2>
-        <button id="closeCreateGroupModal" class="modal-close-btn">&times;</button>
+        </button>
+        <h2 class="modal-header__title" style="width: 100%; text-align: center; font-size: 16px; font-weight: 700; margin: 0;">Create Group</h2>
       </div>
-      <form class="enterprise-form" id="createGroupForm" onsubmit="return false;">
+      <form class="enterprise-form" id="createGroupForm" onsubmit="return false;" style="margin-top: 15px;">
         <div class="form-group">
-          <label class="form-label" for="groupName">Group Name</label>
-          <input type="text" id="groupName" required class="form-input" placeholder="e.g. Frontend Sync, Architecture Board" autocomplete="off">
+          <label class="form-label" style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: none; margin-bottom: 4px;">Group Description</label>
+          <div class="group-description-input-wrap">
+            <input type="text" id="groupName" required class="group-description-input" placeholder="Make Group for Team Work" autocomplete="off">
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="groupIconUrl">Group Icon URL (Optional)</label>
-          <input type="text" id="groupIconUrl" class="form-input" placeholder="https://example.com/icon.png" autocomplete="off">
-          <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">If left blank, a default geometric avatar will be generated.</p>
+
+        <div class="create-group-tag-list">
+          <span class="create-group-tag">Group work</span>
+          <span class="create-group-tag">Team relationship</span>
         </div>
-        <div class="form-group">
-          <label class="form-label">Select Members</label>
-          <div id="groupMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: var(--spacing-sm); display: flex; flex-direction: column; gap: var(--spacing-xs); background: rgba(0, 0, 0, 0.2);">
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: none; margin-bottom: 8px;">Group Admin</label>
+          <div class="group-admin-card">
+            <img id="createGroupAdminAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Admin" class="group-admin-avatar" alt="Admin">
+            <div class="group-admin-details">
+              <span id="createGroupAdminName" class="group-admin-name">Rashid Khan</span>
+              <span class="group-admin-role">Group Admin</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px; display: none;">
+          <div id="groupMembersList"></div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: none; margin-bottom: 8px;">Invited Members</label>
+          <div class="invited-members-row" id="invitedMembersRow">
             <!-- Populated dynamically via JS -->
           </div>
         </div>
-        <div class="form-actions" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
-          <button type="button" id="cancelCreateGroupBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Cancel</button>
-          <button type="submit" id="submitCreateGroupBtn" class="btn btn--submit">Create Group</button>
+
+        <div style="margin-top: var(--spacing-xl)">
+          <button type="submit" id="submitCreateGroupBtn" class="btn" style="background: #24786D; color: #FFFFFF; width: 100%; border-radius: 12px; padding: 12px; font-weight: 700; border: none; font-size: 16px;">Create</button>
         </div>
       </form>
     </div>
@@ -734,6 +781,103 @@
         <div class="form-actions" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
           <button type="button" id="cancelGroupSettingsBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Cancel</button>
           <button type="submit" id="submitGroupSettingsBtn" class="btn btn--submit">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Share Content Bottom Sheet Modal -->
+  <div id="shareContentModal" class="modal-overlay">
+    <div class="bottom-sheet-container">
+      <div class="bottom-sheet-header">
+        <button id="closeShareContentBtn" class="bottom-sheet-close-btn">&times;</button>
+        <span class="bottom-sheet-title">Share Content</span>
+        <div style="width: 24px;"></div>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="share-option-row" id="shareCameraBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Camera</span>
+            <span class="share-option-desc">Share snapshot from camera</span>
+          </div>
+        </div>
+        <div class="share-option-row" id="shareDocumentsBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Documents</span>
+            <span class="share-option-desc">Share your files</span>
+          </div>
+        </div>
+        <div class="share-option-row" id="sharePollBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Create a poll</span>
+            <span class="share-option-desc">Create a poll for any query</span>
+          </div>
+        </div>
+        <div class="share-option-row" id="shareMediaBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Media</span>
+            <span class="share-option-desc">Share photos and videos</span>
+          </div>
+        </div>
+        <div class="share-option-row" id="shareContactBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Contact</span>
+            <span class="share-option-desc">Share your contacts</span>
+          </div>
+        </div>
+        <div class="share-option-row" id="shareLocationBtn">
+          <div class="share-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <div class="share-option-text">
+            <span class="share-option-title">Location</span>
+            <span class="share-option-desc">Share your location</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Poll Modal -->
+  <div id="createPollModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 400px; max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 class="modal-header__title">Create Poll</h2>
+        <button id="closeCreatePollBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <form class="enterprise-form" id="createPollForm" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="pollQuestion" style="font-size: 14px; font-weight: 700;">Question</label>
+          <input type="text" id="pollQuestion" required class="form-input" placeholder="What would you like to work?" autocomplete="off" style="font-size: 16px; font-weight: 600;">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-size: 14px; font-weight: 700;">Options</label>
+          <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" class="form-input poll-option-input" placeholder="Option 1" required autocomplete="off">
+            <input type="text" class="form-input poll-option-input" placeholder="Option 2" required autocomplete="off">
+          </div>
+          <button type="button" id="addPollOptionBtn" class="btn btn--outline" style="margin-top: 10px; border: 1px dashed var(--border-color); width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>+ Add Option</span>
+          </button>
+        </div>
+        <div class="form-actions" style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl)">
+          <button type="button" id="cancelCreatePollBtn" class="btn btn--outline" style="border: 1px solid var(--border-color)">Cancel</button>
+          <button type="submit" id="submitCreatePollBtn" class="btn btn--submit" style="background: #24786D; color: #FFFFFF;">Create</button>
         </div>
       </form>
     </div>

@@ -92,6 +92,17 @@ export class ChatController {
     // Apply persisted wallpaper background (Settings-integrated)
     const savedWallpaper = localStorage.getItem('tasksphere_chat_wallpaper') || 'chatbox';
     this.applyWallpaper(savedWallpaper);
+
+    // Initialize mock call history
+    if (!localStorage.getItem('tasksphere_call_history')) {
+      const defaultLogs = [
+        { name: 'Team Align', type: 'VIDEO', direction: 'INCOMING', time: 'Today, 09:30 AM', missed: false, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Team' },
+        { name: 'John Abraham', type: 'VOICE', direction: 'OUTGOING', time: 'Today, 07:30 AM', missed: false, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=John' },
+        { name: 'Sabila Sayma', type: 'VIDEO', direction: 'INCOMING', time: 'Yesterday, 07:35 PM', missed: true, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Sabila' },
+        { name: 'Alex Linderson', type: 'VOICE', direction: 'INCOMING', time: 'Monday, 09:20 AM', missed: false, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Alex' }
+      ];
+      localStorage.setItem('tasksphere_call_history', JSON.stringify(defaultLogs));
+    }
   }
 
 
@@ -133,9 +144,240 @@ export class ChatController {
   }
 
   bindEvents() {
-    // Attachments actions
-    if (this.attachBtn && this.fileInput) {
-      this.attachBtn.onclick = () => this.fileInput.click();
+    // Bottom Navigation tab switching
+    const tabMsg = document.getElementById('chatTabMsg');
+    const tabCalls = document.getElementById('chatTabCalls');
+    const tabContacts = document.getElementById('chatTabContacts');
+    const tabSettings = document.getElementById('chatTabSettings');
+
+    const clearActiveTabs = () => {
+      if (tabMsg) tabMsg.classList.remove('chat-bottom-nav-btn--active');
+      if (tabCalls) tabCalls.classList.remove('chat-bottom-nav-btn--active');
+      if (tabContacts) tabContacts.classList.remove('chat-bottom-nav-btn--active');
+      if (tabSettings) tabSettings.classList.remove('chat-bottom-nav-btn--active');
+    };
+
+    const hideAllTabPanels = () => {
+      const listMsg = document.getElementById('chatUnifiedList');
+      const listCalls = document.getElementById('chatCallsList');
+      const listContacts = document.getElementById('chatContactsList');
+      if (listMsg) { listMsg.classList.add('hidden'); listMsg.style.display = 'none'; }
+      if (listCalls) { listCalls.classList.add('hidden'); listCalls.style.display = 'none'; }
+      if (listContacts) { listContacts.classList.add('hidden'); listContacts.style.display = 'none'; }
+    };
+
+    if (tabMsg) {
+      tabMsg.onclick = () => {
+        clearActiveTabs();
+        tabMsg.classList.add('chat-bottom-nav-btn--active');
+        hideAllTabPanels();
+        const listMsg = document.getElementById('chatUnifiedList');
+        if (listMsg) { listMsg.classList.remove('hidden'); listMsg.style.display = 'flex'; }
+      };
+    }
+
+    if (tabCalls) {
+      tabCalls.onclick = () => {
+        clearActiveTabs();
+        tabCalls.classList.add('chat-bottom-nav-btn--active');
+        hideAllTabPanels();
+        const listCalls = document.getElementById('chatCallsList');
+        if (listCalls) {
+          listCalls.classList.remove('hidden');
+          listCalls.style.display = 'flex';
+          this.drawCallsList();
+        }
+      };
+    }
+
+    if (tabContacts) {
+      tabContacts.onclick = () => {
+        clearActiveTabs();
+        tabContacts.classList.add('chat-bottom-nav-btn--active');
+        hideAllTabPanels();
+        const listContacts = document.getElementById('chatContactsList');
+        if (listContacts) {
+          listContacts.classList.remove('hidden');
+          listContacts.style.display = 'flex';
+          this.drawContactsList();
+        }
+      };
+    }
+
+    if (tabSettings) {
+      tabSettings.onclick = () => {
+        const settingsBtn = document.getElementById('chatSettingsBtn');
+        if (settingsBtn) settingsBtn.click();
+        if (tabMsg) tabMsg.click();
+      };
+    }
+
+    // Attachments actions - opens Share Content modal
+    if (this.attachBtn) {
+      this.attachBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.add('modal-overlay--active');
+      };
+    }
+
+    // Bind Share Content close & option buttons
+    const closeShareContentBtn = document.getElementById('closeShareContentBtn');
+    if (closeShareContentBtn) {
+      closeShareContentBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+      };
+    }
+
+    const shareCameraBtn = document.getElementById('shareCameraBtn');
+    if (shareCameraBtn) {
+      shareCameraBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+        alert('Camera integration triggered. (Browser simulated snapshot)');
+      };
+    }
+
+    const shareDocumentsBtn = document.getElementById('shareDocumentsBtn');
+    if (shareDocumentsBtn) {
+      shareDocumentsBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+        if (this.fileInput) this.fileInput.click();
+      };
+    }
+
+    const shareMediaBtn = document.getElementById('shareMediaBtn');
+    if (shareMediaBtn) {
+      shareMediaBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+        if (this.fileInput) this.fileInput.click();
+      };
+    }
+
+    const shareContactBtn = document.getElementById('shareContactBtn');
+    if (shareContactBtn) {
+      shareContactBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+        alert('Sharing contacts list... (Browser simulated contact details)');
+      };
+    }
+
+    const shareLocationBtn = document.getElementById('shareLocationBtn');
+    if (shareLocationBtn) {
+      shareLocationBtn.onclick = () => {
+        const modal = document.getElementById('shareContentModal');
+        if (modal) modal.classList.remove('modal-overlay--active');
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const locMsg = `📍 My Location: Latitude ${pos.coords.latitude.toFixed(4)}, Longitude ${pos.coords.longitude.toFixed(4)}`;
+              if (this.input) {
+                this.input.value = locMsg;
+                handleSend();
+              }
+            },
+            (err) => {
+              const simMsg = `📍 Simulated Location: Seattle, WA (Lat: 47.6062, Lon: -122.3321)`;
+              if (this.input) {
+                this.input.value = simMsg;
+                handleSend();
+              }
+            }
+          );
+        } else {
+          const simMsg = `📍 Simulated Location: Seattle, WA (Lat: 47.6062, Lon: -122.3321)`;
+          if (this.input) {
+            this.input.value = simMsg;
+            handleSend();
+          }
+        }
+      };
+    }
+
+    const sharePollBtn = document.getElementById('sharePollBtn');
+    if (sharePollBtn) {
+      sharePollBtn.onclick = () => {
+        const shareModal = document.getElementById('shareContentModal');
+        if (shareModal) shareModal.classList.remove('modal-overlay--active');
+        const pollModal = document.getElementById('createPollModal');
+        if (pollModal) {
+          // Reset options
+          const container = document.getElementById('pollOptionsContainer');
+          if (container) {
+            container.innerHTML = `
+              <input type="text" class="form-input poll-option-input" placeholder="Option 1" required autocomplete="off">
+              <input type="text" class="form-input poll-option-input" placeholder="Option 2" required autocomplete="off">
+            `;
+          }
+          pollModal.classList.add('modal-overlay--active');
+        }
+      };
+    }
+
+    // Create Poll Modal Close & Option builders
+    const closeCreatePollBtn = document.getElementById('closeCreatePollBtn');
+    const cancelCreatePollBtn = document.getElementById('cancelCreatePollBtn');
+    const dismissPollModal = () => {
+      const modal = document.getElementById('createPollModal');
+      if (modal) modal.classList.remove('modal-overlay--active');
+    };
+    if (closeCreatePollBtn) closeCreatePollBtn.onclick = dismissPollModal;
+    if (cancelCreatePollBtn) cancelCreatePollBtn.onclick = dismissPollModal;
+
+    const addPollOptionBtn = document.getElementById('addPollOptionBtn');
+    if (addPollOptionBtn) {
+      addPollOptionBtn.onclick = () => {
+        const container = document.getElementById('pollOptionsContainer');
+        if (container) {
+          const count = container.querySelectorAll('.poll-option-input').length + 1;
+          const optInput = document.createElement('input');
+          optInput.type = 'text';
+          optInput.className = 'form-input poll-option-input';
+          optInput.placeholder = `Option ${count}`;
+          optInput.required = true;
+          optInput.autocomplete = 'off';
+          container.appendChild(optInput);
+        }
+      };
+    }
+
+    const createPollForm = document.getElementById('createPollForm');
+    if (createPollForm) {
+      createPollForm.onsubmit = () => {
+        const q = document.getElementById('pollQuestion').value.trim();
+        const optInputs = createPollForm.querySelectorAll('.poll-option-input');
+        const options = [];
+        optInputs.forEach(input => {
+          const val = input.value.trim();
+          if (val) options.push(val);
+        });
+
+        if (!q || options.length < 2) {
+          alert('Please enter a question and at least 2 options.');
+          return;
+        }
+
+        const pollPayload = {
+          question: q,
+          options: options,
+          votes: {}
+        };
+
+        const msgText = `[POLL_JSON:${JSON.stringify(pollPayload)}]`;
+        if (this.input) {
+          this.input.value = msgText;
+          handleSend();
+        }
+        
+        dismissPollModal();
+        createPollForm.reset();
+      };
+    }
+
+    if (this.fileInput) {
       this.fileInput.onchange = () => {
         const file = this.fileInput.files[0];
         if (file) {
@@ -336,6 +578,8 @@ export class ChatController {
       searchInput.addEventListener('input', () => {
         this.chatSearchQuery = searchInput.value.trim().toLowerCase();
         this.drawUnifiedList();
+        this.drawCallsList();
+        this.drawContactsList();
       });
     }
 
@@ -399,7 +643,13 @@ export class ChatController {
         
         if (!nameInput || !nameInput.value.trim()) return;
         
-        const checkedBoxes = this.groupMembersList.querySelectorAll('input[type="checkbox"]:checked');
+        const membersRow = document.getElementById('invitedMembersRow');
+        let checkedBoxes;
+        if (membersRow && membersRow.children.length > 0) {
+          checkedBoxes = membersRow.querySelectorAll('input[type="checkbox"]:checked');
+        } else {
+          checkedBoxes = this.groupMembersList.querySelectorAll('input[type="checkbox"]:checked');
+        }
         const memberUsernames = Array.from(checkedBoxes).map(cb => cb.value);
         
         try {
@@ -1092,7 +1342,6 @@ export class ChatController {
     const isSelf = msg.username && this.myUsername && msg.username.toLowerCase().trim() === this.myUsername.toLowerCase().trim();
     const time = this.formatMessageDate(msg.timestamp);
 
-
     const parsed = this.parseMessageMeta(msg.message);
     const textMsg = parsed.text;
     const meta = parsed.meta;
@@ -1104,6 +1353,19 @@ export class ChatController {
     let cleanAvatar = (msg.avatarUrl || '').split('||')[0];
     if (!cleanAvatar || cleanAvatar.trim() === '') {
       cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.username}`;
+    }
+
+    // Check if message is a poll
+    let isPoll = false;
+    let pollPayload = null;
+    if (textMsg.startsWith('[POLL_JSON:')) {
+      try {
+        const jsonStr = textMsg.substring(11, textMsg.length - 1);
+        pollPayload = JSON.parse(jsonStr);
+        isPoll = true;
+      } catch (e) {
+        console.error('Failed to parse poll JSON', e);
+      }
     }
 
     // Build Reactions capsules UI
@@ -1148,6 +1410,55 @@ export class ChatController {
       }
     }
 
+    // Helper to resolve avatar for user
+    const getAvatarForUser = (username) => {
+      if (username.toLowerCase().trim() === this.myUsername.toLowerCase().trim()) {
+        return this.myAvatar;
+      }
+      const found = this.allKnownMembers.find(m => m.username.toLowerCase().trim() === username.toLowerCase().trim());
+      return found ? found.avatarUrl : `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    };
+
+    let bubbleContent = '';
+    if (isPoll) {
+      bubbleContent = `
+        <div class="poll-card" data-msg-id="${msg.id}">
+          <div class="poll-card-question">${pollPayload.question}</div>
+          <div class="poll-options-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            ${pollPayload.options.map((opt, idx) => {
+              const votesForOption = Object.values(pollPayload.votes || {}).filter(v => Number(v) === idx).length;
+              const totalVotes = Object.keys(pollPayload.votes || {}).length;
+              const percentage = totalVotes > 0 ? Math.round((votesForOption / totalVotes) * 100) : 0;
+              const isVotedByMe = pollPayload.votes && pollPayload.votes[this.myUsername] !== undefined && Number(pollPayload.votes[this.myUsername]) === idx;
+              return `
+                <div class="poll-option-row ${isVotedByMe ? 'poll-option-row--selected' : ''}" data-option-idx="${idx}">
+                  <div class="poll-option-bg" style="width: ${percentage}%"></div>
+                  <div class="poll-option-content">
+                    <div class="poll-option-radio"></div>
+                    <span>${opt}</span>
+                  </div>
+                  <div class="poll-option-votes">${percentage}%</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          ${Object.keys(pollPayload.votes || {}).length > 0 ? `
+            <div class="poll-voters-section" style="margin-top: 4px;">
+              <div style="font-size: 11px; color: #797C7B; font-weight: 600; margin-bottom: 4px;">Voted member</div>
+              <div class="poll-voters-list">
+                ${Object.keys(pollPayload.votes).map(voter => {
+                  const avatar = getAvatarForUser(voter);
+                  return `<img src="${avatar}" class="poll-voter-avatar" alt="${voter}" title="${voter}">`;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      bubbleContent = `<div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}${this.formatMessageMarkdown(textMsg).includes('code-block-wrapper') ? ' chat-msg__bubble--has-code' : ''}">${this.formatMessageMarkdown(textMsg)}</div>`;
+    }
+
     msgElement.innerHTML = `
       <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
       <div class="chat-msg__content-box" style="width: 100%;">
@@ -1157,11 +1468,11 @@ export class ChatController {
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>
         <div class="chat-msg__bubble-container">
-          <div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}${this.formatMessageMarkdown(textMsg).includes('code-block-wrapper') ? ' chat-msg__bubble--has-code' : ''}">${this.formatMessageMarkdown(textMsg)}</div>
+          ${bubbleContent}
           
           <!-- Hover Action items row -->
           <div class="chat-msg__action-bar">
-            ${isSelf && msg.id ? `<button class="chat-msg__edit-btn" title="Edit message" style="position: static; opacity: 1; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center;"><svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>` : ''}
+            ${isSelf && msg.id && !isPoll ? `<button class="chat-msg__edit-btn" title="Edit message" style="position: static; opacity: 1; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center;"><svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>` : ''}
             ${msg.id ? `<button class="chat-msg__reply-btn" title="Reply in thread" style="display: inline-flex; align-items: center; justify-content: center;"><svg style="width: 12px; height: 12px; fill: currentColor" viewBox="0 0 24 24"><path d="M4 9h16v2H4zm4 4h8v2H8z"/></svg></button>` : ''}
           </div>
 
@@ -1215,6 +1526,15 @@ export class ChatController {
         this.openThreadDrawer(msg);
       };
     }
+
+    // 4. Bind Poll Option clicks
+    msgElement.querySelectorAll('.poll-option-row').forEach(row => {
+      row.onclick = (e) => {
+        e.stopPropagation();
+        const optionIdx = parseInt(row.getAttribute('data-option-idx'), 10);
+        this.handlePollVote(msg, optionIdx);
+      };
+    });
 
     // Bind Edit Button click event
     const editBtn = msgElement.querySelector('.chat-msg__edit-btn');
@@ -2110,6 +2430,7 @@ export class ChatController {
     createBtn.innerHTML = `<span style="font-size:16px;font-weight:bold;line-height:1;">+</span> <span style="font-size:13px;font-weight:600;">Create Group Chat</span>`;
     createBtn.onclick = (e) => {
       e.stopPropagation();
+      this.populateMembersList('invitedMembersRow');
       this.populateMembersList('groupMembersList');
       if (this.createGroupModal) this.createGroupModal.classList.add('modal-overlay--active');
     };
@@ -2294,6 +2615,7 @@ export class ChatController {
     }
     createBtn.onclick = (e) => {
       e.stopPropagation();
+      this.populateMembersList('invitedMembersRow');
       this.populateMembersList('groupMembersList');
       if (this.createGroupModal) {
         this.createGroupModal.classList.add('modal-overlay--active');
@@ -2548,6 +2870,225 @@ export class ChatController {
     this.drawUnifiedList();
   }
 
+  addCallToHistory(name, type, direction, missed) {
+    let history = [];
+    try {
+      history = JSON.parse(localStorage.getItem('tasksphere_call_history') || '[]');
+    } catch(e) {}
+    
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = 'Today, ' + timeStr;
+    
+    const found = this.allKnownMembers.find(u => u.username.toLowerCase() === name.toLowerCase());
+    const avatar = found ? found.avatarUrl : `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`;
+    
+    history.unshift({
+      name,
+      type,
+      direction,
+      time: dateStr,
+      missed,
+      avatar
+    });
+    
+    if (history.length > 20) history = history.slice(0, 20);
+    localStorage.setItem('tasksphere_call_history', JSON.stringify(history));
+    
+    const tabCalls = document.getElementById('chatTabCalls');
+    if (tabCalls && tabCalls.classList.contains('chat-bottom-nav-btn--active')) {
+      this.drawCallsList();
+    }
+  }
+
+  drawCallsList() {
+    const listCalls = document.getElementById('chatCallsList');
+    if (!listCalls) return;
+    listCalls.innerHTML = '';
+    
+    let logs = [];
+    try {
+      logs = JSON.parse(localStorage.getItem('tasksphere_call_history') || '[]');
+    } catch (e) {}
+    
+    if (logs.length === 0) {
+      listCalls.innerHTML = `
+        <div style="padding: var(--spacing-xl); text-align: center; color: var(--text-muted);">
+          <svg style="width: 48px; height: 48px; fill: currentColor; opacity: 0.3; margin-bottom: 12px;" viewBox="0 0 24 24">
+            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+          </svg>
+          <div style="font-size: 14px; font-weight: 600;">No call logs yet</div>
+          <p style="font-size: 11px; margin-top: 4px;">Outgoing and incoming calls will appear here.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    logs.forEach(log => {
+      const isMissed = log.missed;
+      
+      const item = document.createElement('div');
+      item.className = 'call-log-item';
+      
+      const found = this.allKnownMembers.find(u => u.username.toLowerCase() === log.name.toLowerCase());
+      const avatar = found ? found.avatarUrl : log.avatar;
+      
+      let arrowIcon = '';
+      if (isMissed) {
+        arrowIcon = `<svg class="call-log-icon-arrow call-log-icon-arrow--missed" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 7 15.59V9H5v10h10v-2H8.41L19 6.41z"/></svg>`;
+      } else {
+        arrowIcon = `<svg class="call-log-icon-arrow call-log-icon-arrow--outgoing" viewBox="0 0 24 24"><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>`;
+      }
+      
+      item.innerHTML = `
+        <div class="call-log-avatar-wrap">
+          <img src="${avatar}" class="call-log-avatar" alt="${log.name}">
+        </div>
+        <div class="call-log-details">
+          <span class="call-log-name">${log.name}</span>
+          <div class="call-log-meta">
+            ${arrowIcon}
+            <span>${log.time}</span>
+          </div>
+        </div>
+        <div class="call-log-actions">
+          <button class="call-log-action-btn call-log-action-btn--voice" title="Voice call">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          </button>
+          <button class="call-log-action-btn call-log-action-btn--video" title="Video call">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          </button>
+        </div>
+      `;
+      
+      const voiceBtn = item.querySelector('.call-log-action-btn--voice');
+      const videoBtn = item.querySelector('.call-log-action-btn--video');
+      
+      voiceBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.addCallToHistory(log.name, 'VOICE', 'OUTGOING', false);
+        this.voiceCall.initiateCall(log.name, avatar, 'VOICE');
+      };
+      
+      videoBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.addCallToHistory(log.name, 'VIDEO', 'OUTGOING', false);
+        this.voiceCall.initiateCall(log.name, avatar, 'VIDEO');
+      };
+      
+      item.onclick = () => {
+        this.switchChatPartner(log.name);
+        const tabMsg = document.getElementById('chatTabMsg');
+        if (tabMsg) tabMsg.click();
+      };
+      
+      listCalls.appendChild(item);
+    });
+  }
+
+  drawContactsList() {
+    const listContacts = document.getElementById('chatContactsList');
+    if (!listContacts) return;
+    listContacts.innerHTML = '';
+    
+    let members = [...this.allKnownMembers];
+    members.sort((a, b) => a.username.localeCompare(b.username));
+    
+    if (this.chatSearchQuery) {
+      const q = this.chatSearchQuery.toLowerCase();
+      members = members.filter(m => m.username.toLowerCase().includes(q));
+    }
+    
+    if (members.length === 0) {
+      listContacts.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">No contacts found</div>`;
+      return;
+    }
+    
+    const mockBios = {
+      'afrin sabila': 'Life is beautiful 🌞',
+      'adil adnan': 'Be your own hero 💪',
+      'bristy haque': 'Keep working ✍️',
+      'john borino': 'Make yourself proud 🧡',
+      'barsha akther': 'Flowers are beautiful 🌸',
+      'sheik sadi': 'Stay focused and humble 🙏',
+      'rashid khan': 'Group Admin & Coordinator 🚀'
+    };
+    
+    let lastLetter = '';
+    
+    members.forEach(member => {
+      const name = member.username;
+      const firstLetter = name.charAt(0).toUpperCase();
+      
+      if (firstLetter !== lastLetter) {
+        lastLetter = firstLetter;
+        const header = document.createElement('div');
+        header.className = 'contact-letter-header';
+        header.textContent = lastLetter;
+        listContacts.appendChild(header);
+      }
+      
+      const item = document.createElement('div');
+      item.className = 'contact-item';
+      
+      const bio = mockBios[name.toLowerCase()] || 'Hey there! I am using TaskSphere.';
+      let cleanAvatar = (member.avatarUrl || '').split('||')[0];
+      if (!cleanAvatar) {
+        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`;
+      }
+      
+      item.innerHTML = `
+        <img src="${cleanAvatar}" class="contact-avatar" alt="${name}">
+        <div class="contact-details">
+          <span class="contact-name">${name}</span>
+          <span class="contact-status">${bio}</span>
+        </div>
+      `;
+      
+      item.onclick = () => {
+        this.switchChatPartner(name);
+        const tabMsg = document.getElementById('chatTabMsg');
+        if (tabMsg) tabMsg.click();
+      };
+      
+      listContacts.appendChild(item);
+    });
+  }
+
+  async handlePollVote(msg, optionIdx) {
+    if (!msg.id) return;
+    const parsed = this.parseMessageMeta(msg.message);
+    let pollPayload;
+    try {
+      const jsonStr = parsed.text.substring(11, parsed.text.length - 1);
+      pollPayload = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('Failed to parse poll JSON in vote', e);
+      return;
+    }
+
+    if (!pollPayload.votes) {
+      pollPayload.votes = {};
+    }
+
+    const currentVote = pollPayload.votes[this.myUsername];
+    if (currentVote !== undefined && Number(currentVote) === optionIdx) {
+      delete pollPayload.votes[this.myUsername];
+    } else {
+      pollPayload.votes[this.myUsername] = optionIdx;
+    }
+
+    const newText = `[POLL_JSON:${JSON.stringify(pollPayload)}]`;
+    const finalMessage = this.serializeMessageMeta(parsed.dmPrefix, newText, parsed.meta);
+
+    try {
+      await api.updateChatMessage(msg.id, { message: finalMessage });
+    } catch (err) {
+      console.error('[POLL-VOTE-ERROR] Failed to save poll vote:', err);
+      alert(`Failed to save vote: ${err.message || err}`);
+    }
+  }
+
   populateMembersList(containerId, currentMemberNames = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -2556,57 +3097,110 @@ export class ChatController {
     const cachedUsers = JSON.parse(localStorage.getItem('cache_users') || '[]');
     const otherUsers = cachedUsers.filter(u => u.username !== this.myUsername);
     
-    if (otherUsers.length === 0) {
-      container.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; padding: 4px;">No other members available in workspace.</div>';
-      return;
-    }
-    
-    otherUsers.forEach(user => {
-      const isAlreadyMember = currentMemberNames.includes(user.username);
+    if (containerId === 'invitedMembersRow') {
+      const adminAvatar = document.getElementById('createGroupAdminAvatar');
+      const adminName = document.getElementById('createGroupAdminName');
+      if (adminAvatar) adminAvatar.src = this.myAvatar;
+      if (adminName) adminName.textContent = this.myUsername;
+
+      otherUsers.forEach(user => {
+        const isVoted = currentMemberNames.includes(user.username);
+        const wrap = document.createElement('div');
+        wrap.className = 'invited-member-avatar-container';
+        wrap.setAttribute('data-username', user.username);
+        
+        let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+        if (!cleanAvatar) {
+          cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+        }
+        
+        wrap.innerHTML = `
+          <img src="${cleanAvatar}" class="invited-member-avatar" alt="${user.username}" title="${user.username}">
+          <div class="invited-member-badge" style="background: ${isVoted ? '#24786D' : '#797C7B'};">${isVoted ? '✓' : '+'}</div>
+          <input type="checkbox" value="${user.username}" style="display:none;" ${isVoted ? 'checked' : ''}>
+        `;
+        
+        wrap.onclick = () => {
+          const checkbox = wrap.querySelector('input[type="checkbox"]');
+          const badge = wrap.querySelector('.invited-member-badge');
+          checkbox.checked = !checkbox.checked;
+          if (checkbox.checked) {
+            badge.textContent = '✓';
+            badge.style.background = '#24786D';
+          } else {
+            badge.textContent = '+';
+            badge.style.background = '#797C7B';
+          }
+        };
+        
+        container.appendChild(wrap);
+      });
       
-      const div = document.createElement('div');
-      div.style.display = 'flex';
-      div.style.alignItems = 'center';
-      div.style.gap = '8px';
-      div.style.padding = '4px 6px';
-      
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = user.username;
-      checkbox.id = `${containerId}_user_${user.username}`;
-      checkbox.style.accentColor = 'var(--accent-cyan)';
-      checkbox.style.cursor = 'pointer';
-      
-      if (isAlreadyMember) {
-        checkbox.checked = true;
-        checkbox.disabled = true; // cannot remove from settings
-      }
-      
-      const label = document.createElement('label');
-      label.htmlFor = checkbox.id;
-      label.style.display = 'flex';
-      label.style.alignItems = 'center';
-      label.style.gap = '8px';
-      label.style.cursor = 'pointer';
-      label.style.fontSize = '12px';
-      label.style.color = '#e4e4e7';
-      label.style.userSelect = 'none';
-      label.style.flex = '1';
-      
-      let cleanAvatar = (user.avatarUrl || '').split('||')[0];
-      if (!cleanAvatar) {
-        cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
-      }
-      
-      label.innerHTML = `
-        <img src="${cleanAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
-        <span>${user.username} <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 2px;">${(user.role || 'DEVELOPER').replace(/_/g, ' ')}</span></span>
+      const plusBtn = document.createElement('div');
+      plusBtn.className = 'invited-member-avatar-container--add';
+      plusBtn.innerHTML = `
+        <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
       `;
+      plusBtn.onclick = () => {
+        alert('All workspace users are already listed here. Click on an avatar to invite them!');
+      };
+      container.appendChild(plusBtn);
       
-      div.appendChild(checkbox);
-      div.appendChild(label);
-      container.appendChild(div);
-    });
+    } else {
+      if (otherUsers.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; padding: 4px;">No other members available in workspace.</div>';
+        return;
+      }
+      
+      otherUsers.forEach(user => {
+        const isAlreadyMember = currentMemberNames.includes(user.username);
+        
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.gap = '8px';
+        div.style.padding = '4px 6px';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = user.username;
+        checkbox.id = `${containerId}_user_${user.username}`;
+        checkbox.style.accentColor = 'var(--accent-cyan)';
+        checkbox.style.cursor = 'pointer';
+        
+        if (isAlreadyMember) {
+          checkbox.checked = true;
+          checkbox.disabled = true;
+        }
+        
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+        label.style.cursor = 'pointer';
+        label.style.fontSize = '12px';
+        label.style.color = '#e4e4e7';
+        label.style.userSelect = 'none';
+        label.style.flex = '1';
+        
+        let cleanAvatar = (user.avatarUrl || '').split('||')[0];
+        if (!cleanAvatar) {
+          cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
+        }
+        
+        label.innerHTML = `
+          <img src="${cleanAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
+          <span>${user.username} <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 2px;">${(user.role || 'DEVELOPER').replace(/_/g, ' ')}</span></span>
+        `;
+        
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        container.appendChild(div);
+      });
+    }
   }
 
   applyWallpaper(wallpaperName) {
