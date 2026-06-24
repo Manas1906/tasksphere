@@ -1,19 +1,19 @@
 :root {
   color-scheme: dark;
-  /* Color Palette - Premium Space-Dark Mode */
-  --bg-primary: #0B0F17;
-  --bg-secondary: #131A26;
-  --bg-tertiary: #1E293B;
-  --bg-card: #1a2436; /* Solid background card */
+  /* Color Palette - Premium Space-Dark Mode - Revamped with Figma Colors */
+  --bg-primary: #000E08;      /* Deep dark green/black */
+  --bg-secondary: #121414;    /* Dark gray/black */
+  --bg-tertiary: #191c1c;
+  --bg-card: #121414;
   
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-color-glow: rgba(0, 240, 255, 0.25);
+  --border-color: rgba(36, 120, 109, 0.15);
+  --border-color-glow: rgba(36, 120, 109, 0.35);
   
-  /* Vibrancy Accents */
-  --accent-cyan: #00F0FF;
-  --accent-cyan-rgb: 0, 240, 255;
-  --accent-purple: #6366F1; /* Premium Calming Indigo instead of harsh neon purple */
-  --accent-purple-rgb: 99, 102, 241;
+  /* Vibrancy Accents - Figma brand accent (#24786D) */
+  --accent-cyan: #24786D;
+  --accent-cyan-rgb: 36, 120, 109;
+  --accent-purple: #24786D;
+  --accent-purple-rgb: 36, 120, 109;
   --accent-emerald: #10B981;
   --accent-emerald-rgb: 16, 185, 129;
   --accent-amber: #F59E0B;
@@ -48,14 +48,19 @@
   --header-height: 70px;
   
   /* Solid theme visual effects */
-  --glass-bg: #131A26; /* Solid background */
+  --glass-bg: #121414; /* Solid background */
   --glass-blur: none;
   --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --cyan-glow: 0 0 15px rgba(0, 240, 255, 0.2);
-  --purple-glow: 0 0 15px rgba(99, 102, 241, 0.2); /* Calming Indigo glow */
+  --cyan-glow: 0 0 15px rgba(36, 120, 109, 0.2);
+  --purple-glow: 0 0 15px rgba(36, 120, 109, 0.2);
+  
   /* Default dark theme text light helper */
-  --text-primary: #F8FAFC;
-  --text-light: #E2E8F0;
+  --text-primary: #FFFFFF;
+  --text-light: #FFFFFF;
+  --text-muted: #797C7B;
+  --text-main: #FFFFFF;
+
+  --bg-radial: radial-gradient(circle at 50% 50%, #0d2824 0%, #000E08 100%);
 
   /* Standard Border Radii */
   --radius-xs: 4px;
@@ -71,32 +76,34 @@
 
 /* Premium Light Theme overrides - Day 2/6 Aesthetics */
 body.light-theme {
-  /* Color Palette - Premium Space-Light Mode */
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #F1F5F9; /* Stand-out columns background matching mockup */
-  --bg-tertiary: #E2E8F0;
-  --bg-card: #FFFFFF; /* Pure white task cards matching mockup */
+  /* Color Palette - Premium Space-Light Mode - Figma Colors */
+  --bg-primary: #F2F7FB;       /* Soft white/blue background */
+  --bg-secondary: #FFFFFF;     /* Pure white card/sidebar background */
+  --bg-tertiary: #E2EAF1;
+  --bg-card: #FFFFFF;          /* Pure white task cards */
   
-  --border-color: rgba(15, 23, 42, 0.08);
+  --border-color: rgba(36, 120, 109, 0.18);
   
   /* Rich Aesthetics Overrides for Light Mode Accents */
-  --accent-cyan: #0284C7; /* Rich readable Sky Blue instead of neon cyan */
-  --accent-purple: #4F46E5; /* Rich humanistic Indigo instead of purple */
-  --accent-emerald: #10B981; /* Premium deep emerald */
-  --accent-rose: #E11D48; /* Premium deep rose */
-  --accent-amber: #D97706; /* Premium deep amber */
+  --accent-cyan: #24786D;      /* brand teal */
+  --accent-purple: #24786D;    /* brand teal */
+  --accent-emerald: #10B981;
+  --accent-rose: #E11D48;
+  --accent-amber: #D97706;
   
   /* Text Contrast Overrides */
-  --text-main: #0F172A;
-  --text-primary: #0F172A;
-  --text-muted: #64748B;
-  --text-light: #334155;
+  --text-main: #000E08;
+  --text-primary: #000E08;
+  --text-muted: #797C7B;
+  --text-light: #121414;
   
   /* Solid theme overrides for Light Mode */
   --glass-bg: #FFFFFF;
-  --card-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05); /* Soft premium shadow matching mockup */
-  --cyan-glow: 0 0 15px rgba(2, 132, 199, 0.15);
-  --purple-glow: 0 0 15px rgba(79, 70, 229, 0.15);
+  --card-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+  --cyan-glow: 0 0 15px rgba(36, 120, 109, 0.15);
+  --purple-glow: 0 0 15px rgba(36, 120, 109, 0.15);
+
+  --bg-radial: radial-gradient(circle at 50% 50%, #FFFFFF 0%, #F2F7FB 100%);
 }
 
 /* Page Element Overrides for Premium Light Mode Contrast */
