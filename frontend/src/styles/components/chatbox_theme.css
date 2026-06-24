@@ -1163,3 +1163,332 @@ body.light-theme .invited-member-avatar-container--add {
   color: #24786D !important;
 }
 
+/* Search Results Panel Overlay */
+.chat-search-results-panel {
+  position: absolute;
+  top: 70px; /* Right below search container */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 130px); /* Fill sidebar height */
+  background: var(--bg-secondary);
+  z-index: 10;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.search-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.search-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.search-result-item:hover {
+  background: rgba(36, 120, 109, 0.08);
+}
+
+.search-result-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.search-result-details {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.search-result-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.search-result-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Sidebar Settings Tab Panel */
+.settings-profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.settings-profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+  border: 2px solid var(--accent-cyan);
+}
+
+.settings-profile-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.settings-profile-bio {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.settings-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.settings-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.settings-menu-item:hover {
+  background: rgba(36, 120, 109, 0.08);
+}
+
+.settings-menu-icon {
+  font-size: 1.1rem;
+}
+
+.settings-menu-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: left;
+}
+
+.settings-menu-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-menu-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settings-chevron {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* User Profile Modal Overlay */
+.user-profile-modal-card {
+  background: var(--bg-primary);
+  width: 100%;
+  max-width: 400px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-hero {
+  background: linear-gradient(185deg, #0f2824 0%, #000E08 100%);
+  padding: 32px 24px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  border-bottom: 1px solid var(--border-color);
+}
+
+body.light-theme .profile-hero {
+  background: linear-gradient(185deg, #24786D 0%, #0d3832 100%);
+}
+
+.profile-hero-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #FFFFFF;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.profile-hero-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-hero-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #24786D;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+}
+
+.profile-hero-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 2px 0;
+}
+
+.profile-hero-handle {
+  font-size: 12px;
+  color: #797C7B;
+  margin: 0 0 16px 0;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.profile-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+
+.profile-action-btn:hover {
+  background: #24786D;
+  transform: scale(1.05);
+}
+
+.profile-info-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid rgba(121, 124, 123, 0.1);
+  padding-bottom: 12px;
+}
+
+.profile-field label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.profile-field span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-media-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-media-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-media-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.profile-media-count {
+  background: rgba(36, 120, 109, 0.15);
+  color: var(--accent-cyan);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.profile-media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.profile-media-thumb {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.profile-media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+

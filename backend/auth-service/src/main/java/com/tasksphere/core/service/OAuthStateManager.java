@@ -38,10 +38,17 @@ public class OAuthStateManager {
     /**
      * Serializes the state token into a secure, HttpOnly cookie on the response.
      */
-    public void createStateCookie(HttpServletResponse response, String state) {
+    public void createStateCookie(HttpServletRequest request, HttpServletResponse response, String state) {
+        boolean isSecure = request.isSecure() || 
+            (request.getHeader("X-Forwarded-Proto") != null && "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")));
+        String serverName = request.getServerName();
+        if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
+            isSecure = false;
+        }
+
         ResponseCookie cookie = ResponseCookie.from("oauth_state", state)
             .httpOnly(true)
-            .secure(true) // Forces SSL/TLS transmission
+            .secure(isSecure)
             .path("/")
             .maxAge(600) // 10 minutes Time-to-Live (TTL)
             .sameSite("Lax") // Prevents cross-site cookie leakage
@@ -83,10 +90,17 @@ public class OAuthStateManager {
     /**
      * Clears the state cookie from the client browser after consumption.
      */
-    public void clearStateCookie(HttpServletResponse response) {
+    public void clearStateCookie(HttpServletRequest request, HttpServletResponse response) {
+        boolean isSecure = request.isSecure() || 
+            (request.getHeader("X-Forwarded-Proto") != null && "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")));
+        String serverName = request.getServerName();
+        if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
+            isSecure = false;
+        }
+
         ResponseCookie cookie = ResponseCookie.from("oauth_state", "")
             .httpOnly(true)
-            .secure(true)
+            .secure(isSecure)
             .path("/")
             .maxAge(0) // Expire immediately
             .sameSite("Lax")

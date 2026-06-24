@@ -1179,9 +1179,11 @@ body.light-theme .recruiter-dev-console {
   border: 1px solid #e2e8f0;
 }
 
-.method-logo-card svg {
-  height: 14px;
-  max-height: 14px;
+.method-logo-card svg,
+.method-logo-card img {
+  height: auto;
+  max-height: 16px;
+  object-fit: contain;
 }
 
 .pcidss-badge {

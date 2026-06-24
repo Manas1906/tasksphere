@@ -100,9 +100,9 @@ public class FederatedAuthController {
      * Browser Redirect Login Endpoint for Google OAuth.
      */
     @GetMapping("/google/login")
-    public void googleLogin(HttpServletResponse response) throws IOException {
+    public void googleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String state = stateManager.generateStateToken();
-        stateManager.createStateCookie(response, state);
+        stateManager.createStateCookie(request, response, state);
 
         String redirectUrl = String.format(
                 "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile&state=%s",
@@ -129,7 +129,7 @@ public class FederatedAuthController {
             if (!isStateValid) {
                 throw new SecurityException("Google state validation failed: State parameter mismatch or expired session.");
             }
-            stateManager.clearStateCookie(response);
+            stateManager.clearStateCookie(request, response);
 
             if (code == null || code.trim().isEmpty()) {
                 throw new IllegalArgumentException("Google authorization code parameter is missing.");
@@ -343,9 +343,9 @@ public class FederatedAuthController {
      * Generates state, sets secure cookie, and redirects user's browser to GitHub Authorization page.
      */
     @GetMapping("/github/login")
-    public void githubLogin(HttpServletResponse response) throws IOException {
+    public void githubLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String state = stateManager.generateStateToken();
-        stateManager.createStateCookie(response, state);
+        stateManager.createStateCookie(request, response, state);
 
         String redirectUrl = String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=user:email&state=%s",
@@ -371,7 +371,7 @@ public class FederatedAuthController {
             if (!isStateValid) {
                 throw new SecurityException("GitHub state validation failed: State parameter mismatch or expired session.");
             }
-            stateManager.clearStateCookie(response);
+            stateManager.clearStateCookie(request, response);
 
             if (code == null || code.trim().isEmpty()) {
                 throw new IllegalArgumentException("GitHub authorization code parameter is missing.");

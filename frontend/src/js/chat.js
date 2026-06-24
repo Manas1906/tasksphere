@@ -161,9 +161,11 @@ export class ChatController {
       const listMsg = document.getElementById('chatUnifiedList');
       const listCalls = document.getElementById('chatCallsList');
       const listContacts = document.getElementById('chatContactsList');
+      const listSettings = document.getElementById('chatSettingsPanel');
       if (listMsg) { listMsg.classList.add('hidden'); listMsg.style.display = 'none'; }
       if (listCalls) { listCalls.classList.add('hidden'); listCalls.style.display = 'none'; }
       if (listContacts) { listContacts.classList.add('hidden'); listContacts.style.display = 'none'; }
+      if (listSettings) { listSettings.classList.add('hidden'); listSettings.style.display = 'none'; }
     };
 
     if (tabMsg) {
@@ -206,9 +208,15 @@ export class ChatController {
 
     if (tabSettings) {
       tabSettings.onclick = () => {
-        const settingsBtn = document.getElementById('chatSettingsBtn');
-        if (settingsBtn) settingsBtn.click();
-        if (tabMsg) tabMsg.click();
+        clearActiveTabs();
+        tabSettings.classList.add('chat-bottom-nav-btn--active');
+        hideAllTabPanels();
+        const listSettings = document.getElementById('chatSettingsPanel');
+        if (listSettings) {
+          listSettings.classList.remove('hidden');
+          listSettings.style.display = 'flex';
+          this.drawSettingsPanel();
+        }
       };
     }
 
@@ -574,13 +582,53 @@ export class ChatController {
 
     // Unified search bar wiring
     const searchInput = document.getElementById('chatSearchInput');
+    const searchResultsPanel = document.getElementById('chatSearchResultsPanel');
+    const searchClearBtn = document.getElementById('chatSearchClearBtn');
+
     if (searchInput) {
-      searchInput.addEventListener('input', () => {
+      const handleSearch = () => {
         this.chatSearchQuery = searchInput.value.trim().toLowerCase();
-        this.drawUnifiedList();
-        this.drawCallsList();
-        this.drawContactsList();
+        
+        if (this.chatSearchQuery) {
+          if (searchResultsPanel) {
+            searchResultsPanel.style.display = 'flex';
+            searchResultsPanel.classList.remove('hidden');
+          }
+          if (searchClearBtn) {
+            searchClearBtn.style.display = 'block';
+          }
+          this.drawSearchResults();
+        } else {
+          if (searchResultsPanel) {
+            searchResultsPanel.style.display = 'none';
+            searchResultsPanel.classList.add('hidden');
+          }
+          if (searchClearBtn) {
+            searchClearBtn.style.display = 'none';
+          }
+          this.drawUnifiedList();
+          this.drawCallsList();
+          this.drawContactsList();
+        }
+      };
+
+      searchInput.addEventListener('input', handleSearch);
+      searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim()) {
+          if (searchResultsPanel) {
+            searchResultsPanel.style.display = 'flex';
+            searchResultsPanel.classList.remove('hidden');
+          }
+        }
       });
+
+      if (searchClearBtn) {
+        searchClearBtn.onclick = () => {
+          searchInput.value = '';
+          handleSearch();
+          searchInput.focus();
+        };
+      }
     }
 
     const mobileBackBtn = document.getElementById('mobileChatBackBtn');
@@ -3003,6 +3051,14 @@ export class ChatController {
       listContacts.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">No contacts found</div>`;
       return;
     }
+
+    // Alphabetical contacts header
+    const topHeader = document.createElement('div');
+    topHeader.className = 'contact-letter-header';
+    topHeader.style.color = 'var(--accent-cyan)';
+    topHeader.style.fontWeight = '800';
+    topHeader.textContent = 'My Contact';
+    listContacts.appendChild(topHeader);
     
     const mockBios = {
       'afrin sabila': 'Life is beautiful 🌞',
@@ -3046,13 +3102,241 @@ export class ChatController {
       `;
       
       item.onclick = () => {
-        this.switchChatPartner(name);
-        const tabMsg = document.getElementById('chatTabMsg');
-        if (tabMsg) tabMsg.click();
+        this.openUserProfile(member);
       };
       
       listContacts.appendChild(item);
     });
+  }
+
+  openUserProfile(member) {
+    const modal = document.getElementById('userProfileModal');
+    if (!modal) return;
+    
+    const avatarUrl = (member.avatarUrl || '').split('||')[0] || `https://api.dicebear.com/7.x/bottts/svg?seed=${member.username}`;
+    
+    document.getElementById('profileHeroAvatar').src = avatarUrl;
+    document.getElementById('profileHeroDisplayName').textContent = member.username;
+    document.getElementById('profileHeroUsername').textContent = `@${member.username.toLowerCase().replace(/\s+/g, '')}`;
+    
+    document.getElementById('profileFieldDisplayName').textContent = member.username;
+    
+    // Email lookup/fallback
+    let email = member.email || '';
+    if (!email) {
+      const cached = localStorage.getItem('profile_' + member.username);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          email = parsed.email;
+        } catch (e) {}
+      }
+    }
+    if (!email) {
+      email = `${member.username.toLowerCase().replace(/\s+/g, '')}@tasksphere.com`;
+    }
+    document.getElementById('profileFieldEmail').textContent = email;
+    
+    // Action buttons wiring
+    const chatBtn = document.getElementById('profileActionChat');
+    const videoBtn = document.getElementById('profileActionVideo');
+    const voiceBtn = document.getElementById('profileActionVoice');
+    const closeBtn = document.getElementById('closeUserProfileModal');
+    
+    if (chatBtn) {
+      chatBtn.onclick = () => {
+        this.switchChatPartner(member.username);
+        modal.style.display = 'none';
+        const tabMsg = document.getElementById('chatTabMsg');
+        if (tabMsg) tabMsg.click();
+      };
+    }
+    
+    if (videoBtn) {
+      videoBtn.onclick = () => {
+        modal.style.display = 'none';
+        if (this.voiceCall && typeof this.voiceCall.initiateCall === 'function') {
+          this.voiceCall.initiateCall(member.username, 'VIDEO');
+        } else {
+          alert('Call functionality unavailable.');
+        }
+      };
+    }
+    
+    if (voiceBtn) {
+      voiceBtn.onclick = () => {
+        modal.style.display = 'none';
+        if (this.voiceCall && typeof this.voiceCall.initiateCall === 'function') {
+          this.voiceCall.initiateCall(member.username, 'VOICE');
+        } else {
+          alert('Call functionality unavailable.');
+        }
+      };
+    }
+    
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        modal.style.display = 'none';
+      };
+    }
+    
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    };
+    
+    modal.style.display = 'flex';
+  }
+
+  drawSearchResults() {
+    const panel = document.getElementById('chatSearchResultsPanel');
+    if (!panel) return;
+    panel.innerHTML = '';
+
+    const query = this.chatSearchQuery.toLowerCase();
+    
+    // Filter People
+    const people = this.allKnownMembers.filter(m => m.username.toLowerCase().includes(query));
+    
+    // Filter Group Chats
+    const groups = this.groups.filter(g => g.name.toLowerCase().includes(query));
+
+    // Render People section
+    const peopleSection = document.createElement('div');
+    peopleSection.className = 'search-results-section';
+    peopleSection.innerHTML = `<div class="search-section-label">People</div>`;
+    
+    if (people.length === 0) {
+      peopleSection.innerHTML += `<div style="padding: 8px 12px; color: var(--text-muted); font-size: 12px;">No people found</div>`;
+    } else {
+      people.forEach(member => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        
+        let cleanAvatar = (member.avatarUrl || '').split('||')[0];
+        if (!cleanAvatar) {
+          cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${member.username}`;
+        }
+        
+        item.innerHTML = `
+          <img src="${cleanAvatar}" class="search-result-avatar" alt="${member.username}">
+          <div class="search-result-details">
+            <span class="search-result-name">${member.username}</span>
+            <span class="search-result-sub">${member.role || 'Member'}</span>
+          </div>
+        `;
+        
+        item.onclick = () => {
+          this.openUserProfile(member);
+        };
+        peopleSection.appendChild(item);
+      });
+    }
+    panel.appendChild(peopleSection);
+
+    // Render Group Chat section
+    const groupSection = document.createElement('div');
+    groupSection.className = 'search-results-section';
+    groupSection.innerHTML = `<div class="search-section-label">Group Chat</div>`;
+    
+    if (groups.length === 0) {
+      groupSection.innerHTML += `<div style="padding: 8px 12px; color: var(--text-muted); font-size: 12px;">No group chats found</div>`;
+    } else {
+      groups.forEach(group => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        
+        let cleanIcon = (group.iconUrl || '').split('||')[0];
+        if (!cleanIcon) {
+          cleanIcon = `https://api.dicebear.com/7.x/identicon/svg?seed=${group.name}`;
+        }
+        
+        item.innerHTML = `
+          <img src="${cleanIcon}" class="search-result-avatar" style="border-radius: 8px;" alt="${group.name}">
+          <div class="search-result-details">
+            <span class="search-result-name">${group.name}</span>
+            <span class="search-result-sub">${group.membersCount || 0} members</span>
+          </div>
+        `;
+        
+        item.onclick = () => {
+          this.switchGroup(group.id);
+          panel.style.display = 'none';
+          panel.classList.add('hidden');
+          const searchInput = document.getElementById('chatSearchInput');
+          const searchClearBtn = document.getElementById('chatSearchClearBtn');
+          if (searchInput) searchInput.value = '';
+          if (searchClearBtn) searchClearBtn.style.display = 'none';
+          const tabMsg = document.getElementById('chatTabMsg');
+          if (tabMsg) tabMsg.click();
+        };
+        groupSection.appendChild(item);
+      });
+    }
+    panel.appendChild(groupSection);
+  }
+
+  drawSettingsPanel() {
+    const panel = document.getElementById('chatSettingsPanel');
+    if (!panel) return;
+    panel.innerHTML = '';
+    panel.className = 'chat-unified-list settings-panel-container';
+
+    // Profile Card
+    const profileCard = document.createElement('div');
+    profileCard.className = 'settings-profile-card';
+    profileCard.innerHTML = `
+      <img src="${this.myAvatar}" class="settings-profile-avatar" alt="My Profile">
+      <div class="settings-profile-name">${this.myUsername}</div>
+      <div class="settings-profile-bio">Lead Systems Architect & Senior Developer</div>
+    `;
+    panel.appendChild(profileCard);
+
+    // Menu List
+    const menuList = document.createElement('div');
+    menuList.className = 'settings-menu-list';
+
+    const menuItems = [
+      { icon: '👤', title: 'Account', subtitle: 'Privacy, security, change email', action: () => {
+        const securitySettingsBtn = document.getElementById('securitySettingsBtn');
+        if (securitySettingsBtn) securitySettingsBtn.click();
+      }},
+      { icon: '💬', title: 'Chat', subtitle: 'Chat wallpaper, text size, clear history', action: () => {
+        alert('Chat settings can be modified in the canvas configuration.');
+      }},
+      { icon: '🔔', title: 'Notifications', subtitle: 'Push alerts, sound choices, quiet hours', action: () => {
+        alert('Web push notifications are fully integrated and active.');
+      }},
+      { icon: '🛡️', title: 'Help & Security', subtitle: 'FAQ, dynamic MFA tokens, logs', action: () => {
+        const securitySettingsBtn = document.getElementById('securitySettingsBtn');
+        if (securitySettingsBtn) securitySettingsBtn.click();
+      }},
+      { icon: '💾', title: 'Storage and data', subtitle: 'Network proxy, media cache clearance', action: () => {
+        alert('Enterprise data resides in a low-latency Turso Edge cluster.');
+      }},
+      { icon: '✉️', title: 'Invite a friend', subtitle: 'Share workspace link, add co-workers', action: () => {
+        navigator.clipboard.writeText(window.location.origin);
+        alert('Workspace invitation link copied to clipboard!');
+      }}
+    ];
+
+    menuItems.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'settings-menu-item';
+      row.innerHTML = `
+        <span class="settings-menu-icon">${item.icon}</span>
+        <div class="settings-menu-details">
+          <span class="settings-menu-title">${item.title}</span>
+          <span class="settings-menu-subtitle">${item.subtitle}</span>
+        </div>
+        <span class="settings-chevron">❯</span>
+      `;
+      row.onclick = item.action;
+      menuList.appendChild(row);
+    });
+
+    panel.appendChild(menuList);
   }
 
   async handlePollVote(msg, optionIdx) {
