@@ -196,6 +196,17 @@
   display: none !important;
 }
 
+/* Chat Hub Active: collapses sidebar + right chat column, keeps header visible.
+   Applied when route === 'CHAT_HUB'. Overrides --hide-chat since it appears
+   later in the stylesheet and uses the same specificity+importance. */
+.app-shell--chat-hub-active {
+  grid-template-columns: 0px 1fr 0px !important;
+}
+
+.app-shell--chat-hub-active .app-sidebar {
+  display: none !important;
+}
+
 .app-shell--hide-sidebar .app-sidebar {
   width: 0px !important;
   opacity: 0 !important;

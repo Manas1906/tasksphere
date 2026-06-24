@@ -2378,7 +2378,10 @@ class TaskSphereApp {
     if (route !== 'CHAT_HUB') {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) mainContainer.classList.remove('app-main--full');
-      if (shell) shell.classList.remove('app-shell--chat-hub-fullscreen');
+      if (shell) {
+        shell.classList.remove('app-shell--chat-hub-fullscreen');
+        shell.classList.remove('app-shell--chat-hub-active'); // Restore sidebar when leaving Chat Hub
+      }
 
       if (chatPanel && chatPanel.parentElement && chatPanel.parentElement.classList.contains('chat-hub-container')) {
         chatPanel.classList.remove('chat-panel--hub');
@@ -2421,7 +2424,6 @@ class TaskSphereApp {
       const mainContainer = document.getElementById('mainContainer');
       if (mainContainer) {
         mainContainer.classList.add('app-main--full');
-        // Do not add app-shell--chat-hub-fullscreen to keep left sidebar & header visible
         mainContainer.innerHTML = `<div class="chat-hub-container" style="height: 100%; width: 100%;"></div>`;
         const hubContainer = mainContainer.querySelector('.chat-hub-container');
         if (chatPanel && hubContainer) {
@@ -2432,7 +2434,9 @@ class TaskSphereApp {
         if (chatContainer) {
           chatContainer.style.display = 'none';
         }
-        if (shell) shell.classList.add('app-shell--hide-chat');
+        // Hide the duplicate app-sidebar; the hub's internal nav rail is the sole navigator.
+        // Keeps the header visible (unlike app-shell--chat-hub-fullscreen which hides everything).
+        if (shell) shell.classList.add('app-shell--chat-hub-active');
       }
       
       this.currentView = {

@@ -1,30 +1,63 @@
 package com.tasksphere.core.service;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Server-side OAuth CSRF state manager.
+ *
+ * <p>Prior implementation stored the state token in an HttpOnly cookie, which
+ * failed reliably in cloud/proxy deployments (e.g., Render.com) because the
+ * Set-Cookie header is sometimes stripped or not forwarded during browser
+ * redirects through reverse proxies.</p>
+ *
+ * <p>This implementation stores the state token in a {@link ConcurrentHashMap}
+ * with a per-entry expiry timestamp. No cookies are set or read. The flow is:</p>
+ * <ol>
+ *   <li>{@link #generateStateToken()} creates a 64-char hex token, stores it
+ *       with an expiry of {@value #STATE_TTL_MS} ms, and returns it.</li>
+ *   <li>The controller embeds the token in the OAuth redirect URL as the
+ *       {@code state} query parameter — the provider echoes it back unchanged.</li>
+ *   <li>{@link #verifyState} atomically removes the token from the store and
+ *       validates it (single-use, replay-safe, time-limited).</li>
+ * </ol>
+ *
+ * <p>{@link #createStateCookie} and {@link #clearStateCookie} are retained as
+ * no-ops for API compatibility; no cookies are used.</p>
+ */
 @Service
 public class OAuthStateManager {
+
+    private static final long STATE_TTL_MS = 600_000L; // 10 minutes
 
     private final SecureRandom secureRandom = new SecureRandom();
 
     /**
-     * Generates a cryptographically secure 256-bit entropy state token.
-     * Uses a 32-byte (256-bit) buffer represented as a 64-character hex string.
+     * ConcurrentHashMap: stateToken → expiry epoch ms.
+     * ConcurrentHashMap guarantees thread-safe access for multi-threaded servers.
+     */
+    private final ConcurrentHashMap<String, Long> stateStore = new ConcurrentHashMap<>();
+
+    /**
+     * Generates a cryptographically secure 256-bit state token and stores
+     * it server-side with a 10-minute TTL.
+     *
+     * <p>Performs lazy cleanup of expired entries on each invocation to prevent
+     * unbounded growth of the map under high concurrency.</p>
      */
     public String generateStateToken() {
+        // Lazy TTL-based cleanup — remove all entries whose expiry has passed
+        final long now = System.currentTimeMillis();
+        stateStore.entrySet().removeIf(entry -> now > entry.getValue());
+
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
-        
-        StringBuilder hexString = new StringBuilder();
+
+        StringBuilder hexString = new StringBuilder(64);
         for (byte b : bytes) {
             String hex = Integer.toHexString(0xff & b);
             if (hex.length() == 1) {
@@ -32,80 +65,52 @@ public class OAuthStateManager {
             }
             hexString.append(hex);
         }
-        return hexString.toString();
+
+        String state = hexString.toString();
+        stateStore.put(state, now + STATE_TTL_MS);
+        return state;
     }
 
     /**
-     * Serializes the state token into a secure, HttpOnly cookie on the response.
+     * No-op — state is stored server-side, no cookie is required.
+     * Retained for API compatibility with {@code FederatedAuthController}.
      */
     public void createStateCookie(HttpServletRequest request, HttpServletResponse response, String state) {
-        boolean isSecure = request.isSecure() || 
-            (request.getHeader("X-Forwarded-Proto") != null && "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")));
-        String serverName = request.getServerName();
-        if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
-            isSecure = false;
-        }
-
-        ResponseCookie cookie = ResponseCookie.from("oauth_state", state)
-            .httpOnly(true)
-            .secure(isSecure)
-            .path("/")
-            .maxAge(600) // 10 minutes Time-to-Live (TTL)
-            .sameSite("Lax") // Prevents cross-site cookie leakage
-            .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        // Server-side ConcurrentHashMap replaces cookie-based state storage.
+        // This method is intentionally a no-op.
     }
 
     /**
-     * Extracts and validates the state parameter using a constant-time cryptographic comparison.
+     * Validates and atomically consumes the state token.
+     *
+     * <p>Uses {@link ConcurrentHashMap#remove(Object)} which is atomic:
+     * the token is fetched and deleted in a single operation, guaranteeing
+     * single-use (replay-protection) without an explicit lock.</p>
+     *
+     * @param request       the HTTP request (unused; retained for API compat)
+     * @param receivedState the state value returned by the OAuth provider
+     * @return {@code true} if the state exists in the store and has not expired
      */
     public boolean verifyState(HttpServletRequest request, String receivedState) {
         if (receivedState == null || receivedState.trim().isEmpty()) {
             return false;
         }
 
-        String storedState = null;
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("oauth_state".equals(cookie.getName())) {
-                    storedState = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
-        if (storedState == null || storedState.trim().isEmpty()) {
+        // Atomic remove: returns null if key was not present
+        Long expiry = stateStore.remove(receivedState.trim());
+        if (expiry == null) {
             return false;
         }
 
-        // Timing-safe constant-time string comparison using standard JDK MessageDigest.isEqual
-        byte[] a = storedState.getBytes(StandardCharsets.UTF_8);
-        byte[] b = receivedState.getBytes(StandardCharsets.UTF_8);
-
-        return MessageDigest.isEqual(a, b);
+        return System.currentTimeMillis() <= expiry;
     }
 
     /**
-     * Clears the state cookie from the client browser after consumption.
+     * No-op — state is consumed atomically inside {@link #verifyState}.
+     * Retained for API compatibility with {@code FederatedAuthController}.
      */
     public void clearStateCookie(HttpServletRequest request, HttpServletResponse response) {
-        boolean isSecure = request.isSecure() || 
-            (request.getHeader("X-Forwarded-Proto") != null && "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")));
-        String serverName = request.getServerName();
-        if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
-            isSecure = false;
-        }
-
-        ResponseCookie cookie = ResponseCookie.from("oauth_state", "")
-            .httpOnly(true)
-            .secure(isSecure)
-            .path("/")
-            .maxAge(0) // Expire immediately
-            .sameSite("Lax")
-            .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        // State is single-use and consumed in verifyState().
+        // This method is intentionally a no-op.
     }
 }
