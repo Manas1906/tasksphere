@@ -97,6 +97,44 @@ public class FederatedAuthController {
     }
 
     /**
+     * Builds the OAuth callback URI dynamically from the incoming request.
+     *
+     * <p>Uses {@code X-Forwarded-Proto} (for scheme) and {@code Host} header
+     * (for hostname) so the URI is correct for both local development and
+     * production reverse-proxy deployments (e.g. Render.com, Railway).
+     * This eliminates the need for GOOGLE_REDIRECT_URI / GITHUB_REDIRECT_URI
+     * environment variables.</p>
+     *
+     * <p><strong>Important:</strong> The returned URI must be registered in the
+     * OAuth provider's allowed-redirect-URIs list (Google Cloud Console /
+     * GitHub OAuth App settings).</p>
+     */
+    private String buildCallbackUri(HttpServletRequest request, String path) {
+        // Resolve scheme: trust X-Forwarded-Proto from reverse proxy first
+        String proto = request.getHeader("X-Forwarded-Proto");
+        if (proto != null && proto.contains(",")) {
+            proto = proto.split(",")[0].trim(); // take first value if chained
+        }
+        if (proto == null || proto.isEmpty()) {
+            proto = request.isSecure() ? "https" : "http";
+        }
+
+        // Resolve host: Host header reflects the public-facing hostname after proxy
+        String host = request.getHeader("Host");
+        if (host == null || host.isEmpty()) {
+            host = request.getServerName();
+            int port = request.getServerPort();
+            boolean isDefault = ("https".equals(proto) && port == 443)
+                    || ("http".equals(proto) && port == 80);
+            if (!isDefault && port > 0) {
+                host += ":" + port;
+            }
+        }
+
+        return proto + "://" + host + path;
+    }
+
+    /**
      * Browser Redirect Login Endpoint for Google OAuth.
      */
     @GetMapping("/google/login")
@@ -104,10 +142,15 @@ public class FederatedAuthController {
         String state = stateManager.generateStateToken();
         stateManager.createStateCookie(request, response, state);
 
+        // Build redirect URI dynamically so it works on localhost AND production
+        // without requiring GOOGLE_REDIRECT_URI to be set as an environment variable.
+        String dynamicRedirectUri = buildCallbackUri(request, "/api/auth/google/callback");
+        String encodedRedirectUri = java.net.URLEncoder.encode(dynamicRedirectUri, "UTF-8");
+
         String redirectUrl = String.format(
                 "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile&state=%s",
                 getCleanGoogleClientId(),
-                googleRedirectUri != null ? googleRedirectUri.trim() : "",
+                encodedRedirectUri,
                 state
         );
         response.sendRedirect(redirectUrl);
@@ -136,13 +179,15 @@ public class FederatedAuthController {
             }
 
             // 2. Exchange code for tokens at https://oauth2.googleapis.com/token
+            // redirect_uri must EXACTLY match the one sent in the authorization request.
+            String dynamicRedirectUri = buildCallbackUri(request, "/api/auth/google/callback");
             String tokenUrl = "https://oauth2.googleapis.com/token";
             Map<String, String> requestPayload = new HashMap<>();
             requestPayload.put("client_id", getCleanGoogleClientId());
             requestPayload.put("client_secret", getCleanGoogleClientSecret());
             requestPayload.put("code", code.trim());
             requestPayload.put("grant_type", "authorization_code");
-            requestPayload.put("redirect_uri", googleRedirectUri != null ? googleRedirectUri.trim() : "");
+            requestPayload.put("redirect_uri", dynamicRedirectUri);
 
             Map<String, Object> tokenResponse = restTemplate.postForObject(tokenUrl, requestPayload, Map.class);
             
@@ -347,10 +392,14 @@ public class FederatedAuthController {
         String state = stateManager.generateStateToken();
         stateManager.createStateCookie(request, response, state);
 
+        // Build redirect URI dynamically — no GITHUB_REDIRECT_URI env var needed.
+        String dynamicRedirectUri = buildCallbackUri(request, "/api/auth/github/callback");
+        String encodedRedirectUri = java.net.URLEncoder.encode(dynamicRedirectUri, "UTF-8");
+
         String redirectUrl = String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=user:email&state=%s",
                 getCleanGithubClientId(),
-                githubRedirectUri != null ? githubRedirectUri.trim() : "",
+                encodedRedirectUri,
                 state
         );
         response.sendRedirect(redirectUrl);

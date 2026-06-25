@@ -237,6 +237,24 @@
     grid-template-areas: "main" !important;
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     CRITICAL: Desktop modifier classes use !important on grid-
+     template-columns (e.g., hide-chat uses `var(--sidebar-width)
+     1fr 0px !important`). Without these overrides the 240px sidebar
+     column STILL allocates space on mobile even though .app-sidebar
+     is position:fixed.  Force every variant back to a single column.
+     ────────────────────────────────────────────────────────────── */
+  .app-shell--hide-chat,
+  .app-shell--hide-sidebar,
+  .app-shell--hide-sidebar.app-shell--hide-chat,
+  .app-shell--chat-hub-active {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: var(--header-height) 1fr !important;
+    grid-template-areas:
+      "header"
+      "main" !important;
+  }
+
   .app-sidebar {
     position: fixed;
     top: 0;
