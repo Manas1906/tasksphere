@@ -296,7 +296,6 @@ public class FederatedAuthController {
             response.sendRedirect(cleanFrontend + "?error=" + java.net.URLEncoder.encode(ex.getMessage(), "UTF-8"));
         }
     }
-    }
 
     /**
      * Google One-Tap / POST Callback Endpoint.
