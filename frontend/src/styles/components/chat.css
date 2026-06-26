@@ -254,6 +254,15 @@ body.light-theme .create-group-btn {
   scroll-behavior: smooth;
 }
 
+/* Push messages to the bottom when the feed is sparse (WhatsApp/iMessage pattern).
+   The pseudo-element is a flex item that grows to fill any remaining space above the
+   messages.  Once messages overflow the container this spacer collapses to 0 and
+   normal scrolling takes over — scrollTop = scrollHeight still works correctly. */
+.chat-messages-container::before {
+  content: '';
+  flex: 1;
+}
+
 body.light-theme .chat-messages-container {
   background-color: #f8fafc;
 }

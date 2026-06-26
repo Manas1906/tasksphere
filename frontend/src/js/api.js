@@ -32,7 +32,13 @@ class ApiService {
   /**
    * Universal fetch wrapper with timeout & offline recovery
    */
-  async request(endpoint, options = {}) {
+  /**
+   * silent401 – when true, a 401/403 response only throws; it does NOT clear
+   * localStorage or show the login overlay. Use for non-critical background calls
+   * (feature toggles, sprint simulation, chat-list, etc.) so a transient backend
+   * hiccup doesn't immediately log the user out.
+   */
+  async request(endpoint, options = {}, silent401 = false) {
     const method = options.method || 'GET';
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -64,11 +70,21 @@ class ApiService {
     this.setOnline(true);
 
     if ((response.status === 401 || response.status === 403) && !endpoint.startsWith('/auth/')) {
-      console.warn('[API-UNAUTHORIZED] Access denied or session expired. Directing to login overlay.');
+      if (silent401) {
+        // Background / non-critical call – log but do NOT nuke session or redirect
+        console.warn(`[API-UNAUTHORIZED-SILENT] ${response.status} on background endpoint '${endpoint}'. Session preserved; skipping logout redirect.`);
+        throw new Error(`${response.status} on ${endpoint} (silent mode – session not cleared).`);
+      }
+
+      console.error(`[API-UNAUTHORIZED] ${response.status} received on '${endpoint}'. JWT may be expired or missing. Clearing session and directing to login overlay.`);
+      console.error('[API-UNAUTHORIZED] JWT in storage at failure time:', localStorage.getItem('tasksphere_jwt') ? 'PRESENT' : 'ABSENT');
+      console.error('[API-UNAUTHORIZED] Username at failure time:', localStorage.getItem('chat_username'));
+
       localStorage.removeItem('tasksphere_jwt');
       localStorage.removeItem('tasksphere_user');
-      localStorage.removeItem('chat_username'); // clear chat username cache
-      
+      localStorage.removeItem('chat_username');
+      localStorage.removeItem('is_social_signup');
+
       // Clean up any active onboarding guides and spotlights
       if (window.onboarding) {
         window.onboarding.cleanupDOM();
@@ -187,6 +203,18 @@ class ApiService {
 
   /* ---- User Endpoints ---- */
   getUsers() { return this.request('/users'); }
+
+  /**
+   * Lightweight session validation – returns the current user's DB record without
+   * overwriting status the way getAllUsers() does. Use this for startup checks.
+   *
+   * silent401=true: a 401 from /users/me must NOT clear localStorage or show the
+   * login overlay. The caller (app startup IIFE) handles auth failures explicitly,
+   * so a destructive 401 handler here would wipe a freshly-issued SSO token before
+   * the startup check even gets a chance to evaluate the response.
+   */
+  validateSession() { return this.request('/users/me', {}, true); }
+
   login(user) { 
     return this.request('/users/login', { method: 'POST', body: JSON.stringify(user) }); 
   }
@@ -226,8 +254,9 @@ class ApiService {
   }
 
   /* ---- Feature Toggles (Phase: Voice Calling) ---- */
+  // silent401=true: a 401 from /features must NOT log the user out
   getFeatureToggles() {
-    return this.request('/features');
+    return this.request('/features', {}, true);
   }
 
   updateFeatureToggle(key, enabled, requester) {

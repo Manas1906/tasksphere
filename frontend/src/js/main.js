@@ -75,7 +75,8 @@ class TaskSphereApp {
       }, 300);
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (oauthToken && oauthUsername) {
-      console.log('[AUTH-OAUTH] Intercepted federated social credentials in URL callback.');
+      console.log('[AUTH-OAUTH] ✅ Federated social credentials received in URL callback.');
+      console.log('[AUTH-OAUTH] Username:', oauthUsername, '| Role:', oauthRole, '| new_social:', newSocial);
       localStorage.setItem('tasksphere_jwt', oauthToken);
       localStorage.setItem('chat_username', oauthUsername);
       localStorage.setItem('chat_role', oauthRole || 'DEVELOPER');
@@ -83,7 +84,17 @@ class TaskSphereApp {
       localStorage.setItem('tasksphere_email', oauthEmail);
 
       if (newSocial) {
+        console.log('[AUTH-OAUTH] New social user — setting is_social_signup=true for profile setup step.');
         localStorage.setItem('is_social_signup', 'true');
+      } else {
+        // ❌ BUG-FIX: Returning user — always CLEAR any stale is_social_signup flag.
+        // Without this, an incomplete previous profile setup leaves the flag set to 'true',
+        // causing every subsequent SSO redirect to loop back to the profile-setup form.
+        const hadStaleFlag = localStorage.getItem('is_social_signup') === 'true';
+        if (hadStaleFlag) {
+          console.warn('[AUTH-OAUTH] ⚠️ Cleared stale is_social_signup flag for returning user (new_social=false).');
+        }
+        localStorage.removeItem('is_social_signup');
       }
 
       // Cache profile details
@@ -158,21 +169,52 @@ class TaskSphereApp {
         return;
       }
       
-      // Before letting them in, verify their status is not PENDING_APPROVAL or ONBOARDING
+      // Before letting them in, verify their status via dedicated session endpoint.
+      // We use validateSession() (/users/me) instead of getUsers() so we get the ACTUAL
+      // database status (not the ONLINE/OFFLINE-overwritten version), and we avoid
+      // loading the full user list just to check our own session validity.
       (async () => {
+        console.log('[APP-START] 🔧 Beginning session validation for stored user:', username);
         try {
-          const users = await api.getUsers() || [];
-          const me = users.find(u => u.username === username);
+          let me = null;
+          try {
+            // Primary: lightweight dedicated session check
+            me = await api.validateSession();
+            console.log('[APP-START] ✅ /users/me session check succeeded. User record:', me);
+          } catch (meErr) {
+            // Fallback: /users/me endpoint may not exist on older deployments – fall
+            // back to the full user list and find ourselves within it.
+            // Use silent401=true so a 401 on /users does NOT clear the JWT; the outer
+            // catch handles that decision after both endpoints have been tried.
+            console.warn('[APP-START] ⚠️ /users/me failed (' + meErr.message + '). Falling back to getUsers() to find session user.');
+            try {
+              const users = await api.request('/users', {}, true) || [];
+              me = Array.isArray(users) ? (users.find(u => u.username === username) || null) : null;
+              console.log('[APP-START] getUsers() fallback resolved. me found:', !!me, me ? me.status : 'NOT FOUND');
+            } catch (getUsersErr) {
+              // Both endpoints failed – let me remain null; outer success path will
+              // proceed with stored credentials when the JWT is still present.
+              console.warn('[APP-START] getUsers() fallback also failed:', getUsersErr.message);
+              me = null;
+            }
+          }
+
           if (me) {
+            console.log('[APP-START] Session user resolved. DB status:', me.status, '| Role:', me.role);
             localStorage.setItem('chat_role', me.role);
             if (me.avatarUrl) {
               localStorage.setItem('chat_avatar', me.avatarUrl.split('||')[0]);
             }
             this.toggleAdminTab();
             this.applyProfileUI();
+          } else {
+            console.warn('[APP-START] ⚠️ Session user not found in DB (user may have been removed or DB was reset). Proceeding with stored credentials.');
           }
+
+          // Check ONBOARDING status — getUsers() overwrites this with ONLINE/OFFLINE,
+          // but validateSession() returns the real DB value.
           if (me && me.status === 'ONBOARDING') {
-            console.log('[APP-START] Recovered social session requires onboarding profile setup. Navigating to Step 3.');
+            console.log('[APP-START] 🔄 Recovered social session still in ONBOARDING. Redirecting to profile-setup step (Step 3).');
             localStorage.setItem('is_social_signup', 'true');
             showSocialProfileSetup(username);
             const loader = document.getElementById('appLoading');
@@ -180,7 +222,7 @@ class TaskSphereApp {
             return;
           }
           if (me && me.status === 'PENDING_APPROVAL') {
-            console.log('[APP-START] Recovered session requires admin approval. Gating.');
+            console.log('[APP-START] ⏳ Recovered session requires admin approval. Displaying approval gate.');
             if (loginOverlay) {
               loginOverlay.style.display = 'flex';
               loginOverlay.classList.remove('hidden');
@@ -191,7 +233,40 @@ class TaskSphereApp {
             return;
           }
         } catch (e) {
-          console.error('[APP-START] Could not verify database registration status, gating workspace:', e);
+          console.error('[APP-START] ❌ Session validation failed with error. Gating workspace:', e.message);
+          console.error('[APP-START] Error details:', e);
+
+          // Determine whether the JWT is still in localStorage.
+          // With both validateSession() and the getUsers() fallback now using
+          // silent401=true, the token should survive a 401 (it is NOT auto-cleared).
+          // If the token is still present we treat this as a backend/network failure
+          // for a *valid* session and allow the user into the workspace.
+          // Only if the token was already absent (pre-existing expired session) do we
+          // force re-authentication.
+          const jwtStillPresent = !!localStorage.getItem('tasksphere_jwt');
+          if (jwtStillPresent) {
+            console.warn('[APP-START] ⚠️ Session check failed but JWT is still present — backend may be unreachable. Proceeding with cached credentials.');
+            this.applyProfileUI();
+            this.toggleAdminTab();
+            if (loginOverlay) {
+              loginOverlay.style.display = 'none';
+              loginOverlay.classList.add('hidden');
+            }
+            const shell = document.getElementById('appShell');
+            if (shell) shell.classList.remove('hidden');
+            const loader = document.getElementById('appLoading');
+            if (loader) loader.classList.add('hidden');
+            this.switchRoute(this.activeRoute || 'DASHBOARD');
+            this.initRealtimeSync();
+            return;
+          }
+
+          // JWT is gone — the session was genuinely invalid. Force re-login.
+          console.error('[APP-START] JWT absent after validation failure — forcing re-authentication.');
+          localStorage.removeItem('chat_username');
+          localStorage.removeItem('chat_role');
+          localStorage.removeItem('chat_avatar');
+          localStorage.removeItem('is_social_signup');
           if (loginOverlay) {
             loginOverlay.style.display = 'flex';
             loginOverlay.classList.remove('hidden');
@@ -205,7 +280,7 @@ class TaskSphereApp {
           return;
         }
         
-        console.log('[APP-START] Active JWT session recovered. Directing to active workspace.');
+        console.log('[APP-START] ✅ Session validated. Launching workspace for:', username);
         this.applyProfileUI();
         if (loginOverlay) {
           loginOverlay.style.display = 'none';
@@ -233,6 +308,7 @@ class TaskSphereApp {
             const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
             email = payload.sub;
             if (email) {
+              console.log('[APP-START] Email recovered from JWT claim:', email);
               localStorage.setItem('tasksphere_email', email);
             }
           } catch (jwtErr) {
@@ -249,6 +325,14 @@ class TaskSphereApp {
         }
 
         this.toggleAdminTab();
+
+        // ❌ BUG-FIX (Race Condition): switchRoute() is now called INSIDE the IIFE
+        // success path, BEFORE initRealtimeSync(). Previously it was called at the
+        // bottom of start() unconditionally, which fired unauthenticated API calls
+        // (api.getTasks() etc.) while the session IIFE was still pending — any 401
+        // from those calls would immediately show the login overlay and clear storage.
+        console.log('[APP-START] Switching to default route and initializing real-time sync.');
+        this.switchRoute(this.activeRoute || 'DASHBOARD');
         this.initRealtimeSync();
       })();
     } else {
@@ -294,8 +378,11 @@ class TaskSphereApp {
       });
     }
 
-    // Default load dashboard
-    this.switchRoute('DASHBOARD');
+    // ⚠️ NOTE: switchRoute('DASHBOARD') has intentionally been REMOVED from here.
+    // It is now called INSIDE the session-validation IIFE success path above so that
+    // unauthenticated dashboard API calls cannot race against the session check and
+    // falsely trigger the 401 logout handler before the session is confirmed.
+    // For profile-setup and manual login flows, switchRoute is called from those handlers.
   }
 
   urlBase64ToUint8Array(base64String) {

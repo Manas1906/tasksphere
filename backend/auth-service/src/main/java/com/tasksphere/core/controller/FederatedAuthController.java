@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -28,6 +30,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 public class FederatedAuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(FederatedAuthController.class);
 
     private final OAuthStateManager stateManager;
     private final GoogleTokenVerifierService googleTokenVerifierService;
@@ -131,7 +135,9 @@ public class FederatedAuthController {
             }
         }
 
-        return proto + "://" + host + path;
+        String callbackUri = proto + "://" + host + path;
+        log.debug("Built dynamic callback URI: {}", callbackUri);
+        return callbackUri;
     }
 
     /**
@@ -139,6 +145,7 @@ public class FederatedAuthController {
      */
     @GetMapping("/google/login")
     public void googleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        log.info("Initiating Google OAuth login flow.");
         String state = stateManager.generateStateToken();
         stateManager.createStateCookie(request, response, state);
 
@@ -153,6 +160,7 @@ public class FederatedAuthController {
                 encodedRedirectUri,
                 state
         );
+        log.info("Redirecting browser to Google OAuth authorization endpoint: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
 
@@ -166,12 +174,15 @@ public class FederatedAuthController {
             @RequestParam(required = false) String state,
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
+        log.info("Received Google OAuth redirect callback code parameter presence: {}, state: {}", code != null, state);
         try {
             // 1. Timing-safe CSRF state validation
             boolean isStateValid = stateManager.verifyState(request, state);
             if (!isStateValid) {
+                log.error("Google state validation failed for state: {}", state);
                 throw new SecurityException("Google state validation failed: State parameter mismatch or expired session.");
             }
+            log.info("Google state token verified successfully.");
             stateManager.clearStateCookie(request, response);
 
             if (code == null || code.trim().isEmpty()) {
@@ -189,20 +200,24 @@ public class FederatedAuthController {
             requestPayload.put("grant_type", "authorization_code");
             requestPayload.put("redirect_uri", dynamicRedirectUri);
 
+            log.info("Exchanging Google authorization code for tokens.");
             Map<String, Object> tokenResponse = restTemplate.postForObject(tokenUrl, requestPayload, Map.class);
             
             if (tokenResponse == null || !tokenResponse.containsKey("id_token")) {
+                log.error("No id_token in Google token exchange response.");
                 throw new SecurityException("Google OAuth token exchange failed: No ID Token returned.");
             }
 
             String idToken = (String) tokenResponse.get("id_token");
 
             // 3. Cryptographic and claim validation of ID Token
+            log.info("Verifying Google ID Token.");
             GoogleIdToken.Payload googleProfile = googleTokenVerifierService.verifyToken(idToken);
             String externalUserId = googleProfile.getSubject();
             String email = googleProfile.getEmail().toLowerCase().trim();
             String name = (String) googleProfile.get("name");
             String picture = (String) googleProfile.get("picture");
+            log.info("Google profile details: subject={}, email={}, name={}", externalUserId, email, name);
 
             // 4. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("google", externalUserId);
@@ -211,6 +226,7 @@ public class FederatedAuthController {
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
+                log.info("Found existing Google linked user account: userId={}", userId);
                 user = userRepository.findById(userId).orElseThrow(() -> 
                     new SecurityException("Linked user session not found in database."));
             } else {
@@ -221,6 +237,7 @@ public class FederatedAuthController {
 
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
+                    log.info("Found existing user by email to link Google account: userId={}", user.getId());
                 } else {
                     isNewSocial = true;
                     // Create new user profile
@@ -242,6 +259,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    log.info("Created new user profile: userId={}, username={}", user.getId(), username);
                 }
 
                 // Link social credential
@@ -251,29 +269,33 @@ public class FederatedAuthController {
                         .providerUserId(externalUserId)
                         .build();
                 oauthAccountRepository.save(oauth);
+                log.info("Successfully linked Google OAuth credentials to userId={}", user.getId());
             }
 
             // Generate JWT session token
             String jwt = tokenProvider.generateToken(user.getExtractedEmail());
 
-            // Redirect back to frontend overlay with success URL query parameters
+            // Redirect back to frontend overlay with URL-encoded query parameters.
+            // Avatar URLs (e.g. Google profile pictures) and emails can contain '=',
+            // '&', '+', and '/' characters that corrupt browser URL parsing when left
+            // unencoded.  The JWT itself is already base64url-safe (no encoding needed).
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
-            String redirectDest = String.format(
-                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s&new_social=%b",
-                    cleanFrontend,
-                    jwt,
-                    user.getUsername(),
-                    user.getRole(),
-                    user.getExtractedEmail(),
-                    user.getPureAvatarUrl(),
-                    isNewSocial
-            );
+            String redirectDest = cleanFrontend
+                    + "?token=" + jwt
+                    + "&username=" + java.net.URLEncoder.encode(user.getUsername() != null ? user.getUsername() : "", "UTF-8")
+                    + "&role=" + java.net.URLEncoder.encode(user.getRole() != null ? user.getRole() : "DEVELOPER", "UTF-8")
+                    + "&email=" + java.net.URLEncoder.encode(user.getExtractedEmail() != null ? user.getExtractedEmail() : "", "UTF-8")
+                    + "&avatar=" + java.net.URLEncoder.encode(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : "", "UTF-8")
+                    + "&new_social=" + isNewSocial;
+            log.info("Google authentication successful. Redirecting to frontend.");
             response.sendRedirect(redirectDest);
 
         } catch (Exception ex) {
+            log.error("Google OAuth callback processing error: {}", ex.getMessage(), ex);
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             response.sendRedirect(cleanFrontend + "?error=" + java.net.URLEncoder.encode(ex.getMessage(), "UTF-8"));
         }
+    }
     }
 
     /**
@@ -284,6 +306,7 @@ public class FederatedAuthController {
     public ResponseEntity<?> googleCallback(
             @RequestBody Map<String, String> payload,
             HttpServletRequest request) {
+        log.info("Received Google One-Tap/POST login callback request.");
         try {
             String idToken = payload.get("credential");
             String csrfBody = payload.get("g_csrf_token");
@@ -303,17 +326,21 @@ public class FederatedAuthController {
             // 1. Double-Submit Cookie CSRF check
             boolean csrfValid = googleTokenVerifierService.verifyCsrf(csrfCookie, csrfBody);
             if (!csrfValid) {
+                log.error("Google One-Tap CSRF validation failed. csrfCookie presence: {}, csrfBody presence: {}", csrfCookie != null, csrfBody != null);
                 Map<String, String> err = new HashMap<>();
                 err.put("error", "CSRF validation failed: Token mismatch or missing credentials.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
             }
+            log.info("Google One-Tap CSRF validation passed.");
 
             // 2. Cryptographic and claim validation
+            log.info("Verifying Google One-Tap ID Token.");
             GoogleIdToken.Payload googleProfile = googleTokenVerifierService.verifyToken(idToken);
             String externalUserId = googleProfile.getSubject();
             String email = googleProfile.getEmail().toLowerCase().trim();
             String name = (String) googleProfile.get("name");
             String picture = (String) googleProfile.get("picture");
+            log.info("Google One-Tap profile details: subject={}, email={}, name={}", externalUserId, email, name);
 
             // 3. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("google", externalUserId);
@@ -322,6 +349,7 @@ public class FederatedAuthController {
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
+                log.info("Found existing Google linked user account (One-Tap): userId={}", userId);
                 user = userRepository.findById(userId).orElseThrow(() -> 
                     new SecurityException("Linked user session not found in database."));
             } else {
@@ -332,6 +360,7 @@ public class FederatedAuthController {
 
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
+                    log.info("Found existing user by email to link Google One-Tap account: userId={}", user.getId());
                 } else {
                     isNewSocial = true;
                     // Create new user profile
@@ -353,6 +382,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    log.info("Created new user profile for One-Tap: userId={}, username={}", user.getId(), username);
                 }
 
                 // Link social credential
@@ -362,10 +392,12 @@ public class FederatedAuthController {
                         .providerUserId(externalUserId)
                         .build();
                 oauthAccountRepository.save(oauth);
+                log.info("Successfully linked Google One-Tap credentials to userId={}", user.getId());
             }
 
             // Generate JWT session token
             String jwt = tokenProvider.generateToken(user.getExtractedEmail());
+            log.info("Google One-Tap login successful for user email={}.", user.getExtractedEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -378,6 +410,7 @@ public class FederatedAuthController {
 
             return ResponseEntity.ok(response);
         } catch (Exception ex) {
+            log.error("Google One-Tap authentication failure: {}", ex.getMessage(), ex);
             Map<String, String> err = new HashMap<>();
             err.put("error", "Google authentication rejected: " + ex.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(err);
@@ -389,6 +422,7 @@ public class FederatedAuthController {
      */
     @GetMapping("/github/login")
     public void githubLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        log.info("Initiating GitHub OAuth login flow.");
         String state = stateManager.generateStateToken();
         stateManager.createStateCookie(request, response, state);
 
@@ -402,6 +436,7 @@ public class FederatedAuthController {
                 encodedRedirectUri,
                 state
         );
+        log.info("Redirecting browser to GitHub OAuth authorization endpoint: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
 
@@ -414,12 +449,15 @@ public class FederatedAuthController {
             @RequestParam(required = false) String state,
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
+        log.info("Received GitHub OAuth callback code parameter presence: {}, state: {}", code != null, state);
         try {
             // 1. Timing-safe CSRF state validation
             boolean isStateValid = stateManager.verifyState(request, state);
             if (!isStateValid) {
+                log.error("GitHub state validation failed for state: {}", state);
                 throw new SecurityException("GitHub state validation failed: State parameter mismatch or expired session.");
             }
+            log.info("GitHub state token verified successfully.");
             stateManager.clearStateCookie(request, response);
 
             if (code == null || code.trim().isEmpty()) {
@@ -427,9 +465,11 @@ public class FederatedAuthController {
             }
 
             // 2. Swaps code for secure access token
+            log.info("Exchanging GitHub authorization code for token.");
             String accessToken = githubOAuthService.exchangeCodeForToken(code);
 
             // 3. Retrieve basic profile and primary verified email address
+            log.info("Retrieving GitHub user profile and verified email.");
             Map<String, Object> githubProfile = githubOAuthService.getGitHubProfile(accessToken);
             String externalUserId = String.valueOf(githubProfile.get("id"));
             String name = (String) githubProfile.get("name");
@@ -438,6 +478,7 @@ public class FederatedAuthController {
             }
             String avatarUrl = (String) githubProfile.get("avatar_url");
             String verifiedEmail = githubOAuthService.getPrimaryVerifiedEmail(accessToken);
+            log.info("GitHub profile details: id={}, name={}, email={}", externalUserId, name, verifiedEmail);
 
             // 4. Identity Reconciliation Loop
             Optional<OAuthAccount> existingOauth = oauthAccountRepository.findByProviderAndProviderUserId("github", externalUserId);
@@ -446,6 +487,7 @@ public class FederatedAuthController {
 
             if (existingOauth.isPresent()) {
                 String userId = existingOauth.get().getUser().getId();
+                log.info("Found existing GitHub linked user account: userId={}", userId);
                 user = userRepository.findById(userId).orElseThrow(() -> 
                     new SecurityException("Linked user session not found in database."));
             } else {
@@ -456,6 +498,7 @@ public class FederatedAuthController {
 
                 if (existingUser.isPresent()) {
                     user = existingUser.get();
+                    log.info("Found existing user by email to link GitHub account: userId={}", user.getId());
                 } else {
                     isNewSocial = true;
                     // Create new user profile
@@ -477,6 +520,7 @@ public class FederatedAuthController {
                             false
                     );
                     user = userRepository.save(user);
+                    log.info("Created new user profile: userId={}, username={}", user.getId(), username);
                 }
 
                 // Link social credential
@@ -486,26 +530,29 @@ public class FederatedAuthController {
                         .providerUserId(externalUserId)
                         .build();
                 oauthAccountRepository.save(oauth);
+                log.info("Successfully linked GitHub OAuth credentials to userId={}", user.getId());
             }
 
             // Generate JWT session token
             String jwt = tokenProvider.generateToken(user.getExtractedEmail());
 
-            // Redirect back to frontend overlay with success URL query parameters
+            // Redirect back to frontend overlay with URL-encoded query parameters.
+            // Avatar URLs (e.g. GitHub profile pictures) and emails can contain '=',
+            // '&', '+', and '/' characters that corrupt browser URL parsing when left
+            // unencoded.  The JWT itself is already base64url-safe (no encoding needed).
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
-            String redirectDest = String.format(
-                    "%s?token=%s&username=%s&role=%s&email=%s&avatar=%s&new_social=%b",
-                    cleanFrontend,
-                    jwt,
-                    user.getUsername(),
-                    user.getRole(),
-                    user.getExtractedEmail(),
-                    user.getPureAvatarUrl(),
-                    isNewSocial
-            );
+            String redirectDest = cleanFrontend
+                    + "?token=" + jwt
+                    + "&username=" + java.net.URLEncoder.encode(user.getUsername() != null ? user.getUsername() : "", "UTF-8")
+                    + "&role=" + java.net.URLEncoder.encode(user.getRole() != null ? user.getRole() : "DEVELOPER", "UTF-8")
+                    + "&email=" + java.net.URLEncoder.encode(user.getExtractedEmail() != null ? user.getExtractedEmail() : "", "UTF-8")
+                    + "&avatar=" + java.net.URLEncoder.encode(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : "", "UTF-8")
+                    + "&new_social=" + isNewSocial;
+            log.info("GitHub authentication successful. Redirecting to frontend.");
             response.sendRedirect(redirectDest);
 
         } catch (Exception ex) {
+            log.error("GitHub OAuth callback processing error: {}", ex.getMessage(), ex);
             String cleanFrontend = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             response.sendRedirect(cleanFrontend + "?error=" + java.net.URLEncoder.encode(ex.getMessage(), "UTF-8"));
         }
