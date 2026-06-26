@@ -10,6 +10,8 @@ import java.util.Map;
 @Service
 public class UserEventProcessor {
 
+    private static final Logger log = LoggerFactory.getLogger(UserEventProcessor.class);
+
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 

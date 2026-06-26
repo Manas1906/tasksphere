@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class RedisCacheService {
 
+    private static final Logger log = LoggerFactory.getLogger(RedisCacheService.class);
+
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 

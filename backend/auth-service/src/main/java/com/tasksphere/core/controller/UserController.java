@@ -5,6 +5,8 @@ import com.tasksphere.core.repository.UserSessionRepository;
 import com.tasksphere.core.service.EmailService;
 import com.tasksphere.core.service.RedisCacheService;
 import com.tasksphere.core.service.UserApprovalService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +24,8 @@ import com.tasksphere.core.event.UserPresenceEvent;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserSessionRepository userRepository;
@@ -55,6 +59,50 @@ public class UserController {
             }
         }
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Lightweight session-validation endpoint used by the frontend on every page load.
+     * Returns the REAL database status for the authenticated user (ONBOARDING,
+     * PENDING_APPROVAL, ONLINE, etc.) — unlike getAllUsers() which overwrites every
+     * non-pending user's status with ONLINE/OFFLINE from Redis, hiding the ONBOARDING
+     * state and making it impossible for the frontend to detect incomplete social signups.
+     *
+     * The endpoint is protected by the JWT filter (anyRequest().authenticated()),
+     * so an expired/missing token automatically returns 401 — which is exactly what
+     * the frontend uses as the logout signal during its startup session check.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        org.springframework.security.core.Authentication auth =
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            log.warn("[USERS-ME] No authenticated principal found in SecurityContext — returning 401.");
+            return ResponseEntity.status(401).body(java.util.Collections.singletonMap("error", "Not authenticated"));
+        }
+
+        String email = auth.getName(); // JWT subject is the email
+        log.info("[USERS-ME] Session check for principal email: {}", email);
+
+        // Look up by exact email match (case-insensitive)
+        java.util.Optional<UserSession> found = userRepository.findAll().stream()
+            .filter(u -> {
+                String dbEmail = u.getExtractedEmail();
+                return dbEmail != null && dbEmail.equalsIgnoreCase(email.trim());
+            })
+            .findFirst();
+
+        if (!found.isPresent()) {
+            // May happen after an H2 reset — return 404 (NOT 401 so the frontend
+            // falls back to getUsers() rather than clearing the session).
+            log.warn("[USERS-ME] User not found for email: {} — returning 404.", email);
+            return ResponseEntity.status(404).body(java.util.Collections.singletonMap("error", "User not found in database"));
+        }
+
+        UserSession user = found.get();
+        log.info("[USERS-ME] Found user: {} | status: {} | role: {}", user.getUsername(), user.getStatus(), user.getRole());
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/login")
@@ -157,7 +205,7 @@ public class UserController {
                     try {
                         emailService.sendWelcomeEmail(userEmail, savedUser.getUsername(), savedUser.getRole());
                     } catch (Exception ex) {
-                        System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+                        log.error("[EMAIL-ERROR] Failed to dispatch welcome email for {}: {}", savedUser.getUsername(), ex.getMessage(), ex);
                     }
                 }
             }
@@ -173,6 +221,8 @@ public class UserController {
                 initialStatus = "ONLINE";
             }
             
+            log.info("[USERS-REGISTER] Creating new user: username={}, role={}, status={}", user.getUsername(), role, initialStatus);
+
             // Encrypt and serialize profile credentials if password and email are supplied
             String pwdHash = user.getPassword() != null ? passwordEncoder.encode(user.getPassword()) : null;
             boolean mfaVal = user.getMfa() != null ? user.getMfa() : false;
@@ -186,7 +236,10 @@ public class UserController {
             newUser.packMetadata(user.getAvatarUrl(), user.getEmail(), pwdHash, mfaVal);
             
             UserSession savedUser = userRepository.save(newUser);
+            log.info("[USERS-REGISTER] Saved new user with id={}, username={}", savedUser.getId(), savedUser.getUsername());
+
             if ("PENDING_APPROVAL".equalsIgnoreCase(initialStatus)) {
+                log.info("[USERS-REGISTER] User {} requires admin approval.", savedUser.getUsername());
                 userApprovalService.notifyAdminsForApproval(savedUser);
             } else if ("ONLINE".equalsIgnoreCase(initialStatus)) {
                 // Publish events
@@ -210,7 +263,7 @@ public class UserController {
                     try {
                         emailService.sendWelcomeEmail(userEmail, savedUser.getUsername(), savedUser.getRole());
                     } catch (Exception ex) {
-                        System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+                        log.error("[EMAIL-ERROR] Failed to dispatch welcome email for {}: {}", savedUser.getUsername(), ex.getMessage(), ex);
                     }
                 }
             }
@@ -280,10 +333,11 @@ public class UserController {
             try {
                 emailService.sendWelcomeEmail(userEmail, user.getUsername(), user.getRole());
             } catch (Exception ex) {
-                System.err.println("[EMAIL-ERROR] Failed to dispatch welcome email: " + ex.getMessage());
+                log.error("[EMAIL-ERROR] Failed to dispatch welcome email for approved user {}: {}", user.getUsername(), ex.getMessage(), ex);
             }
         }
 
+        log.info("[USERS-APPROVE] User {} approved and set ONLINE by requester {}.", username, requester);
         return ResponseEntity.ok(saved);
     }
 

@@ -13,6 +13,8 @@ import java.util.Map;
 @RequestMapping("/api/web-push")
 public class WebPushController {
 
+    private static final Logger log = LoggerFactory.getLogger(WebPushController.class);
+
     @Autowired
     private WebPushService webPushService;
 

@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class WebPushService {
 
+    private static final Logger log = LoggerFactory.getLogger(WebPushService.class);
+
     @Value("${vapid.public.key}")
     private String publicKey;
 

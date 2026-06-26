@@ -13,6 +13,8 @@ import java.util.List;
 @RequestMapping("/api/chat-messages")
 public class ChatController {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+
     @Autowired
     private ChatService chatService;
 

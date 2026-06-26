@@ -11,6 +11,8 @@ import java.util.List;
 @Transactional
 public class ChatService {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatService.class);
+
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 

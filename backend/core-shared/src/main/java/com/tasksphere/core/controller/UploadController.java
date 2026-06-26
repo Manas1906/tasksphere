@@ -19,6 +19,8 @@ import java.util.Map;
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class UploadController {
 
+    private static final Logger log = LoggerFactory.getLogger(UploadController.class);
+
     /**
      * Resolve the uploads directory.
      * Priority: UPLOAD_DIR env variable → <tmpdir>/tasksphere-uploads

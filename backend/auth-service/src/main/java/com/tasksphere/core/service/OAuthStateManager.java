@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class OAuthStateManager {
 
+    private static final Logger log = LoggerFactory.getLogger(OAuthStateManager.class);
+
     private static final long STATE_TTL_MS = 600_000L; // 10 minutes
 
     private final SecureRandom secureRandom = new SecureRandom();

@@ -15,6 +15,8 @@ import java.util.List;
 @RequestMapping("/api/groups")
 public class GroupChatController {
 
+    private static final Logger log = LoggerFactory.getLogger(GroupChatController.class);
+
     @Autowired
     private GroupChatService groupChatService;
 

@@ -78,6 +78,7 @@ class TaskSphereApp {
       console.log('[AUTH-OAUTH] ✅ Federated social credentials received in URL callback.');
       console.log('[AUTH-OAUTH] Username:', oauthUsername, '| Role:', oauthRole, '| new_social:', newSocial);
       localStorage.setItem('tasksphere_jwt', oauthToken);
+      localStorage.setItem('tasksphere_jwt_stored_at', Date.now().toString()); // for SSO grace-period retry
       localStorage.setItem('chat_username', oauthUsername);
       localStorage.setItem('chat_role', oauthRole || 'DEVELOPER');
       localStorage.setItem('chat_avatar', oauthAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${oauthUsername}`);
@@ -733,6 +734,7 @@ class TaskSphereApp {
             console.log('[AUTH-LOGIN] Direct login authorized.');
             
             localStorage.setItem('tasksphere_jwt', res.token);
+            localStorage.setItem('tasksphere_jwt_stored_at', Date.now().toString());
             localStorage.setItem('chat_username', res.username);
             localStorage.setItem('chat_role', res.role);
             localStorage.setItem('chat_avatar', res.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${res.username}`);
@@ -855,6 +857,7 @@ class TaskSphereApp {
             console.log('[AUTH-SUCCESS] OTP verified successfully. Preparing profile session.');
             
             localStorage.setItem('tasksphere_jwt', data.token);
+            localStorage.setItem('tasksphere_jwt_stored_at', Date.now().toString());
             localStorage.setItem('tasksphere_email', submittedEmail);
 
             // Since it's OTP registration, we ALWAYS route them to Step 3 Profile Setup

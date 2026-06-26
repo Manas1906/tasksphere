@@ -15,6 +15,8 @@ import java.util.*;
 @RequestMapping("/api/features")
 public class FeatureToggleController {
 
+    private static final Logger log = LoggerFactory.getLogger(FeatureToggleController.class);
+
     @Autowired
     private FeatureToggleRepository featureToggleRepository;
 

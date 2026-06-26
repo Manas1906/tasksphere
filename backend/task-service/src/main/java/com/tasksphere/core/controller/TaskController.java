@@ -12,6 +12,8 @@ import java.util.List;
 @RequestMapping("/api/tasks")
 public class TaskController {
 
+    private static final Logger log = LoggerFactory.getLogger(TaskController.class);
+
     @Autowired
     private TaskService taskService;
 

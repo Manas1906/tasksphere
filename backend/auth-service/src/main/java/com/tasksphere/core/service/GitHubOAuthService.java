@@ -10,6 +10,8 @@ import java.util.*;
 @Service
 public class GitHubOAuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(GitHubOAuthService.class);
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${security.github.client-id:}")

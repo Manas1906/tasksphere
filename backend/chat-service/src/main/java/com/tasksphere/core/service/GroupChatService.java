@@ -22,6 +22,8 @@ import java.util.Optional;
 @Transactional
 public class GroupChatService {
 
+    private static final Logger log = LoggerFactory.getLogger(GroupChatService.class);
+
     @Autowired
     private ChatGroupRepository chatGroupRepository;
 

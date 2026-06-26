@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/sprint-simulation")
 public class SprintSimulationController {
 
+    private static final Logger log = LoggerFactory.getLogger(SprintSimulationController.class);
+
     @Autowired
     private SprintSimulationService sprintSimulationService;
 

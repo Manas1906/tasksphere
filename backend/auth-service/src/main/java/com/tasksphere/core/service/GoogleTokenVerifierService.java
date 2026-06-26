@@ -14,6 +14,8 @@ import java.util.Collections;
 @Service
 public class GoogleTokenVerifierService {
 
+    private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifierService.class);
+
     private final GoogleIdTokenVerifier verifier;
 
     public GoogleTokenVerifierService(@Value("${security.google.client-id:}") String googleClientId) {

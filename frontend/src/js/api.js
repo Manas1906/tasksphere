@@ -37,8 +37,11 @@ class ApiService {
    * localStorage or show the login overlay. Use for non-critical background calls
    * (feature toggles, sprint simulation, chat-list, etc.) so a transient backend
    * hiccup doesn't immediately log the user out.
+   *
+   * isRetry – internal flag used by the SSO grace-period logic below.  Never pass
+   * this from outside; it exists purely to prevent infinite retry recursion.
    */
-  async request(endpoint, options = {}, silent401 = false) {
+  async request(endpoint, options = {}, silent401 = false, isRetry = false) {
     const method = options.method || 'GET';
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -74,6 +77,19 @@ class ApiService {
         // Background / non-critical call – log but do NOT nuke session or redirect
         console.warn(`[API-UNAUTHORIZED-SILENT] ${response.status} on background endpoint '${endpoint}'. Session preserved; skipping logout redirect.`);
         throw new Error(`${response.status} on ${endpoint} (silent mode – session not cleared).`);
+      }
+
+      // SSO grace-period: if the JWT was stored within the last 60 seconds the
+      // backend may still be waking up on Render.com free tier.  Give it one
+      // automatic retry after a short back-off before forcing re-login.
+      if (!isRetry) {
+        const jwtStoredAt = parseInt(localStorage.getItem('tasksphere_jwt_stored_at') || '0');
+        const tokenAgeMs = Date.now() - jwtStoredAt;
+        if (jwtStoredAt && tokenAgeMs < 60_000) {
+          console.warn(`[API-UNAUTHORIZED] 401 on '${endpoint}' but JWT is only ${Math.round(tokenAgeMs / 1000)}s old (fresh SSO). Waiting 2s for backend to stabilize then retrying once...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return this.request(endpoint, options, silent401, true /* isRetry */);
+        }
       }
 
       console.error(`[API-UNAUTHORIZED] ${response.status} received on '${endpoint}'. JWT may be expired or missing. Clearing session and directing to login overlay.`);

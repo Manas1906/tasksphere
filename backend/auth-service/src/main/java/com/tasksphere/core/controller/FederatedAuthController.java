@@ -287,7 +287,7 @@ public class FederatedAuthController {
                     + "&email=" + java.net.URLEncoder.encode(user.getExtractedEmail() != null ? user.getExtractedEmail() : "", "UTF-8")
                     + "&avatar=" + java.net.URLEncoder.encode(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : "", "UTF-8")
                     + "&new_social=" + isNewSocial;
-            log.info("Google authentication successful. Redirecting to frontend.");
+            log.info("Google authentication successful. Redirecting to frontend. username='{}', new_social={}, email='{}'", user.getUsername(), isNewSocial, user.getExtractedEmail());
             response.sendRedirect(redirectDest);
 
         } catch (Exception ex) {
@@ -547,7 +547,7 @@ public class FederatedAuthController {
                     + "&email=" + java.net.URLEncoder.encode(user.getExtractedEmail() != null ? user.getExtractedEmail() : "", "UTF-8")
                     + "&avatar=" + java.net.URLEncoder.encode(user.getPureAvatarUrl() != null ? user.getPureAvatarUrl() : "", "UTF-8")
                     + "&new_social=" + isNewSocial;
-            log.info("GitHub authentication successful. Redirecting to frontend.");
+            log.info("GitHub authentication successful. Redirecting to frontend. username='{}', new_social={}, email='{}'", user.getUsername(), isNewSocial, user.getExtractedEmail());
             response.sendRedirect(redirectDest);
 
         } catch (Exception ex) {
