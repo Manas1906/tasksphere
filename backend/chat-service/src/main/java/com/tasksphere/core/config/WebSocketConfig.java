@@ -2,6 +2,8 @@ package com.tasksphere.core.config;
 
 import com.tasksphere.core.model.UserSession;
 import com.tasksphere.core.repository.UserSessionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -22,6 +24,8 @@ import java.util.List;
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebSocketConfig.class);
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -101,10 +105,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                                 return finalUsername;
                                             }
                                         });
-                                        System.out.println("[WS-AUTH] STOMP principal set for user: " + finalUsername + " (resolved from email: " + email + ")");
+                                        log.debug("STOMP principal set for user: {} (resolved from email: {})", finalUsername, email);
                                     }
                                 } catch (Exception e) {
-                                    System.err.println("[WS-AUTH] Failed to authenticate STOMP connection: " + e.getMessage());
+                                    log.error("Failed to authenticate STOMP connection: {}", e.getMessage());
                                 }
                             }
                         }
@@ -119,7 +123,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 if (username == null || !groupChatService.isMember(groupId, username)) {
                                     throw new java.lang.IllegalArgumentException("Unauthorized subscription to group chat topic");
                                 }
-                                System.out.println("[WS-AUTH] Authorized subscription for: " + username + " on group destination: " + destination);
+                                log.debug("Authorized subscription for: {} on group destination: {}", username, destination);
                             } catch (Exception e) {
                                 throw new java.lang.IllegalArgumentException("Unauthorized subscription to group chat topic");
                             }

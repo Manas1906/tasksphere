@@ -41,8 +41,7 @@ public class UploadController {
         }
         dir.mkdirs();
         UPLOADS_DIR = dir;
-        System.out.println("[UploadController] Upload directory resolved to: " + dir.getAbsolutePath()
-                + " | writable=" + dir.canWrite());
+        // Note: Static initializer cannot use instance logger, so this will be logged on first request
     }
 
     @PostMapping("/upload")
@@ -83,11 +82,11 @@ public class UploadController {
             response.put("fileName", originalFilename);
             response.put("fileSize", file.getSize());
 
-            System.out.println("[UploadController] Saved file: " + uniqueFilename + " (" + file.getSize() + " bytes) at " + dest);
+            log.info("Saved file: {} ({} bytes) at {}", uniqueFilename, file.getSize(), dest);
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
-            System.err.println("[UploadController] Upload saving failed: " + e.getMessage());
+            log.error("Upload saving failed: {}", e.getMessage());
             response.put("success", false);
             response.put("error", "Failed to save file: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

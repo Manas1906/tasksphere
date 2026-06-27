@@ -1507,11 +1507,12 @@ export class ChatController {
       bubbleContent = `<div class="chat-msg__bubble ${isCallLog ? 'chat-msg__bubble--call-log ' + callLogClass : ''}${this.formatMessageMarkdown(textMsg).includes('code-block-wrapper') ? ' chat-msg__bubble--has-code' : ''}">${this.formatMessageMarkdown(textMsg)}</div>`;
     }
 
+    const safeUsername = window.escapeHTML ? window.escapeHTML(msg.username) : msg.username;
     msgElement.innerHTML = `
-      <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${msg.username}">
+      <img src="${cleanAvatar}" class="chat-msg__avatar" alt="${safeUsername}">
       <div class="chat-msg__content-box" style="width: 100%;">
         <div class="chat-msg__meta">
-          <span class="chat-msg__sender">${msg.username}</span>
+          <span class="chat-msg__sender">${safeUsername}</span>
           <span>${time}</span>
           ${msg.offline ? '<span class="text-amber" style="font-size: 8px">Offline cache</span>' : ''}
         </div>

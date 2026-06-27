@@ -275,7 +275,7 @@ public class SprintSimulationService {
                 return list;
             }
         } catch (Exception e) {
-            System.err.println("[SPRINT-SIMULATOR-WARNING] Gemini recommendations failed: " + e.getMessage() + ". Diverting to local fallback templates.");
+            log.warn("Gemini recommendations failed: {}. Diverting to local fallback templates.", e.getMessage());
         }
 
         // Return a highly relevant localized fallback template if the API is down

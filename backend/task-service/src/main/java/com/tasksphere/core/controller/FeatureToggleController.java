@@ -103,7 +103,7 @@ public class FeatureToggleController {
         broadcast.put("timestamp", Instant.now().toString());
         messagingTemplate.convertAndSend("/topic/features", broadcast);
 
-        System.out.println("[FEATURE-TOGGLE] " + requester + " set '" + key + "' to " + enabled);
+        log.info("{} set feature '{}' to {}", requester, key, enabled);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

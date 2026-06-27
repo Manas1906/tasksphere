@@ -204,6 +204,9 @@ export class BoardView {
         ? `<span class="task-card__metric-item" style="display: inline-flex; align-items: center;"><svg style="width: 12px; height: 12px; fill: currentColor; margin-right: 3px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>${completedChecklist}/${checklistSize}</span>` 
         : '';
 
+      const safeTitle = window.escapeHTML ? window.escapeHTML(task.title) : task.title;
+      const safeDescription = window.escapeHTML ? window.escapeHTML(task.description) : task.description;
+      
       card.innerHTML = `
         <!-- Figma specs inspector element - Day 6 -->
         <span class="design-spec-badge">.task-card w:100% r:8px p:16px shadow:0_8px_32px</span>
@@ -212,8 +215,8 @@ export class BoardView {
           <span class="task-card__priority-badge task-card__priority-badge--${task.priority.toLowerCase()}">${task.priority}</span>
           <span style="font-size: 10px; font-weight: bold; color: var(--text-muted)">#${task.id}</span>
         </div>
-        <h4 class="task-card__title">${task.title}</h4>
-        <p class="task-card__description">${task.description || 'No description supplied.'}</p>
+        <h4 class="task-card__title">${safeTitle}</h4>
+        <p class="task-card__description">${safeDescription || 'No description supplied.'}</p>
         <div class="task-card__footer">
           <div class="task-card__metrics">
             <span class="task-card__metric-item" style="display: inline-flex; align-items: center;"><svg style="width: 12px; height: 12px; fill: var(--accent-cyan); margin-right: 3px;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>${task.storyPoints} SP</span>

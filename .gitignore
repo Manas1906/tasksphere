@@ -35,6 +35,10 @@ backend/**/.env
 .DS_Store
 Thumbs.db
 
+# --- JVM Crash Logs ---
+hs_err_pid*.log
+replay_pid*.log
+
 # --- Local Properties for backend (sensitive configs) ---
 **/application-local.properties
 

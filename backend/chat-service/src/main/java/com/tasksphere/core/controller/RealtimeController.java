@@ -6,6 +6,8 @@ import com.tasksphere.core.service.ChatService;
 import com.tasksphere.core.service.TaskService;
 import com.tasksphere.core.service.RedisCacheService;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -21,6 +23,8 @@ import com.tasksphere.core.event.UserPresenceEvent;
 
 @Controller
 public class RealtimeController {
+
+    private static final Logger log = LoggerFactory.getLogger(RealtimeController.class);
 
     @Autowired
     private ChatService chatService;
@@ -56,7 +60,7 @@ public class RealtimeController {
         // Handle Group Chat messages
         if (message.getGroupId() != null) {
             if (!groupChatService.isMember(message.getGroupId(), message.getUsername())) {
-                System.out.println("[WS-GROUP-CHAT] Unauthorized group message attempt by: " + message.getUsername() + " in group ID: " + message.getGroupId());
+                log.warn("Unauthorized group message attempt by: {} in group ID: {}", message.getUsername(), message.getGroupId());
                 return;
             }
             ChatMessage saved = chatService.saveMessage(message);
@@ -89,10 +93,10 @@ public class RealtimeController {
                 if (isDm || isMention) {
                     boolean enqueued = redisQueueService.enqueueAiRequest(saved.getUsername(), saved.getAvatarUrl(), msgText, isDm);
                     if (!enqueued) {
-                        System.out.println("[REALTIME-CHAT] Redis offline fallback. Processing AI command synchronously.");
+                        log.debug("Redis offline fallback. Processing AI command synchronously.");
                         aiBotService.processAiRequest(saved.getUsername(), saved.getAvatarUrl(), msgText, isDm);
                     } else {
-                        System.out.println("[REALTIME-CHAT] AI Bot command event enqueued onto Redis list. Core thread returning instantly.");
+                        log.debug("AI Bot command event enqueued onto Redis list. Core thread returning instantly.");
                     }
                 }
 
@@ -210,7 +214,7 @@ public class RealtimeController {
         if (target == null || target.trim().isEmpty()) return;
 
         String caller = (String) payload.get("caller");
-        System.out.println("[CALL-SIGNAL] Call offer from " + caller + " → " + target);
+        log.debug("Call offer from {} → {}", caller, target);
         
         // Primary delivery: user-specific private queue (requires matching STOMP principal)
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
@@ -220,9 +224,9 @@ public class RealtimeController {
         // Dispatch background Web Push notification for mobile / lock screen alerts
         try {
             webPushService.sendNotification(target, "📞 Incoming Voice Call", "Incoming call from " + caller, "/");
-            System.out.println("[CALL-SIGNAL] Web Push call notification sent successfully to: " + target);
+            log.debug("Web Push call notification sent successfully to: {}", target);
         } catch (Exception e) {
-            System.err.println("[CALL-SIGNAL-WARNING] Failed to dispatch Web Push call alert: " + e.getMessage());
+            log.warn("Failed to dispatch Web Push call alert: {}", e.getMessage());
         }
     }
 
@@ -234,7 +238,7 @@ public class RealtimeController {
         String target = (String) payload.get("target");
         if (target == null || target.trim().isEmpty()) return;
 
-        System.out.println("[CALL-SIGNAL] Call answer from " + payload.get("caller") + " → " + target);
+        log.debug("Call answer from {} → {}", payload.get("caller"), target);
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
         messagingTemplate.convertAndSend("/topic/call/" + target, payload);
     }
@@ -259,7 +263,7 @@ public class RealtimeController {
         String target = (String) payload.get("target");
         if (target == null || target.trim().isEmpty()) return;
 
-        System.out.println("[CALL-SIGNAL] Hangup from " + payload.get("caller") + " → " + target);
+        log.debug("Hangup from {} → {}", payload.get("caller"), target);
         messagingTemplate.convertAndSendToUser(target, "/queue/call", payload);
         messagingTemplate.convertAndSend("/topic/call/" + target, payload);
     }

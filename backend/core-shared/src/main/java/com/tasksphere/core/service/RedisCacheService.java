@@ -42,10 +42,10 @@ public class RedisCacheService {
 
     @PostConstruct
     public void testConnection() {
-        System.out.println("[REDIS-DIAGNOSTIC] Connecting to Redis at host=" + redisHost + ", port=" + redisPort + ", ssl=" + redisSslEnabled);
+        log.info("Connecting to Redis at host={}, port={}, ssl={}", redisHost, redisPort, redisSslEnabled);
 
         if (redisTemplate == null) {
-            System.out.println("[REDIS-CACHE-WARNING] StringRedisTemplate not initialized. Running in Offline Caching Fallback mode.");
+            log.warn("StringRedisTemplate not initialized. Running in Offline Caching Fallback mode.");
             isRedisOffline = true;
             return;
         }
@@ -54,9 +54,9 @@ public class RedisCacheService {
         try {
             // Test connection factory connectivity
             Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().ping();
-            System.out.println("[REDIS-CACHE] Connected to serverless Redis broker successfully. Active caching enabled!");
+            log.info("Connected to serverless Redis broker successfully. Active caching enabled!");
         } catch (Exception e) {
-            System.out.println("[REDIS-CACHE-WARNING] Redis connection failed: " + e.getMessage() + ". Gracefully falling back to thread-safe in-memory cache.");
+            log.warn("Redis connection failed: {}. Gracefully falling back to thread-safe in-memory cache.", e.getMessage());
             isRedisOffline = true;
         }
     }
@@ -69,7 +69,7 @@ public class RedisCacheService {
                 redisTemplate.opsForValue().set("presence:" + username.trim(), "ONLINE", Duration.ofSeconds(30));
                 return;
             } catch (Exception e) {
-                System.err.println("[REDIS-PRESENCE-ERROR] Failed to save to Redis. Diverting to local fallback: " + e.getMessage());
+                log.error("Failed to save to Redis. Diverting to local fallback: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -85,7 +85,7 @@ public class RedisCacheService {
             try {
                 return Boolean.TRUE.equals(redisTemplate.hasKey("presence:" + username.trim()));
             } catch (Exception e) {
-                System.err.println("[REDIS-PRESENCE-ERROR] Failed to read from Redis. Querying local fallback: " + e.getMessage());
+                log.error("Failed to read from Redis. Querying local fallback: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -105,7 +105,7 @@ public class RedisCacheService {
                 redisTemplate.opsForList().trim("chat:history", -50, -1); // keep last 50
                 return;
             } catch (Exception e) {
-                System.err.println("[REDIS-CHAT-ERROR] Failed to save message to Redis. Diverting to local fallback: " + e.getMessage());
+                log.error("Failed to save message to Redis. Diverting to local fallback: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -133,7 +133,7 @@ public class RedisCacheService {
                 }
                 return deserialized;
             } catch (Exception e) {
-                System.err.println("[REDIS-CHAT-ERROR] Failed to fetch message history from Redis. Diverting to local fallback: " + e.getMessage());
+                log.error("Failed to fetch message history from Redis. Diverting to local fallback: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -152,7 +152,7 @@ public class RedisCacheService {
             try {
                 redisTemplate.delete("chat:history");
             } catch (Exception e) {
-                System.err.println("[REDIS-CHAT-ERROR] Failed to invalidate Redis cache: " + e.getMessage());
+                log.error("Failed to invalidate Redis cache: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }

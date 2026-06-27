@@ -125,8 +125,7 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
       responseBox.classList.add('hidden');
       loader.classList.remove('hidden');
 
-      // Wiped to prevent public key leaks - please populate VITE_GEMINI_API_KEY inside your local untracked environment
-      const keyParts = ['', '', ''];
+      // API key loaded from environment - populate VITE_GEMINI_API_KEY in your local .env file
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       let resultText = '';
 
@@ -179,6 +178,17 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
           const resData = await response.json();
           resultText = resData.candidates[0].content.parts[0].text;
           
+          // Escape HTML entities first for XSS prevention
+          const escapeForMarkdown = (str) => {
+            if (!str) return '';
+            return String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;');
+          };
+          
+          resultText = escapeForMarkdown(resultText);
+          
           // Format raw markdown response to clean html lines
           resultText = resultText
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
@@ -206,14 +216,16 @@ Generate a standard Agile User Story (As a... I want to... So that...) along wit
   }
 
   getLocalFallbackStory(title, priority) {
+    const safeTitle = window.escapeHTML ? window.escapeHTML(title) : title;
+    const safePriority = window.escapeHTML ? window.escapeHTML(priority) : priority;
     return `
 <span class="prompt-editor__system" style="color: var(--accent-purple); font-weight: 700">=== LOCAL SCRUM CO-PILOT GENERATOR ===</span><br>
 <b>As a</b> developer reviewer,<br>
-<b>I want to</b> align agile deliverable tickets for "<b>${title}</b>",<br>
+<b>I want to</b> align agile deliverable tickets for "<b>${safeTitle}</b>",<br>
 <b>So that</b> we establish automated presence tracking and maintain SLA velocity expectations.<br><br>
 
 <b>Acceptance Criteria:</b><br>
-- <b>GIVEN</b> ticket "<b>${title}</b>" exists with priority <b>${priority}</b><br>
+- <b>GIVEN</b> ticket "<b>${safeTitle}</b>" exists with priority <b>${safePriority}</b><br>
 - <b>WHEN</b> Agile boards register a column transition event<br>
 - <b>THEN</b> broadcast active user notifications to all operations channels instantly.
     `;

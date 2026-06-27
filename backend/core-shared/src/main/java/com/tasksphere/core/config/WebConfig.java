@@ -1,5 +1,7 @@
 package com.tasksphere.core.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -7,6 +9,8 @@ import java.io.File;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebConfig.class);
 
     /**
      * Mirrors the uploads directory resolution logic in UploadController.
@@ -37,7 +41,6 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/api/uploads/**")
                 .addResourceLocations("file:" + absolutePath);
 
-        System.out.println("[WebConfig] Static resources registered mapping '/api/uploads/**' to: " + absolutePath
-                + " | writable=" + UPLOADS_DIR.canWrite());
+        log.info("Static resources registered mapping '/api/uploads/**' to: {} | writable={}", absolutePath, UPLOADS_DIR.canWrite());
     }
 }

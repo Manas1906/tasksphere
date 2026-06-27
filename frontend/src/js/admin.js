@@ -128,20 +128,24 @@ export class AdminView {
           cleanAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`;
         }
 
+        const safeUsername = window.escapeHTML ? window.escapeHTML(user.username) : user.username;
+        const safeEmail = window.escapeHTML ? window.escapeHTML(email) : email;
+        const safeFormattedRole = window.escapeHTML ? window.escapeHTML(formattedRole) : formattedRole;
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>
             <div class="admin-user-cell">
               <div class="admin-avatar-container">
-                <img class="admin-user-avatar" src="${cleanAvatar}" alt="${user.username}">
+                <img class="admin-user-avatar" src="${cleanAvatar}" alt="${safeUsername}">
                 <div class="admin-user-details-tooltip">
                   <div class="tooltip-banner"></div>
                   <div class="tooltip-avatar-wrapper">
-                    <img src="${cleanAvatar}" class="tooltip-avatar" alt="${user.username}">
+                    <img src="${cleanAvatar}" class="tooltip-avatar" alt="${safeUsername}">
                   </div>
                   <div class="tooltip-body">
-                    <h4 class="tooltip-name">${user.username}</h4>
-                    <span class="tooltip-role">${formattedRole}</span>
+                    <h4 class="tooltip-name">${safeUsername}</h4>
+                    <span class="tooltip-role">${safeFormattedRole}</span>
                     
                     <div class="tooltip-divider"></div>
                     
@@ -150,7 +154,7 @@ export class AdminView {
                         <span class="info-icon" style="display: inline-flex; align-items: center;">${this.getIconSvg('email')}</span>
                         <div class="info-content">
                           <span class="info-label">Email Address</span>
-                          <span class="info-value" title="${email}">${email}</span>
+                          <span class="info-value" title="${safeEmail}">${safeEmail}</span>
                         </div>
                       </div>
                       

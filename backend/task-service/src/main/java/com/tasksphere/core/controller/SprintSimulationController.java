@@ -23,7 +23,7 @@ public class SprintSimulationController {
      */
     @PostMapping("/run")
     public ResponseEntity<SprintSimulationService.SprintForecastResponse> runSimulation() {
-        System.out.println("[API-SIMULATION-POST] Initiating predictive sprint analysis...");
+        log.debug("Initiating predictive sprint analysis...");
         SprintSimulationService.SprintForecastResponse response = sprintSimulationService.runSprintSimulation();
         return ResponseEntity.ok(response);
     }

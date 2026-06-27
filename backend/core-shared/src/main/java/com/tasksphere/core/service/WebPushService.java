@@ -68,28 +68,28 @@ public class WebPushService {
 
     @PostConstruct
     public void init() {
-        System.out.println("[WEBPUSH-INIT] Registering BouncyCastle security provider...");
+        log.info("Registering BouncyCastle security provider...");
         try {
             if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
                 Security.addProvider(new BouncyCastleProvider());
             }
 
             pushService = new PushService(publicKey, privateKey, subject);
-            System.out.println("[WEBPUSH-INIT] PushService successfully configured with VAPID credentials.");
+            log.info("PushService successfully configured with VAPID credentials.");
         } catch (Exception e) {
-            System.err.println("[WEBPUSH-INIT-ERROR] Failed to configure PushService: " + e.getMessage());
+            log.error("Failed to configure PushService: {}", e.getMessage());
         }
 
         // Test Redis availability for subscription storage
         if (redisTemplate == null) {
-            System.out.println("[WEBPUSH-REDIS-WARNING] Redis template not initialized. Using local memory subscription storage.");
+            log.warn("Redis template not initialized. Using local memory subscription storage.");
             isRedisOffline = true;
         } else {
             try {
                 Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().ping();
-                System.out.println("[WEBPUSH-REDIS] Connected to Redis subscription broker successfully!");
+                log.info("Connected to Redis subscription broker successfully!");
             } catch (Exception e) {
-                System.out.println("[WEBPUSH-REDIS-WARNING] Redis connection failed: " + e.getMessage() + ". Defaulting to local memory subscription fallback.");
+                log.warn("Redis connection failed: {}. Defaulting to local memory subscription fallback.", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -108,18 +108,18 @@ public class WebPushService {
             if (!isRedisOffline) {
                 try {
                     redisTemplate.opsForValue().set(redisKey, serialized);
-                    System.out.println("[WEBPUSH-SUBSCRIBE] Registered subscription for '" + username + "' in Redis.");
+                    log.debug("Registered subscription for '{}' in Redis.", username);
                     return;
                 } catch (Exception e) {
-                    System.err.println("[WEBPUSH-REDIS-ERROR] Failed to save subscription to Redis. Diverting to local fallback: " + e.getMessage());
+                    log.error("Failed to save subscription to Redis. Diverting to local fallback: {}", e.getMessage());
                     isRedisOffline = true;
                 }
             }
 
             fallbackSubscriptions.put(username.trim(), serialized);
-            System.out.println("[WEBPUSH-SUBSCRIBE] Registered subscription for '" + username + "' in local memory.");
+            log.debug("Registered subscription for '{}' in local memory.", username);
         } catch (Exception e) {
-            System.err.println("[WEBPUSH-SUBSCRIBE-ERROR] Failed to serialize subscription payload: " + e.getMessage());
+            log.error("Failed to serialize subscription payload: {}", e.getMessage());
         }
     }
 
@@ -133,16 +133,16 @@ public class WebPushService {
         if (!isRedisOffline) {
             try {
                 redisTemplate.delete(redisKey);
-                System.out.println("[WEBPUSH-UNSUBSCRIBE] Removed subscription for '" + username + "' from Redis.");
+                log.debug("Removed subscription for '{}' from Redis.", username);
                 return;
             } catch (Exception e) {
-                System.err.println("[WEBPUSH-REDIS-ERROR] Failed to delete subscription from Redis: " + e.getMessage());
+                log.error("Failed to delete subscription from Redis: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
 
         fallbackSubscriptions.remove(username.trim());
-        System.out.println("[WEBPUSH-UNSUBSCRIBE] Removed subscription for '" + username + "' from local memory.");
+        log.debug("Removed subscription for '{}' from local memory.", username);
     }
 
     /**
@@ -158,7 +158,7 @@ public class WebPushService {
             try {
                 rawJson = redisTemplate.opsForValue().get(redisKey);
             } catch (Exception e) {
-                System.err.println("[WEBPUSH-REDIS-ERROR] Failed to read subscription from Redis. Querying local fallback: " + e.getMessage());
+                log.error("Failed to read subscription from Redis. Querying local fallback: {}", e.getMessage());
                 isRedisOffline = true;
             }
         }
@@ -174,7 +174,7 @@ public class WebPushService {
         try {
             return objectMapper.readValue(rawJson, WebPushSubscription.class);
         } catch (Exception e) {
-            System.err.println("[WEBPUSH-FETCH-ERROR] Failed to deserialize subscription payload: " + e.getMessage());
+            log.error("Failed to deserialize subscription payload: {}", e.getMessage());
             return null;
         }
     }
@@ -190,7 +190,7 @@ public class WebPushService {
             return;
         }
 
-        System.out.println("[WEBPUSH-DISPATCH] Dispatching background push notification to user '" + username + "'...");
+        log.debug("Dispatching background push notification to user '{}'...", username);
 
         try {
             // Build raw JSON payload expected by the service worker
@@ -214,16 +214,16 @@ public class WebPushService {
             int statusCode = response.getStatusLine().getStatusCode();
 
             if (statusCode == 201) {
-                System.out.println("[WEBPUSH-SUCCESS] Background notification successfully delivered to '" + username + "'.");
+                log.debug("Background notification successfully delivered to '{}'.", username);
             } else if (statusCode == 410 || statusCode == 404) {
                 // Subscription has expired or was revoked by browser
-                System.out.println("[WEBPUSH-EXPIRED] Subscription for '" + username + "' is stale (Status: " + statusCode + "). Purging entry.");
+                log.info("Subscription for '{}' is stale (Status: {}). Purging entry.", username, statusCode);
                 unsubscribe(username);
             } else {
-                System.err.println("[WEBPUSH-WARNING] Push service responded with unexpected status code: " + statusCode);
+                log.warn("Push service responded with unexpected status code: {}", statusCode);
             }
         } catch (Exception e) {
-            System.err.println("[WEBPUSH-DISPATCH-ERROR] Failed to encrypt/send push notification to '" + username + "': " + e.getMessage());
+            log.error("Failed to encrypt/send push notification to '{}': {}", username, e.getMessage());
         }
     }
 }

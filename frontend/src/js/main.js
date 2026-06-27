@@ -12,6 +12,25 @@ import { WhiteboardView } from './whiteboard';
 import { TimelineView } from './timeline';
 
 /**
+ * Global utility function to escape HTML entities for XSS prevention.
+ * Use this when inserting user-supplied data into innerHTML templates.
+ */
+function escapeHTML(str) {
+  if (!str) return '';
+  const escapeMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return String(str).replace(/[&<>"']/g, char => escapeMap[char]);
+}
+
+// Make escapeHTML globally available for all modules
+window.escapeHTML = escapeHTML;
+
+/**
  * TaskSphereApp - Day 12 & 14 Root System Assembly
  * Orchestrates routes, visualInspect overlays, dialogs, and real-time handshakes.
  */

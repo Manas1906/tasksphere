@@ -38,10 +38,10 @@ public class PaymentController {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
-    @Value("${razorpay.key.id:rzp_test_mockKeyId123}")
+    @Value("${razorpay.key.id:}")
     private String razorpayKeyId;
 
-    @Value("${razorpay.key.secret:mockKeySecret456}")
+    @Value("${razorpay.key.secret:}")
     private String razorpayKeySecret;
 
     @Autowired
@@ -65,8 +65,9 @@ public class PaymentController {
     @Autowired
     private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
-    // Secret key for webhook validation
-    private static final String WEBHOOK_SECRET = "tasksphere_secure_webhook_secret_key_2026_xyz";
+    // Secret key for webhook validation - configured via environment variable
+    @Value("${razorpay.webhook.secret:}")
+    private String webhookSecret;
     private static final long MAX_TIME_DRIFT_SECONDS = 300;
 
     // Thread-safe in-memory fallbacks when Redis is offline
@@ -296,7 +297,7 @@ public class PaymentController {
         // 2. Cryptographic signature check
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(WEBHOOK_SECRET.getBytes("UTF-8"), "HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(webhookSecret.getBytes("UTF-8"), "HmacSHA256");
             mac.init(secretKey);
 
             // Razorpay standard payload: Timestamp + "." + Raw Body
@@ -458,7 +459,7 @@ public class PaymentController {
         try {
             String event = (String) config.getOrDefault("event", "payment.authorized");
             String orderId = (String) config.get("orderId");
-            String customSecret = (String) config.getOrDefault("webhookSecret", WEBHOOK_SECRET);
+            String customSecret = (String) config.getOrDefault("webhookSecret", webhookSecret);
             boolean causeTimeDrift = (boolean) config.getOrDefault("causeTimeDrift", false);
 
             if (orderId == null) {

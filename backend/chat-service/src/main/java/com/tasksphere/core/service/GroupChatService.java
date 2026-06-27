@@ -185,7 +185,7 @@ public class GroupChatService {
             // Delete group and messages
             chatMessageRepository.deleteByGroupId(groupId);
             chatGroupRepository.deleteById(groupId);
-            System.out.println("[GROUP-CHAT] Deleted empty group ID: " + groupId);
+            log.info("Deleted empty group ID: {}", groupId);
         }
     }
 
@@ -224,13 +224,13 @@ public class GroupChatService {
                 if (email != null && !email.trim().isEmpty()) {
                     emailService.sendGroupAddedEmail(email, groupName, addedBy);
                 } else {
-                    System.out.println("[GROUP-CHAT-EMAIL] User " + username + " has no email configured.");
+                    log.debug("User {} has no email configured.", username);
                 }
             } else {
-                System.out.println("[GROUP-CHAT-EMAIL] User " + username + " not found to send group added email.");
+                log.debug("User {} not found to send group added email.", username);
             }
         } catch (Exception e) {
-            System.err.println("[GROUP-CHAT-EMAIL] Failed to send group addition email to " + username + ": " + e.getMessage());
+            log.error("Failed to send group addition email to {}: {}", username, e.getMessage());
         }
     }
 }

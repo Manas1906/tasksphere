@@ -37,11 +37,11 @@ public class ChatController {
         // Try reading from high-speed cache first
         List<ChatMessage> cached = redisCacheService.getCachedChatHistory();
         if (cached != null) {
-            System.out.println("[CHAT-CACHE-HIT] Served recent chat history directly from Redis Cache.");
+            log.debug("Served recent chat history directly from Redis Cache.");
             return ResponseEntity.ok(cached);
         }
 
-        System.out.println("[CHAT-CACHE-MISS] Cold history cache. Accessing database context...");
+        log.debug("Cold history cache. Accessing database context...");
         List<ChatMessage> messages = chatService.getRecentMessages();
         
         // Populate cache for subsequent hits

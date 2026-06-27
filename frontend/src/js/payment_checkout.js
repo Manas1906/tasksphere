@@ -308,13 +308,6 @@ class PaymentCheckoutController {
       });
     }
   }
-
-  renderMetrics() {}
-  renderPricingScale() {}
-  checkUserPledgeStatus() {}
-  bindEvents() {}
-  closePortal() {}
-  logDevConsole() {}
 }
 
 // Export global singleton
