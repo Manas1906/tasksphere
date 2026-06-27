@@ -25,28 +25,27 @@ export class BoardView {
       </div>
 
       <!-- Board Toolbar -->
-      <div class="board-toolbar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
-        <input id="boardSearchInput" type="text" placeholder="Search tickets..." class="form-input"
-          style="flex:1;min-width:150px;max-width:260px;padding:6px 10px;font-size:13px;"/>
-        <select id="boardPriorityFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+      <div class="board-toolbar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px;align-items:center;padding-bottom:4px;">
+        <input id="boardSearchInput" type="text" placeholder="🔍 Search..." 
+          style="width:160px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;color:var(--text-primary);outline:none;"/>
+        <select id="boardPriorityFilter" 
+          style="width:130px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);">
           <option value="">All Priorities</option>
           <option value="URGENT">URGENT</option>
           <option value="HIGH">HIGH</option>
           <option value="MEDIUM">MEDIUM</option>
           <option value="LOW">LOW</option>
         </select>
-        <select id="boardAssigneeFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+        <select id="boardAssigneeFilter"
+          style="width:130px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);">
           <option value="">All Assignees</option>
         </select>
-        <select id="boardSprintFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+        <select id="boardSprintFilter"
+          style="width:130px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);">
           <option value="">All Sprints</option>
         </select>
-        <button id="boardCsvExportBtn" class="btn btn--ghost" style="font-size:12px;padding:6px 12px;" title="Export tasks to CSV">
-          ⬇ Export CSV
-        </button>
-        <button id="boardSprintManagerBtn" class="btn btn--ghost" style="font-size:12px;padding:6px 12px;" title="Manage Sprints">
-          🏃 Sprints
-        </button>
+        <button id="boardCsvExportBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">⬇ CSV</button>
+        <button id="boardSprintManagerBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">🏃 Sprints</button>
       </div>
 
       <!-- Kanban Lanes - Day 5 Grid & Flexbox -->
@@ -367,7 +366,12 @@ export class BoardView {
   }
 
   async loadBoardData() {
-    this.tasks = await api.getTasks();
+    try {
+      this.tasks = (await api.getTasks()) || [];
+    } catch (e) {
+      this.tasks = [];
+      console.error('[BOARD] Failed to load tasks:', e);
+    }
     this.distributeTasks();
   }
 
@@ -375,6 +379,7 @@ export class BoardView {
    * Day 1 & Day 10 - Semantic HTML Elements & Dynamic DOM Tree manipulation
    */
   distributeTasks() {
+    if (!this.tasks) this.tasks = [];
     // Clear all lanes
     const lanes = {
       TODO: document.getElementById('lane-TODO'),
