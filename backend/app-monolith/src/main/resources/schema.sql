@@ -58,3 +58,50 @@ CREATE TABLE IF NOT EXISTS payment_transaction_audits (
     signature VARCHAR(1024),
     timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================
+-- Feature: Recurring tasks & Sprint management (v2 migration)
+-- ============================================================
+
+-- Add recurring_type column to tasks if it doesn't exist
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurring_type VARCHAR(50);
+
+-- Create task_comments table
+CREATE TABLE IF NOT EXISTS task_comments (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    avatar_url TEXT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create task_activities table
+CREATE TABLE IF NOT EXISTS task_activities (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    actor VARCHAR(255) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    detail TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create sprints table
+CREATE TABLE IF NOT EXISTS sprints (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    goal TEXT,
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50) NOT NULL DEFAULT 'PLANNING',
+    created_by VARCHAR(255),
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create sprint_task_ids join table
+CREATE TABLE IF NOT EXISTS sprint_task_ids (
+    sprint_id BIGINT NOT NULL,
+    task_id BIGINT NOT NULL
+);

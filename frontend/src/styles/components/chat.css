@@ -341,38 +341,39 @@ body.light-theme .chat-msg__sender {
    Premium Message Bubbles
    ============================================================ */
 .chat-msg__bubble {
-  background-color: #1e293b; /* Matte slate dark */
-  color: #f1f5f9;
+  background-color: #1e3a4a; /* Teal-tinted dark for contrast */
+  color: #e8f4f3;
   padding: 10px 14px;
   border-radius: 16px 16px 16px 4px; /* Asymmetrical tail */
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(36, 120, 109, 0.35);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
   transition: all 0.2s ease;
   max-width: 100%;
   overflow: hidden;
 }
 
 body.light-theme .chat-msg__bubble {
-  background-color: #ffffff;
-  color: #0f172a;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  background-color: #e6f4f1; /* Light teal tint — visible against white/snow bg */
+  color: #0d2824;
+  border: 1px solid rgba(36, 120, 109, 0.2);
+  box-shadow: 0 2px 8px rgba(36, 120, 109, 0.08);
 }
 
 .chat-msg--self .chat-msg__bubble {
-  background: linear-gradient(135deg, #3b82f6, #4f46e5); /* Sky blue to royal indigo */
+  background: linear-gradient(135deg, #1a7a6e, #24786d); /* Brand teal gradient */
   color: #ffffff;
   border-radius: 16px 16px 4px 16px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+  border: 1px solid rgba(36, 120, 109, 0.4);
+  box-shadow: 0 4px 14px rgba(36, 120, 109, 0.3);
 }
 
 body.light-theme .chat-msg--self .chat-msg__bubble {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  box-shadow: 0 3px 10px rgba(79, 70, 229, 0.1);
+  background: linear-gradient(135deg, #24786d, #1a9e8f);
+  border: 1px solid rgba(36, 120, 109, 0.3);
+  box-shadow: 0 3px 10px rgba(36, 120, 109, 0.2);
 }
 
 /* Call log badge/event card (Teams-style) */
