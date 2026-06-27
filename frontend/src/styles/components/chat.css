@@ -1103,6 +1103,7 @@ body.light-theme .thread-parent-container {
   border-right: 1px solid var(--border-color) !important;
   background: var(--bg-secondary) !important;
   height: 100% !important;
+  position: relative !important; /* Required for search results panel overlay */
 }
 
 .chat-panel--hub .chat-hub-right-col {

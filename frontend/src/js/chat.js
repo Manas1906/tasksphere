@@ -641,6 +641,31 @@ export class ChatController {
       };
     }
 
+    // Hub back button (goes back to main dashboard from chat hub)
+    const hubBackBtn = document.getElementById('mobileHubBackBtn');
+    if (hubBackBtn) {
+      hubBackBtn.onclick = () => {
+        // Clear chat hub nav active state and show dashboard
+        const chatHubBtn = document.getElementById('navChatHub');
+        const dashboardBtn = document.getElementById('navDashboard');
+        if (chatHubBtn) chatHubBtn.classList.remove('sidebar-nav-btn--active');
+        if (dashboardBtn) dashboardBtn.classList.add('sidebar-nav-btn--active');
+        // Hide chat panel and show dashboard
+        const chatPanel = document.querySelector('.chat-panel');
+        if (chatPanel) {
+          chatPanel.classList.remove('chat-panel--hub');
+          chatPanel.style.display = 'none';
+        }
+        // Show dashboard
+        const dashboardContainer = document.getElementById('dashboardView');
+        const boardContainer = document.getElementById('boardView');
+        const teamContainer = document.getElementById('teamView');
+        if (dashboardContainer) dashboardContainer.classList.remove('hidden');
+        if (boardContainer) boardContainer.classList.add('hidden');
+        if (teamContainer) teamContainer.classList.add('hidden');
+      };
+    }
+
     const chatHeader = document.querySelector('.chat-panel-header');
 
     const closeThreadBtn = document.getElementById('closeThreadBtn');
@@ -3103,7 +3128,13 @@ export class ChatController {
       `;
       
       item.onclick = () => {
-        this.openUserProfile(member);
+        // Start DM chat directly instead of opening profile
+        this.switchChatPartner(member.username);
+        // Switch to Message tab and activate chat
+        const tabMsg = document.getElementById('chatTabMsg');
+        if (tabMsg) tabMsg.click();
+        const cp = document.querySelector('.chat-panel');
+        if (cp) cp.classList.add('chat-panel--active-chat');
       };
       
       listContacts.appendChild(item);
@@ -3229,7 +3260,18 @@ export class ChatController {
         `;
         
         item.onclick = () => {
-          this.openUserProfile(member);
+          // Start DM chat directly instead of opening profile
+          this.switchChatPartner(member.username);
+          panel.style.display = 'none';
+          panel.classList.add('hidden');
+          const searchInput = document.getElementById('chatSearchInput');
+          const searchClearBtn = document.getElementById('chatSearchClearBtn');
+          if (searchInput) searchInput.value = '';
+          if (searchClearBtn) searchClearBtn.style.display = 'none';
+          this.chatSearchQuery = '';
+          // Activate chat view on mobile
+          const cp = document.querySelector('.chat-panel');
+          if (cp) cp.classList.add('chat-panel--active-chat');
         };
         peopleSection.appendChild(item);
       });
