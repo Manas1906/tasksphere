@@ -1187,20 +1187,17 @@ body.light-theme .recruiter-dev-console {
 }
 
 .pcidss-badge {
-  background: #1e293b;
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 0 8px;
+  background: transparent;
+  border: none;
+  padding: 4px;
   display: flex;
-  gap: 4px;
-  letter-spacing: 0.03em;
+  align-items: center;
+  justify-content: center;
 }
 
-.pcidss-badge .pci-sec {
-  color: #34d399;
+.pcidss-badge svg {
+  height: 30px;
+  width: auto;
 }
 
 /* ============================================================
