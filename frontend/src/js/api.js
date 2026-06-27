@@ -217,6 +217,51 @@ class ApiService {
   updateTaskStatus(id, status) { return this.request(`/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify(status) }); }
   deleteTask(id) { return this.request(`/tasks/${id}`, { method: 'DELETE' }); }
 
+  /* ---- Task Comments ---- */
+  getTaskComments(taskId) { return this.request(`/tasks/${taskId}/comments`); }
+  addTaskComment(taskId, author, avatarUrl, content) {
+    return this.request(`/tasks/${taskId}/comments`, { method: 'POST', body: JSON.stringify({ author, avatarUrl, content }) });
+  }
+  updateTaskComment(taskId, commentId, author, content) {
+    return this.request(`/tasks/${taskId}/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ author, content }) });
+  }
+  deleteTaskComment(taskId, commentId, author) {
+    return this.request(`/tasks/${taskId}/comments/${commentId}?author=${encodeURIComponent(author)}`, { method: 'DELETE' });
+  }
+
+  /* ---- Task Activity Log ---- */
+  getTaskActivity(taskId) { return this.request(`/tasks/${taskId}/activity`); }
+
+  /* ---- Sprints ---- */
+  getSprints() { return this.request('/sprints', {}, true); }
+  getActiveSprint() { return this.request('/sprints/active', {}, true); }
+  createSprint(sprint) { return this.request('/sprints', { method: 'POST', body: JSON.stringify(sprint) }); }
+  updateSprint(id, sprint) { return this.request(`/sprints/${id}`, { method: 'PUT', body: JSON.stringify(sprint) }); }
+  updateSprintStatus(id, status) { return this.request(`/sprints/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); }
+  deleteSprint(id) { return this.request(`/sprints/${id}`, { method: 'DELETE' }); }
+  addTaskToSprint(sprintId, taskId) { return this.request(`/sprints/${sprintId}/tasks/${taskId}`, { method: 'POST' }); }
+  removeTaskFromSprint(sprintId, taskId) { return this.request(`/sprints/${sprintId}/tasks/${taskId}`, { method: 'DELETE' }); }
+
+  /* ---- CSV Export ---- */
+  exportTasksCsv() {
+    const token = localStorage.getItem('tasksphere_jwt');
+    const url = `${this.baseUrl}/tasks/export/csv`;
+    const link = document.createElement('a');
+    link.href = url + (token ? `?token=${encodeURIComponent(token)}` : '');
+    // Use fetch to properly include Authorization header
+    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.blob())
+      .then(blob => {
+        const objUrl = URL.createObjectURL(blob);
+        link.href = objUrl;
+        link.download = 'tasks-export.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(objUrl);
+      });
+  }
+
   /* ---- User Endpoints ---- */
   getUsers() { return this.request('/users'); }
 

@@ -43,6 +43,9 @@ public class Task {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
+    @Column(name = "recurring_type")
+    private String recurringType; // null, DAILY, WEEKLY, BIWEEKLY, MONTHLY
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 

@@ -112,6 +112,20 @@ public class RealtimeController {
                         }
                     }
                 }
+
+                // Push notifications for @username mentions in public/group chat
+                java.util.regex.Matcher mentionMatcher = java.util.regex.Pattern
+                        .compile("@(\\w+)").matcher(msgText);
+                while (mentionMatcher.find()) {
+                    String mentioned = mentionMatcher.group(1);
+                    if (!mentioned.equalsIgnoreCase(saved.getUsername())
+                            && !"Agile_AI_Bot".equalsIgnoreCase(mentioned)) {
+                        webPushService.sendNotification(mentioned,
+                                "🔔 " + saved.getUsername() + " mentioned you",
+                                msgText.length() > 100 ? msgText.substring(0, 100) + "..." : msgText,
+                                "/");
+                    }
+                }
             }
         }
         

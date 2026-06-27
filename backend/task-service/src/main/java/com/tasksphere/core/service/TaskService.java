@@ -2,7 +2,9 @@ package com.tasksphere.core.service;
 
 import com.tasksphere.core.exception.ResourceNotFoundException;
 import com.tasksphere.core.model.Task;
+import com.tasksphere.core.model.TaskActivity;
 import com.tasksphere.core.model.TaskChecklistItem;
+import com.tasksphere.core.repository.TaskActivityRepository;
 import com.tasksphere.core.repository.TaskRepository;
 import com.tasksphere.core.repository.UserSessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,9 @@ public class TaskService {
     private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
+    private TaskActivityRepository taskActivityRepository;
+
+    @Autowired
     private WebPushService webPushService;
 
     public List<Task> getAllTasks() {
@@ -52,7 +57,11 @@ public class TaskService {
         }
         
         Task savedTask = taskRepository.save(task);
-        
+
+        // Log creation activity
+        String actorUsername = savedTask.getAssignee() != null ? savedTask.getAssignee().getUsername() : "system";
+        logActivity(savedTask.getId(), actorUsername, "CREATED", "Task \"" + savedTask.getTitle() + "\" created");
+
         // Alert assignee on new creation
         if (savedTask.getAssignee() != null) {
             sendAssignmentAlert(savedTask.getAssignee().getUsername(), savedTask, "ASSIGNMENT", "You have been assigned to task: \"" + savedTask.getTitle() + "\"");
@@ -95,6 +104,10 @@ public class TaskService {
         
         Task savedTask = taskRepository.save(task);
 
+        // Log update activity
+        String actorName = newAssignee != null ? newAssignee.getUsername() : "system";
+        logActivity(savedTask.getId(), actorName, "UPDATED", "Task details updated");
+
         // Trigger STOMP user queue alerts on ticket assignee update/assignment
         String oldUsername = oldAssignee != null ? oldAssignee.getUsername() : null;
         String newUsername = newAssignee != null ? newAssignee.getUsername() : null;
@@ -118,6 +131,10 @@ public class TaskService {
         String oldStatus = task.getStatus();
         task.setStatus(status);
         Task savedTask = taskRepository.save(task);
+
+        String actor = savedTask.getAssignee() != null ? savedTask.getAssignee().getUsername() : "system";
+        logActivity(savedTask.getId(), actor, "STATUS_CHANGED",
+                "Status changed from " + oldStatus + " to " + status);
         
         if (savedTask.getAssignee() != null && oldStatus != null && !oldStatus.equals(status)) {
             sendAssignmentAlert(savedTask.getAssignee().getUsername(), savedTask, "UPDATE", 
@@ -129,7 +146,25 @@ public class TaskService {
 
     public void deleteTask(Long id) {
         Task task = getTaskById(id);
+        logActivity(task.getId(), "system", "DELETED", "Task \"" + task.getTitle() + "\" deleted");
         taskRepository.delete(task);
+    }
+
+    public List<TaskActivity> getActivities(Long taskId) {
+        return taskActivityRepository.findByTaskIdOrderByCreatedAtDesc(taskId);
+    }
+
+    public void logActivity(Long taskId, String actor, String action, String detail) {
+        try {
+            taskActivityRepository.save(TaskActivity.builder()
+                    .taskId(taskId)
+                    .actor(actor)
+                    .action(action)
+                    .detail(detail)
+                    .build());
+        } catch (Exception e) {
+            log.warn("[ACTIVITY-LOG] Failed to log activity for task {}: {}", taskId, e.getMessage());
+        }
     }
 
     private void sendAssignmentAlert(String username, Task task, String type, String message) {

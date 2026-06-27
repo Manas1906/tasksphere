@@ -10,6 +10,11 @@ export class BoardView {
     this.container = document.getElementById(containerId);
     this.tasks = [];
     this.draggedCard = null;
+    this.filterQuery = '';
+    this.filterPriority = '';
+    this.filterAssignee = '';
+    this.sprints = [];
+    this.activeSprint = null;
   }
 
   async render() {
@@ -17,6 +22,31 @@ export class BoardView {
       <div class="chat-panel-header" style="background: none; border: none; padding: 0; margin-bottom: var(--spacing-sm)">
         <h2 class="modal-header__title" style="font-size: var(--font-size-xl)">Scrum Kanban Board</h2>
         <p style="color: var(--text-muted); font-size: var(--font-size-sm)">Drag and drop tickets to update deliverable statuses in real-time.</p>
+      </div>
+
+      <!-- Board Toolbar -->
+      <div class="board-toolbar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+        <input id="boardSearchInput" type="text" placeholder="Search tickets..." class="form-input"
+          style="flex:1;min-width:150px;max-width:260px;padding:6px 10px;font-size:13px;"/>
+        <select id="boardPriorityFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+          <option value="">All Priorities</option>
+          <option value="URGENT">URGENT</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+        <select id="boardAssigneeFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+          <option value="">All Assignees</option>
+        </select>
+        <select id="boardSprintFilter" class="form-input" style="padding:6px 10px;font-size:13px;">
+          <option value="">All Sprints</option>
+        </select>
+        <button id="boardCsvExportBtn" class="btn btn--ghost" style="font-size:12px;padding:6px 12px;" title="Export tasks to CSV">
+          ⬇ Export CSV
+        </button>
+        <button id="boardSprintManagerBtn" class="btn btn--ghost" style="font-size:12px;padding:6px 12px;" title="Manage Sprints">
+          🏃 Sprints
+        </button>
       </div>
 
       <!-- Kanban Lanes - Day 5 Grid & Flexbox -->
@@ -69,12 +99,194 @@ export class BoardView {
           <div class="kanban-cards" id="lane-DONE"></div>
         </section>
       </div>
+
+      <!-- Sprint Manager Panel (hidden by default) -->
+      <div id="sprintManagerPanel" style="display:none;margin-top:20px;"></div>
     `;
 
     await this.loadBoardData();
     this.setupDragAndDrop();
     this.bindAddButtons();
     this.handleRedirectHighlight();
+    this.bindToolbar();
+    this.loadSprintData();
+  }
+
+  bindToolbar() {
+    const searchInput = document.getElementById('boardSearchInput');
+    const priorityFilter = document.getElementById('boardPriorityFilter');
+    const assigneeFilter = document.getElementById('boardAssigneeFilter');
+    const sprintFilter = document.getElementById('boardSprintFilter');
+    const csvBtn = document.getElementById('boardCsvExportBtn');
+    const sprintManagerBtn = document.getElementById('boardSprintManagerBtn');
+
+    // Populate assignee filter from cache
+    const members = JSON.parse(localStorage.getItem('cache_users') || '[]');
+    if (assigneeFilter) {
+      members.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.username;
+        opt.textContent = m.username;
+        assigneeFilter.appendChild(opt);
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        this.filterQuery = searchInput.value.toLowerCase();
+        this.distributeTasks();
+      });
+    }
+    if (priorityFilter) {
+      priorityFilter.addEventListener('change', () => {
+        this.filterPriority = priorityFilter.value;
+        this.distributeTasks();
+      });
+    }
+    if (assigneeFilter) {
+      assigneeFilter.addEventListener('change', () => {
+        this.filterAssignee = assigneeFilter.value;
+        this.distributeTasks();
+      });
+    }
+    if (sprintFilter) {
+      sprintFilter.addEventListener('change', () => {
+        this.filterSprintId = sprintFilter.value ? parseInt(sprintFilter.value) : null;
+        this.distributeTasks();
+      });
+    }
+    if (csvBtn) {
+      csvBtn.addEventListener('click', () => api.exportTasksCsv());
+    }
+    if (sprintManagerBtn) {
+      sprintManagerBtn.addEventListener('click', () => this.toggleSprintManager());
+    }
+  }
+
+  async loadSprintData() {
+    try {
+      this.sprints = await api.getSprints() || [];
+      // Populate sprint filter dropdown
+      const sprintFilter = document.getElementById('boardSprintFilter');
+      if (sprintFilter) {
+        this.sprints.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.name} (${s.status})`;
+          sprintFilter.appendChild(opt);
+        });
+      }
+    } catch (e) {
+      // Sprints not critical
+    }
+  }
+
+  toggleSprintManager() {
+    const panel = document.getElementById('sprintManagerPanel');
+    if (!panel) return;
+    if (panel.style.display === 'none') {
+      panel.style.display = 'block';
+      this.renderSprintManager(panel);
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  renderSprintManager(panel) {
+    const sprintListHtml = this.sprints.map(s => `
+      <div class="sprint-item" data-sprint-id="${s.id}" style="
+        display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;
+        background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+        <div style="flex:1;">
+          <strong style="font-size:13px;">${window.escapeHTML ? window.escapeHTML(s.name) : s.name}</strong>
+          <span style="margin-left:8px;font-size:11px;padding:2px 6px;border-radius:9px;background:var(--bg-primary);color:var(--text-muted);">${s.status}</span>
+          ${s.goal ? `<p style="font-size:11px;color:var(--text-muted);margin:2px 0 0 0;">${window.escapeHTML ? window.escapeHTML(s.goal) : s.goal}</p>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${s.status !== 'ACTIVE' ? `<button class="btn btn--ghost sprint-activate-btn" data-id="${s.id}" style="font-size:11px;padding:4px 8px;">▶ Activate</button>` : '<span style="color:var(--accent-cyan);font-size:11px;font-weight:bold;">● Active</span>'}
+          ${s.status !== 'COMPLETED' ? `<button class="btn btn--ghost sprint-complete-btn" data-id="${s.id}" style="font-size:11px;padding:4px 8px;">✓ Complete</button>` : ''}
+          <button class="btn btn--ghost sprint-delete-btn" data-id="${s.id}" style="font-size:11px;padding:4px 8px;color:var(--accent-rose);">✕</button>
+        </div>
+      </div>
+    `).join('');
+
+    panel.innerHTML = `
+      <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:var(--font-size-md);margin:0;">Sprint Manager</h3>
+          <button id="createSprintBtn" class="btn btn--primary" style="font-size:12px;padding:6px 12px;">+ New Sprint</button>
+        </div>
+        <div id="sprintList">${sprintListHtml || '<p style="color:var(--text-muted);font-size:13px;">No sprints yet. Create your first sprint!</p>'}</div>
+        <div id="createSprintForm" style="display:none;margin-top:12px;padding:12px;background:var(--bg-primary);border-radius:var(--radius-sm);">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <input id="newSprintName" class="form-input" placeholder="Sprint name (e.g. Sprint 1)" style="padding:7px 10px;font-size:13px;"/>
+            <input id="newSprintGoal" class="form-input" placeholder="Sprint goal (optional)" style="padding:7px 10px;font-size:13px;"/>
+            <div style="display:flex;gap:8px;">
+              <input id="newSprintStart" type="date" class="form-input" style="flex:1;padding:7px 10px;font-size:13px;"/>
+              <input id="newSprintEnd" type="date" class="form-input" style="flex:1;padding:7px 10px;font-size:13px;"/>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="saveSprintBtn" class="btn btn--primary" style="font-size:12px;padding:6px 12px;">Save Sprint</button>
+              <button id="cancelSprintBtn" class="btn btn--ghost" style="font-size:12px;padding:6px 12px;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Bind buttons
+    panel.querySelector('#createSprintBtn').onclick = () => {
+      panel.querySelector('#createSprintForm').style.display = 'block';
+    };
+    panel.querySelector('#cancelSprintBtn').onclick = () => {
+      panel.querySelector('#createSprintForm').style.display = 'none';
+    };
+    panel.querySelector('#saveSprintBtn').onclick = async () => {
+      const name = panel.querySelector('#newSprintName').value.trim();
+      if (!name) return alert('Sprint name is required.');
+      const goal = panel.querySelector('#newSprintGoal').value.trim();
+      const startDate = panel.querySelector('#newSprintStart').value || null;
+      const endDate = panel.querySelector('#newSprintEnd').value || null;
+      const actor = localStorage.getItem('chat_username') || 'system';
+      try {
+        await api.createSprint({ name, goal, startDate, endDate, createdBy: actor, status: 'PLANNING' });
+        this.sprints = await api.getSprints() || [];
+        this.renderSprintManager(panel);
+      } catch (e) {
+        alert('Failed to create sprint: ' + e.message);
+      }
+    };
+
+    panel.querySelectorAll('.sprint-activate-btn').forEach(btn => {
+      btn.onclick = async () => {
+        try {
+          await api.updateSprintStatus(parseInt(btn.dataset.id), 'ACTIVE');
+          this.sprints = await api.getSprints() || [];
+          this.renderSprintManager(panel);
+        } catch (e) { alert('Failed to activate sprint.'); }
+      };
+    });
+
+    panel.querySelectorAll('.sprint-complete-btn').forEach(btn => {
+      btn.onclick = async () => {
+        try {
+          await api.updateSprintStatus(parseInt(btn.dataset.id), 'COMPLETED');
+          this.sprints = await api.getSprints() || [];
+          this.renderSprintManager(panel);
+        } catch (e) { alert('Failed to complete sprint.'); }
+      };
+    });
+
+    panel.querySelectorAll('.sprint-delete-btn').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this sprint?')) return;
+        try {
+          await api.deleteSprint(parseInt(btn.dataset.id));
+          this.sprints = await api.getSprints() || [];
+          this.renderSprintManager(panel);
+        } catch (e) { alert('Failed to delete sprint.'); }
+      };
+    });
   }
 
   bindAddButtons() {
@@ -176,8 +388,22 @@ export class BoardView {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
+    // Build sprint task ID set if sprint filter active
+    let sprintTaskIds = null;
+    if (this.filterSprintId) {
+      const activeSprint = this.sprints.find(s => s.id === this.filterSprintId);
+      sprintTaskIds = activeSprint ? new Set(activeSprint.taskIds || []) : new Set();
+    }
+
     // Map and inject task elements
     this.tasks.forEach(task => {
+      // Apply filters
+      if (this.filterQuery && !task.title.toLowerCase().includes(this.filterQuery) &&
+          !(task.description && task.description.toLowerCase().includes(this.filterQuery))) return;
+      if (this.filterPriority && task.priority !== this.filterPriority) return;
+      if (this.filterAssignee && (!task.assignee || task.assignee.username !== this.filterAssignee)) return;
+      if (sprintTaskIds && !sprintTaskIds.has(task.id)) return;
+
       const lane = lanes[task.status];
       if (!lane) return;
 
@@ -206,6 +432,9 @@ export class BoardView {
 
       const safeTitle = window.escapeHTML ? window.escapeHTML(task.title) : task.title;
       const safeDescription = window.escapeHTML ? window.escapeHTML(task.description) : task.description;
+      const recurringBadge = task.recurringType && task.recurringType !== 'NONE'
+        ? `<span style="font-size:10px;background:var(--bg-primary);color:var(--accent-cyan);border-radius:4px;padding:1px 5px;margin-left:4px;" title="Recurring ${task.recurringType}">↻ ${task.recurringType}</span>`
+        : '';
       
       card.innerHTML = `
         <!-- Figma specs inspector element - Day 6 -->
@@ -213,7 +442,7 @@ export class BoardView {
         
         <div class="task-card__header">
           <span class="task-card__priority-badge task-card__priority-badge--${task.priority.toLowerCase()}">${task.priority}</span>
-          <span style="font-size: 10px; font-weight: bold; color: var(--text-muted)">#${task.id}</span>
+          <span style="font-size: 10px; font-weight: bold; color: var(--text-muted)">#${task.id}${recurringBadge}</span>
         </div>
         <h4 class="task-card__title">${safeTitle}</h4>
         <p class="task-card__description">${safeDescription || 'No description supplied.'}</p>
@@ -368,6 +597,10 @@ export class BoardView {
     form.querySelector('#ticketPoints').value = task.storyPoints;
     form.querySelector('#ticketDueDate').value = task.dueDate || '';
     
+    // Recurring type field
+    const recurringSelect = form.querySelector('#ticketRecurringType');
+    if (recurringSelect) recurringSelect.value = task.recurringType || '';
+    
     // Bind assignee list in dropdown options
     const assigneeSelect = form.querySelector('#ticketAssignee');
     assigneeSelect.innerHTML = `<option value="">Unassigned</option>`;
@@ -517,6 +750,11 @@ export class BoardView {
     // Toggle Modal active class
     modal.classList.add('modal-overlay--active');
 
+    // Render comments & activity panel for existing tasks
+    if (task.id) {
+      this.renderCommentsAndActivity(modal, task);
+    }
+
     // Bind Close buttons
     const closeBtn = document.getElementById('closeTicketModal');
     const cancelBtn = document.getElementById('cancelTicketBtn');
@@ -539,6 +777,7 @@ export class BoardView {
         priority: form.querySelector('#ticketPriority').value,
         storyPoints: parseInt(form.querySelector('#ticketPoints').value) || 1,
         dueDate: form.querySelector('#ticketDueDate').value || null,
+        recurringType: form.querySelector('#ticketRecurringType') ? (form.querySelector('#ticketRecurringType').value || null) : task.recurringType,
         assignee: selectedAssignee,
         checklist: activeChecklist
       };
@@ -556,6 +795,105 @@ export class BoardView {
         username: localStorage.getItem('chat_username') || 'CTO Guest'
       });
     };
+  }
+
+  // ========================================================
+  // Comments & Activity Log Panel
+  // ========================================================
+
+  async renderCommentsAndActivity(modal, task) {
+    // Find or create the comments+activity container inside the modal body
+    let container = modal.querySelector('#commentsActivityPanel');
+    if (!container) {
+      const modalBody = modal.querySelector('.modal-body') || modal.querySelector('form') || modal;
+      container = document.createElement('div');
+      container.id = 'commentsActivityPanel';
+      container.style.cssText = 'margin-top:20px;border-top:1px solid var(--border-color);padding-top:16px;';
+      modalBody.after ? modalBody.after(container) : modalBody.parentNode.insertBefore(container, modalBody.nextSibling);
+    }
+
+    // Fetch comments and activity in parallel
+    let comments = [], activity = [];
+    try {
+      [comments, activity] = await Promise.all([
+        api.getTaskComments(task.id).catch(() => []),
+        api.getTaskActivity(task.id).catch(() => [])
+      ]);
+    } catch (e) { /* non-critical */ }
+
+    const myUsername = localStorage.getItem('chat_username') || '';
+    const myAvatar = localStorage.getItem('chat_avatar') || '';
+
+    const commentsHtml = (comments || []).map(c => `
+      <div class="comment-item" data-comment-id="${c.id}" style="display:flex;gap:8px;margin-bottom:10px;">
+        <img src="${c.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.author}`}" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;"/>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong style="font-size:12px;">${window.escapeHTML ? window.escapeHTML(c.author) : c.author}</strong>
+            <span style="font-size:10px;color:var(--text-muted);">${new Date(c.createdAt).toLocaleString()}</span>
+            ${c.author === myUsername ? `<button class="comment-delete-btn" data-cid="${c.id}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;margin-left:auto;">✕</button>` : ''}
+          </div>
+          <p style="font-size:12px;margin:3px 0 0 0;color:var(--text-primary);">${window.escapeHTML ? window.escapeHTML(c.content) : c.content}</p>
+        </div>
+      </div>
+    `).join('');
+
+    const activityHtml = (activity || []).slice(0, 8).map(a => `
+      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;">
+        <span style="font-size:10px;color:var(--accent-cyan);margin-top:1px;">●</span>
+        <div>
+          <span style="font-size:11px;color:var(--text-muted);">${window.escapeHTML ? window.escapeHTML(a.detail) : a.detail}</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:6px;">${new Date(a.createdAt).toLocaleString()}</span>
+        </div>
+      </div>
+    `).join('');
+
+    container.innerHTML = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <!-- Comments -->
+        <div style="flex:1;min-width:200px;">
+          <h4 style="font-size:13px;margin:0 0 10px 0;color:var(--text-secondary);">💬 Comments (${(comments||[]).length})</h4>
+          <div id="commentsList" style="max-height:160px;overflow-y:auto;margin-bottom:10px;">
+            ${commentsHtml || '<p style="font-size:12px;color:var(--text-muted);">No comments yet.</p>'}
+          </div>
+          <div style="display:flex;gap:6px;">
+            <input id="newCommentInput" class="form-input" placeholder="Add a comment..." style="flex:1;padding:5px 8px;font-size:12px;"/>
+            <button id="postCommentBtn" class="btn btn--primary" style="font-size:12px;padding:5px 10px;">Post</button>
+          </div>
+        </div>
+        <!-- Activity -->
+        <div style="flex:1;min-width:200px;">
+          <h4 style="font-size:13px;margin:0 0 10px 0;color:var(--text-secondary);">📋 Activity</h4>
+          <div style="max-height:180px;overflow-y:auto;">
+            ${activityHtml || '<p style="font-size:12px;color:var(--text-muted);">No activity yet.</p>'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Post comment
+    container.querySelector('#postCommentBtn').onclick = async () => {
+      const input = container.querySelector('#newCommentInput');
+      const content = input.value.trim();
+      if (!content) return;
+      try {
+        await api.addTaskComment(task.id, myUsername, myAvatar, content);
+        input.value = '';
+        this.renderCommentsAndActivity(modal, task); // Refresh
+      } catch (e) {
+        alert('Failed to post comment.');
+      }
+    };
+
+    // Delete comment buttons
+    container.querySelectorAll('.comment-delete-btn').forEach(btn => {
+      btn.onclick = async () => {
+        try {
+          await api.deleteTaskComment(task.id, parseInt(btn.dataset.cid), myUsername);
+          this.renderCommentsAndActivity(modal, task);
+        } catch (e) { alert('Failed to delete comment.'); }
+      };
+    });
   }
 }
 

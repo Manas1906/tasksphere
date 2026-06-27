@@ -2108,6 +2108,16 @@ export class ChatController {
       return `<em>${content}</em>`;
     });
 
+    // Handle strikethrough: ~~text~~
+    html = html.replace(/~~([^~]+)~~/g, (match, content) => {
+      return `<del>${content}</del>`;
+    });
+
+    // Handle inline code: `code`
+    html = html.replace(/`([^`]+)`/g, (match, code) => {
+      return `<code style="background:rgba(36,120,109,0.15);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:0.9em;">${code}</code>`;
+    });
+
     // Handle headers: ### text or ## text
     html = html.replace(/^(?:###|##|#)\s+(.+)$/gm, (match, content) => {
       return `<h4 class="chat-review-header">${content}</h4>`;
