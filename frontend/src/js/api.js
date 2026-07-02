@@ -27,6 +27,16 @@ class ApiService {
   constructor(baseUrl = `${CLEAN_API_URL}/api`) {
     this.baseUrl = baseUrl;
     this.offlineMode = false;
+    if (API_URL) this.#startKeepAlive();
+  }
+
+  // Silently pings /api/ping every 13 minutes to prevent Render free-tier sleep.
+  // Skipped on localhost (API_URL is empty string). No UI side-effects.
+  #startKeepAlive() {
+    const pingUrl = `${CLEAN_API_URL}/api/ping`;
+    const ping = () => fetch(pingUrl, { method: 'GET', keepalive: true }).catch(() => {});
+    ping();
+    setInterval(ping, 13 * 60 * 1000);
   }
 
   /**
