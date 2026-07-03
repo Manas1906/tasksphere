@@ -46,6 +46,10 @@ public class Task {
     @Column(name = "recurring_type")
     private String recurringType; // null, DAILY, WEEKLY, BIWEEKLY, MONTHLY
 
+    // Comma-separated label keys e.g. "bug,feature,backend"
+    @Column(name = "labels", length = 512)
+    private String labels;
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 

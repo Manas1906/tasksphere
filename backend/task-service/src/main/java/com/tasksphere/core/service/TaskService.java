@@ -81,6 +81,7 @@ public class TaskService {
         task.setPriority(taskDetails.getPriority());
         task.setStoryPoints(taskDetails.getStoryPoints());
         task.setDueDate(taskDetails.getDueDate());
+        task.setLabels(taskDetails.getLabels());
 
         // Resolve new assignee
         com.tasksphere.core.model.UserSession newAssignee = null;

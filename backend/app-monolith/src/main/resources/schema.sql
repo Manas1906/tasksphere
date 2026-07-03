@@ -60,6 +60,11 @@ CREATE TABLE IF NOT EXISTS payment_transaction_audits (
 );
 
 -- ============================================================
+-- Feature: Task Labels (v3 migration)
+-- ============================================================
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS labels VARCHAR(512);
+
+-- ============================================================
 -- Feature: Recurring tasks & Sprint management (v2 migration)
 -- ============================================================
 

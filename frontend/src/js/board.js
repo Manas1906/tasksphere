@@ -1,6 +1,17 @@
 import { api } from './api';
 import { socket } from './websocket';
 
+const LABEL_PRESETS = [
+  { key: 'bug',      color: '#f43f5e', text: '#fff' },
+  { key: 'feature',  color: '#6366f1', text: '#fff' },
+  { key: 'ux',       color: '#ec4899', text: '#fff' },
+  { key: 'backend',  color: '#0ea5e9', text: '#fff' },
+  { key: 'frontend', color: '#10b981', text: '#fff' },
+  { key: 'hotfix',   color: '#f97316', text: '#fff' },
+  { key: 'docs',     color: '#a78bfa', text: '#fff' },
+  { key: 'test',     color: '#fbbf24', text: '#000' },
+];
+
 /**
  * BoardView - Agile Scrum Kanban Board Controller
  * Manages ticket layouts, drag-and-drop, WebSocket syncs, and card inspector dialogs.
@@ -15,6 +26,7 @@ export class BoardView {
     this.filterAssignee = '';
     this.sprints = [];
     this.activeSprint = null;
+    this.filterLabel = '';
   }
 
   async render() {
@@ -44,9 +56,17 @@ export class BoardView {
           style="width:130px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);">
           <option value="">All Sprints</option>
         </select>
+        <select id="boardLabelFilter"
+          style="width:120px;flex-shrink:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);">
+          <option value="">All Labels</option>
+          ${LABEL_PRESETS.map(l => `<option value="${l.key}">${l.key}</option>`).join('')}
+        </select>
         <button id="boardCsvExportBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">⬇ CSV</button>
+        <button id="boardSaveViewBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">💾 Save View</button>
         <button id="boardSprintManagerBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">🏃 Sprints</button>
       </div>
+      <!-- Saved Views row -->
+      <div id="savedViewsRow" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;min-height:0;"></div>
 
       <!-- Kanban Lanes - Day 5 Grid & Flexbox -->
       <div class="kanban-board" id="kanbanBoard">
@@ -116,7 +136,9 @@ export class BoardView {
     const priorityFilter = document.getElementById('boardPriorityFilter');
     const assigneeFilter = document.getElementById('boardAssigneeFilter');
     const sprintFilter = document.getElementById('boardSprintFilter');
+    const labelFilter = document.getElementById('boardLabelFilter');
     const csvBtn = document.getElementById('boardCsvExportBtn');
+    const saveViewBtn = document.getElementById('boardSaveViewBtn');
     const sprintManagerBtn = document.getElementById('boardSprintManagerBtn');
 
     // Populate assignee filter from cache
@@ -130,36 +152,64 @@ export class BoardView {
       });
     }
 
-    if (searchInput) {
-      searchInput.addEventListener('input', () => {
-        this.filterQuery = searchInput.value.toLowerCase();
-        this.distributeTasks();
+    if (searchInput) searchInput.addEventListener('input', () => { this.filterQuery = searchInput.value.toLowerCase(); this.distributeTasks(); });
+    if (priorityFilter) priorityFilter.addEventListener('change', () => { this.filterPriority = priorityFilter.value; this.distributeTasks(); });
+    if (assigneeFilter) assigneeFilter.addEventListener('change', () => { this.filterAssignee = assigneeFilter.value; this.distributeTasks(); });
+    if (sprintFilter) sprintFilter.addEventListener('change', () => { this.filterSprintId = sprintFilter.value ? parseInt(sprintFilter.value) : null; this.distributeTasks(); });
+    if (labelFilter) labelFilter.addEventListener('change', () => { this.filterLabel = labelFilter.value; this.distributeTasks(); });
+    if (csvBtn) csvBtn.addEventListener('click', () => api.exportTasksCsv());
+    if (sprintManagerBtn) sprintManagerBtn.addEventListener('click', () => this.toggleSprintManager());
+
+    // Saved Views
+    this.renderSavedViews();
+    if (saveViewBtn) {
+      saveViewBtn.addEventListener('click', () => {
+        const name = prompt('Name this view (e.g. "My High Priority"):');
+        if (!name || !name.trim()) return;
+        const views = JSON.parse(localStorage.getItem('board_saved_views') || '[]');
+        views.push({
+          name: name.trim(),
+          filterQuery: this.filterQuery,
+          filterPriority: this.filterPriority,
+          filterAssignee: this.filterAssignee,
+          filterSprintId: this.filterSprintId,
+          filterLabel: this.filterLabel
+        });
+        localStorage.setItem('board_saved_views', JSON.stringify(views));
+        this.renderSavedViews();
       });
     }
-    if (priorityFilter) {
-      priorityFilter.addEventListener('change', () => {
-        this.filterPriority = priorityFilter.value;
+  }
+
+  renderSavedViews() {
+    const row = document.getElementById('savedViewsRow');
+    if (!row) return;
+    const views = JSON.parse(localStorage.getItem('board_saved_views') || '[]');
+    row.innerHTML = '';
+    views.forEach((v, idx) => {
+      const chip = document.createElement('div');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;';
+      chip.innerHTML = `<span>🔖 ${window.escapeHTML ? window.escapeHTML(v.name) : v.name}</span><button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0;line-height:1;" title="Delete">×</button>`;
+      chip.querySelector('span').onclick = () => {
+        this.filterQuery   = v.filterQuery   || '';
+        this.filterPriority = v.filterPriority || '';
+        this.filterAssignee = v.filterAssignee || '';
+        this.filterSprintId = v.filterSprintId || null;
+        this.filterLabel   = v.filterLabel   || '';
+        const si = document.getElementById('boardSearchInput');   if (si) si.value = this.filterQuery;
+        const pi = document.getElementById('boardPriorityFilter'); if (pi) pi.value = this.filterPriority;
+        const ai = document.getElementById('boardAssigneeFilter'); if (ai) ai.value = this.filterAssignee;
+        const li = document.getElementById('boardLabelFilter');    if (li) li.value = this.filterLabel;
         this.distributeTasks();
-      });
-    }
-    if (assigneeFilter) {
-      assigneeFilter.addEventListener('change', () => {
-        this.filterAssignee = assigneeFilter.value;
-        this.distributeTasks();
-      });
-    }
-    if (sprintFilter) {
-      sprintFilter.addEventListener('change', () => {
-        this.filterSprintId = sprintFilter.value ? parseInt(sprintFilter.value) : null;
-        this.distributeTasks();
-      });
-    }
-    if (csvBtn) {
-      csvBtn.addEventListener('click', () => api.exportTasksCsv());
-    }
-    if (sprintManagerBtn) {
-      sprintManagerBtn.addEventListener('click', () => this.toggleSprintManager());
-    }
+      };
+      chip.querySelector('button').onclick = (e) => {
+        e.stopPropagation();
+        const updated = JSON.parse(localStorage.getItem('board_saved_views') || '[]').filter((_, i) => i !== idx);
+        localStorage.setItem('board_saved_views', JSON.stringify(updated));
+        this.renderSavedViews();
+      };
+      row.appendChild(chip);
+    });
   }
 
   async loadSprintData() {
@@ -408,6 +458,7 @@ export class BoardView {
       if (this.filterPriority && task.priority !== this.filterPriority) return;
       if (this.filterAssignee && (!task.assignee || task.assignee.username !== this.filterAssignee)) return;
       if (sprintTaskIds && !sprintTaskIds.has(task.id)) return;
+      if (this.filterLabel && !(task.labels && task.labels.split(',').map(s => s.trim()).includes(this.filterLabel))) return;
 
       const lane = lanes[task.status];
       if (!lane) return;
@@ -440,6 +491,16 @@ export class BoardView {
       const recurringBadge = task.recurringType && task.recurringType !== 'NONE'
         ? `<span style="font-size:10px;background:var(--bg-primary);color:var(--accent-cyan);border-radius:4px;padding:1px 5px;margin-left:4px;" title="Recurring ${task.recurringType}">↻ ${task.recurringType}</span>`
         : '';
+
+      const labelKeys = task.labels ? task.labels.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const labelsHtml = labelKeys.length > 0
+        ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;">${labelKeys.map(k => {
+            const preset = LABEL_PRESETS.find(p => p.key === k);
+            const bg = preset ? preset.color : '#475569';
+            const col = preset ? preset.text : '#fff';
+            return `<span style="font-size:10px;background:${bg};color:${col};border-radius:3px;padding:1px 5px;">${k}</span>`;
+          }).join('')}</div>`
+        : '';
       
       card.innerHTML = `
         <!-- Figma specs inspector element - Day 6 -->
@@ -449,6 +510,7 @@ export class BoardView {
           <span class="task-card__priority-badge task-card__priority-badge--${task.priority.toLowerCase()}">${task.priority}</span>
           <span style="font-size: 10px; font-weight: bold; color: var(--text-muted)">#${task.id}${recurringBadge}</span>
         </div>
+        ${labelsHtml}
         <h4 class="task-card__title">${safeTitle}</h4>
         <p class="task-card__description">${safeDescription || 'No description supplied.'}</p>
         <div class="task-card__footer">
@@ -628,6 +690,34 @@ export class BoardView {
     
     let activeChecklist = [...(task.checklist || [])];
 
+    // --- Label Picker ---
+    const activeLabelKeys = new Set(task.labels ? task.labels.split(',').map(s => s.trim()).filter(Boolean) : []);
+    const labelPickerContainer = document.createElement('div');
+    labelPickerContainer.id = 'labelPickerSection';
+    labelPickerContainer.style.cssText = 'margin-bottom:14px;';
+    const renderLabelPicker = () => {
+      labelPickerContainer.innerHTML = `
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:6px;">🏷️ Labels</label>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+          ${LABEL_PRESETS.map(p => {
+            const active = activeLabelKeys.has(p.key);
+            return `<button type="button" data-label="${p.key}" style="font-size:11px;padding:3px 9px;border-radius:4px;border:2px solid ${p.color};background:${active ? p.color : 'transparent'};color:${active ? p.text : p.color};cursor:pointer;transition:all .15s;">${p.key}</button>`;
+          }).join('')}
+        </div>`;
+      labelPickerContainer.querySelectorAll('[data-label]').forEach(btn => {
+        btn.onclick = () => {
+          const k = btn.dataset.label;
+          if (activeLabelKeys.has(k)) activeLabelKeys.delete(k); else activeLabelKeys.add(k);
+          renderLabelPicker();
+        };
+      });
+    };
+    renderLabelPicker();
+    const checklistContainer = form.querySelector('#checklistBuilderList');
+    checklistContainer.closest('div') && checklistContainer.parentElement.insertBefore(labelPickerContainer, checklistContainer.parentElement.firstChild);
+
+    let activeChecklist = [...(task.checklist || [])];
+
     const renderChecklistUI = () => {
       checklistContainer.innerHTML = '';
       activeChecklist.forEach((item, idx) => {
@@ -784,7 +874,8 @@ export class BoardView {
         dueDate: form.querySelector('#ticketDueDate').value || null,
         recurringType: form.querySelector('#ticketRecurringType') ? (form.querySelector('#ticketRecurringType').value || null) : task.recurringType,
         assignee: selectedAssignee,
-        checklist: activeChecklist
+        checklist: activeChecklist,
+        labels: [...activeLabelKeys].join(',') || null
       };
 
       await api.updateTask(task.id, updatedTask);
@@ -861,9 +952,12 @@ export class BoardView {
           <div id="commentsList" style="max-height:160px;overflow-y:auto;margin-bottom:10px;">
             ${commentsHtml || '<p style="font-size:12px;color:var(--text-muted);">No comments yet.</p>'}
           </div>
-          <div style="display:flex;gap:6px;">
-            <input id="newCommentInput" class="form-input" placeholder="Add a comment..." style="flex:1;padding:5px 8px;font-size:12px;"/>
-            <button id="postCommentBtn" class="btn btn--primary" style="font-size:12px;padding:5px 10px;">Post</button>
+          <div style="position:relative;">
+            <div style="display:flex;gap:6px;">
+              <input id="newCommentInput" class="form-input" placeholder="Add a comment... (@mention to notify)" style="flex:1;padding:5px 8px;font-size:12px;"/>
+              <button id="postCommentBtn" class="btn btn--primary" style="font-size:12px;padding:5px 10px;">Post</button>
+            </div>
+            <div id="mentionDropdown" style="display:none;position:absolute;bottom:110%;left:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);z-index:999;min-width:160px;box-shadow:var(--shadow-md);"></div>
           </div>
         </div>
         <!-- Activity -->
@@ -877,13 +971,44 @@ export class BoardView {
     `;
 
     // Post comment
+    const commentInput = container.querySelector('#newCommentInput');
+    const mentionDropdown = container.querySelector('#mentionDropdown');
+    const members = JSON.parse(localStorage.getItem('cache_users') || '[]');
+
+    // @mention autocomplete
+    commentInput.addEventListener('input', () => {
+      const val = commentInput.value;
+      const atIdx = val.lastIndexOf('@');
+      if (atIdx === -1) { mentionDropdown.style.display = 'none'; return; }
+      const query = val.slice(atIdx + 1).toLowerCase();
+      const matches = members.filter(m => m.username.toLowerCase().startsWith(query) && m.username !== myUsername);
+      if (!matches.length) { mentionDropdown.style.display = 'none'; return; }
+      mentionDropdown.innerHTML = matches.slice(0, 6).map(m =>
+        `<div data-username="${m.username}" style="padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <img src="${m.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.username}`}" style="width:20px;height:20px;border-radius:50%;"/>
+          @${window.escapeHTML ? window.escapeHTML(m.username) : m.username}
+        </div>`).join('');
+      mentionDropdown.querySelectorAll('[data-username]').forEach(item => {
+        item.onmousedown = (e) => {
+          e.preventDefault();
+          const before = val.slice(0, atIdx);
+          commentInput.value = before + '@' + item.dataset.username + ' ';
+          mentionDropdown.style.display = 'none';
+          commentInput.focus();
+        };
+        item.onmouseenter = () => item.style.background = 'var(--bg-primary)';
+        item.onmouseleave = () => item.style.background = '';
+      });
+      mentionDropdown.style.display = 'block';
+    });
+    commentInput.addEventListener('blur', () => setTimeout(() => { mentionDropdown.style.display = 'none'; }, 150));
+
     container.querySelector('#postCommentBtn').onclick = async () => {
-      const input = container.querySelector('#newCommentInput');
-      const content = input.value.trim();
+      const content = commentInput.value.trim();
       if (!content) return;
       try {
         await api.addTaskComment(task.id, myUsername, myAvatar, content);
-        input.value = '';
+        commentInput.value = '';
         this.renderCommentsAndActivity(modal, task); // Refresh
       } catch (e) {
         alert('Failed to post comment.');
