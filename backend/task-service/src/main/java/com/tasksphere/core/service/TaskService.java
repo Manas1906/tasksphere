@@ -5,6 +5,7 @@ import com.tasksphere.core.model.Task;
 import com.tasksphere.core.model.TaskActivity;
 import com.tasksphere.core.model.TaskChecklistItem;
 import com.tasksphere.core.repository.TaskActivityRepository;
+import com.tasksphere.core.repository.TaskDependencyRepository;
 import com.tasksphere.core.repository.TaskRepository;
 import com.tasksphere.core.repository.UserSessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class TaskService {
 
     @Autowired
     private WebPushService webPushService;
+
+    @Autowired
+    private TaskDependencyRepository taskDependencyRepository;
 
     public List<Task> getAllTasks() {
         return taskRepository.findAll();
@@ -130,6 +134,17 @@ public class TaskService {
     public Task updateTaskStatus(Long id, String status) {
         Task task = getTaskById(id);
         String oldStatus = task.getStatus();
+
+        // Block progression if any blocking tasks are not yet DONE
+        if (!"TODO".equals(status)) {
+            boolean blocked = taskDependencyRepository.findByTaskId(id).stream().anyMatch(dep -> {
+                Task blocker = taskRepository.findById(dep.getBlockingTaskId()).orElse(null);
+                return blocker != null && !"DONE".equals(blocker.getStatus());
+            });
+            if (blocked) {
+                throw new IllegalStateException("Task #" + id + " is blocked by unresolved dependencies.");
+            }
+        }
         task.setStatus(status);
         Task savedTask = taskRepository.save(task);
 

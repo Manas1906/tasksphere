@@ -68,6 +68,20 @@ export class AdminView {
           <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 12px;">Loading feature gates...</div>
         </div>
       </div>
+
+      <!-- Kanban Column Manager -->
+      <div class="admin-panel" style="margin-top:20px;">
+        <div class="admin-header">
+          <div>
+            <div class="admin-title">🗂 Kanban Board Columns</div>
+            <div class="admin-subtitle">Configure board column names, order, and colors.</div>
+          </div>
+          <button id="addColumnBtn" class="filter-btn" style="padding:6px 12px;font-size:11px;">+ Add Column</button>
+        </div>
+        <div id="kanbanColsContainer" style="padding: var(--spacing-md);">
+          <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">Loading columns...</div>
+        </div>
+      </div>
     `;
 
     // Bind refresh button
@@ -79,6 +93,7 @@ export class AdminView {
     // Load actual content
     await this.loadDirectory();
     await this.loadFeatureGates();
+    await this.loadKanbanColumns();
   }
 
   async loadDirectory() {
@@ -417,20 +432,67 @@ export class AdminView {
     try {
       console.log(`[ADMIN] Toggling feature "${key}" to ${enabled} by admin "${this.myUsername}"`);
       await api.updateFeatureToggle(key, enabled, this.myUsername);
-
-      // Update global flags immediately
-      if (window.__featureToggles) {
-        window.__featureToggles[key] = enabled;
-      }
-
-      // Re-render the feature gates section to update status badges
+      if (window.__featureToggles) window.__featureToggles[key] = enabled;
       await this.loadFeatureGates();
-
     } catch (err) {
       console.error(`[ADMIN] Failed to toggle feature "${key}":`, err);
       alert(`Failed to update feature: ${err.message || err}`);
-      // Revert the UI
       await this.loadFeatureGates();
+    }
+  }
+
+  async loadKanbanColumns() {
+    const container = document.getElementById('kanbanColsContainer');
+    if (!container) return;
+    try {
+      const cols = await api.getKanbanColumns() || [];
+      const rowsHtml = cols.map(col => `
+        <div class="kanban-col-row" data-id="${col.id}" style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border-color);">
+          <span style="width:14px;height:14px;border-radius:50%;background:${col.color || '#6366f1'};flex-shrink:0;display:inline-block;"></span>
+          <input class="col-name-input form-input" value="${col.columnName}" style="flex:1;padding:4px 7px;font-size:12px;"/>
+          <input class="col-key-input form-input" value="${col.columnKey}" style="width:120px;padding:4px 7px;font-size:11px;color:var(--text-muted);" readonly title="Column key (not editable)"/>
+          <input class="col-pos-input form-input" type="number" value="${col.position}" style="width:54px;padding:4px 7px;font-size:12px;" title="Position"/>
+          <input class="col-color-input" type="color" value="${col.color || '#6366f1'}" style="width:32px;height:28px;border:none;cursor:pointer;background:none;" title="Color"/>
+          <button class="col-save-btn btn btn--primary" data-id="${col.id}" style="font-size:11px;padding:4px 8px;">Save</button>
+          <button class="col-del-btn btn btn--ghost" data-id="${col.id}" style="font-size:11px;padding:4px 8px;color:var(--accent-rose);">✕</button>
+        </div>
+      `).join('') || '<p style="color:var(--text-muted);font-size:13px;padding:8px;">No columns configured.</p>';
+
+      container.innerHTML = rowsHtml;
+
+      container.querySelectorAll('.col-save-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const row = btn.closest('.kanban-col-row');
+          await api.updateKanbanColumn(parseInt(btn.dataset.id), {
+            columnName: row.querySelector('.col-name-input').value.trim(),
+            position: parseInt(row.querySelector('.col-pos-input').value) || 0,
+            color: row.querySelector('.col-color-input').value
+          });
+          await this.loadKanbanColumns();
+        };
+      });
+
+      container.querySelectorAll('.col-del-btn').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('Delete this column? Tasks with this status will remain but won\'t appear on the board.')) return;
+          await api.deleteKanbanColumn(parseInt(btn.dataset.id));
+          await this.loadKanbanColumns();
+        };
+      });
+
+      const addBtn = document.getElementById('addColumnBtn');
+      if (addBtn) {
+        addBtn.onclick = async () => {
+          const key = prompt('Column key (e.g. TESTING — no spaces):')?.trim().toUpperCase();
+          if (!key || /\s/.test(key)) return;
+          const name = prompt('Display name (e.g. Testing):')?.trim();
+          if (!name) return;
+          await api.createKanbanColumn({ columnKey: key, columnName: name, position: cols.length, color: '#818cf8' });
+          await this.loadKanbanColumns();
+        };
+      }
+    } catch (e) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px;">Could not load columns.</p>';
     }
   }
 }

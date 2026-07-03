@@ -1,5 +1,13 @@
 import { api } from './api';
 import { socket } from './websocket';
+import { PlanningPokerModal } from './planningpoker';
+
+const DEFAULT_COLUMNS = [
+  { columnKey: 'TODO',        columnName: 'Backlog',             position: 0, color: '#818cf8' },
+  { columnKey: 'IN_PROGRESS', columnName: 'Work In Progress',    position: 1, color: '#34d399' },
+  { columnKey: 'REVIEW',      columnName: 'Quality Assurance',   position: 2, color: '#fbbf24' },
+  { columnKey: 'DONE',        columnName: 'Closed Scope',        position: 3, color: '#4ade80' },
+];
 
 const LABEL_PRESETS = [
   { key: 'bug',      color: '#f43f5e', text: '#fff' },
@@ -27,9 +35,12 @@ export class BoardView {
     this.sprints = [];
     this.activeSprint = null;
     this.filterLabel = '';
+    this.columns = DEFAULT_COLUMNS;
   }
 
   async render() {
+    // Load column config from API first (falls back to DEFAULT_COLUMNS on error)
+    await this.loadColumnData();
     this.container.innerHTML = `
       <div class="chat-panel-header" style="background: none; border: none; padding: 0; margin-bottom: var(--spacing-sm)">
         <h2 class="modal-header__title" style="font-size: var(--font-size-xl)">Scrum Kanban Board</h2>
@@ -63,60 +74,15 @@ export class BoardView {
         </select>
         <button id="boardCsvExportBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">⬇ CSV</button>
         <button id="boardSaveViewBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">💾 Save View</button>
+        <button id="boardPokerBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">🃏 Poker</button>
         <button id="boardSprintManagerBtn" class="btn btn--ghost" style="flex-shrink:0;font-size:12px;padding:5px 10px;white-space:nowrap;">🏃 Sprints</button>
       </div>
       <!-- Saved Views row -->
       <div id="savedViewsRow" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;min-height:0;"></div>
 
-      <!-- Kanban Lanes - Day 5 Grid & Flexbox -->
+      <!-- Kanban Lanes (dynamic from API) -->
       <div class="kanban-board" id="kanbanBoard">
-        <!-- Lane: TODO -->
-        <section class="kanban-column kanban-column--todo" data-status="TODO">
-          <div class="kanban-column-header">
-            <h3 class="kanban-column-header__title">
-              <span class="kanban-column-header__indicator"></span> Backlog
-            </h3>
-            <span class="kanban-column-header__count" id="count-TODO">0</span>
-          </div>
-          <button class="kanban-column-add-btn" data-add-status="TODO">+ Add New Task</button>
-          <div class="kanban-cards" id="lane-TODO"></div>
-        </section>
-
-        <!-- Lane: IN PROGRESS -->
-        <section class="kanban-column kanban-column--progress" data-status="IN_PROGRESS">
-          <div class="kanban-column-header">
-            <h3 class="kanban-column-header__title">
-              <span class="kanban-column-header__indicator"></span> Work In Progress
-            </h3>
-            <span class="kanban-column-header__count" id="count-IN_PROGRESS">0</span>
-          </div>
-          <button class="kanban-column-add-btn" data-add-status="IN_PROGRESS">+ Add New Task</button>
-          <div class="kanban-cards" id="lane-IN_PROGRESS"></div>
-        </section>
-
-        <!-- Lane: REVIEW -->
-        <section class="kanban-column kanban-column--review" data-status="REVIEW">
-          <div class="kanban-column-header">
-            <h3 class="kanban-column-header__title">
-              <span class="kanban-column-header__indicator"></span> Quality Assurance
-            </h3>
-            <span class="kanban-column-header__count" id="count-REVIEW">0</span>
-          </div>
-          <button class="kanban-column-add-btn" data-add-status="REVIEW">+ Add New Task</button>
-          <div class="kanban-cards" id="lane-REVIEW"></div>
-        </section>
-
-        <!-- Lane: DONE -->
-        <section class="kanban-column kanban-column--done" data-status="DONE">
-          <div class="kanban-column-header">
-            <h3 class="kanban-column-header__title">
-              <span class="kanban-column-header__indicator"></span> Closed Scope
-            </h3>
-            <span class="kanban-column-header__count" id="count-DONE">0</span>
-          </div>
-          <button class="kanban-column-add-btn" data-add-status="DONE">+ Add New Task</button>
-          <div class="kanban-cards" id="lane-DONE"></div>
-        </section>
+        ${this._buildLanesHtml()}
       </div>
 
       <!-- Sprint Manager Panel (hidden by default) -->
@@ -210,6 +176,36 @@ export class BoardView {
       };
       row.appendChild(chip);
     });
+  }
+
+    // Poker button
+    const pokerBtn = document.getElementById('boardPokerBtn');
+    if (pokerBtn) pokerBtn.addEventListener('click', () => new PlanningPokerModal(this.tasks).open());
+  }
+
+  async loadColumnData() {
+    try {
+      const cols = await api.getKanbanColumns();
+      if (cols && cols.length > 0) this.columns = cols;
+    } catch (e) {
+      this.columns = DEFAULT_COLUMNS;
+    }
+  }
+
+  _buildLanesHtml() {
+    return this.columns.map(col => `
+      <section class="kanban-column" data-status="${col.columnKey}">
+        <div class="kanban-column-header">
+          <h3 class="kanban-column-header__title">
+            <span class="kanban-column-header__indicator" style="background:${col.color || '#6366f1'};"></span>
+            ${col.columnName}
+          </h3>
+          <span class="kanban-column-header__count" id="count-${col.columnKey}">0</span>
+        </div>
+        <button class="kanban-column-add-btn" data-add-status="${col.columnKey}">+ Add New Task</button>
+        <div class="kanban-cards" id="lane-${col.columnKey}"></div>
+      </section>
+    `).join('');
   }
 
   async loadSprintData() {
@@ -430,15 +426,13 @@ export class BoardView {
    */
   distributeTasks() {
     if (!this.tasks) this.tasks = [];
-    // Clear all lanes
-    const lanes = {
-      TODO: document.getElementById('lane-TODO'),
-      IN_PROGRESS: document.getElementById('lane-IN_PROGRESS'),
-      REVIEW: document.getElementById('lane-REVIEW'),
-      DONE: document.getElementById('lane-DONE')
-    };
-
-    const counts = { TODO: 0, IN_PROGRESS: 0, REVIEW: 0, DONE: 0 };
+    // Clear all lanes dynamically
+    const lanes = {};
+    const counts = {};
+    this.columns.forEach(col => {
+      lanes[col.columnKey] = document.getElementById(`lane-${col.columnKey}`);
+      counts[col.columnKey] = 0;
+    });
     Object.values(lanes).forEach(l => { if (l) l.innerHTML = ''; });
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -845,8 +839,10 @@ export class BoardView {
     // Toggle Modal active class
     modal.classList.add('modal-overlay--active');
 
-    // Render comments & activity panel for existing tasks
+    // Render task-specific panels for existing tasks
     if (task.id) {
+      this.renderTimeTracker(modal, task);
+      this.renderDependencies(modal, task);
       this.renderCommentsAndActivity(modal, task);
     }
 
@@ -891,6 +887,108 @@ export class BoardView {
         username: localStorage.getItem('chat_username') || 'CTO Guest'
       });
     };
+  }
+
+  // ========================================================
+  // Time Tracker Panel
+  // ========================================================
+
+  async renderTimeTracker(modal, task) {
+    let panel = modal.querySelector('#timeTrackerPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'timeTrackerPanel';
+      panel.style.cssText = 'margin-top:16px;border-top:1px solid var(--border-color);padding-top:14px;';
+      const form = modal.querySelector('form') || modal;
+      form.after ? form.after(panel) : form.parentNode.insertBefore(panel, form.nextSibling);
+    }
+    let data = { logs: [], totalMinutes: 0, totalHours: 0 };
+    try { data = await api.getTimeLogs(task.id) || data; } catch (e) { /* non-critical */ }
+
+    const myUsername = localStorage.getItem('chat_username') || '';
+    const logsHtml = (data.logs || []).slice(0, 5).map(l => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-color);">
+        <span style="font-size:11px;color:var(--text-secondary);">${l.username} — ${l.minutes}m${l.note ? ` <em style="color:var(--text-muted);">(${window.escapeHTML ? window.escapeHTML(l.note) : l.note})</em>` : ''}</span>
+        ${l.username === myUsername ? `<button class="tl-del" data-lid="${l.id}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;">✕</button>` : ''}
+      </div>`).join('') || '<p style="font-size:12px;color:var(--text-muted);">No time logged yet.</p>';
+
+    panel.innerHTML = `
+      <h4 style="font-size:13px;margin:0 0 8px 0;color:var(--text-secondary);">⏱ Time Tracking
+        <span style="font-size:11px;color:var(--accent-cyan);margin-left:8px;">${data.totalHours}h total</span>
+      </h4>
+      <div style="max-height:110px;overflow-y:auto;margin-bottom:8px;">${logsHtml}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="tlMinutes" type="number" min="1" placeholder="mins" class="form-input" style="width:70px;padding:5px 8px;font-size:12px;"/>
+        <input id="tlNote" type="text" placeholder="Note (optional)" class="form-input" style="flex:1;padding:5px 8px;font-size:12px;"/>
+        <button id="tlAddBtn" class="btn btn--primary" style="font-size:12px;padding:5px 10px;">+ Log</button>
+      </div>
+    `;
+    panel.querySelector('#tlAddBtn').onclick = async () => {
+      const mins = parseInt(panel.querySelector('#tlMinutes').value);
+      if (!mins || mins <= 0) return;
+      await api.addTimeLog(task.id, { username: myUsername, minutes: mins, note: panel.querySelector('#tlNote').value.trim() || null });
+      this.renderTimeTracker(modal, task);
+    };
+    panel.querySelectorAll('.tl-del').forEach(btn => {
+      btn.onclick = async () => {
+        await api.deleteTimeLog(task.id, parseInt(btn.dataset.lid), myUsername);
+        this.renderTimeTracker(modal, task);
+      };
+    });
+  }
+
+  // ========================================================
+  // Task Dependencies Panel
+  // ========================================================
+
+  async renderDependencies(modal, task) {
+    let panel = modal.querySelector('#dependenciesPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'dependenciesPanel';
+      panel.style.cssText = 'margin-top:16px;border-top:1px solid var(--border-color);padding-top:14px;';
+      const tp = modal.querySelector('#timeTrackerPanel');
+      if (tp) tp.after ? tp.after(panel) : tp.parentNode.insertBefore(panel, tp.nextSibling);
+    }
+    let deps = [];
+    try { deps = await api.getTaskDependencies(task.id) || []; } catch (e) { /* non-critical */ }
+
+    const depsHtml = deps.map(d => {
+      const isDone = d.blockingTaskStatus === 'DONE';
+      return `
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-color);">
+          <span style="font-size:11px;color:${isDone ? '#4ade80' : '#f43f5e'};">${isDone ? '✓' : '🔒'}</span>
+          <span style="font-size:12px;flex:1;">#${d.blockingTaskId} — ${window.escapeHTML ? window.escapeHTML(d.blockingTaskTitle || '?') : d.blockingTaskTitle}</span>
+          <span style="font-size:10px;color:var(--text-muted);">${d.blockingTaskStatus}</span>
+          <button class="dep-del" data-bid="${d.blockingTaskId}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;">✕</button>
+        </div>`;
+    }).join('') || '<p style="font-size:12px;color:var(--text-muted);">No blockers.</p>';
+
+    const isBlocked = deps.some(d => d.blockingTaskStatus !== 'DONE');
+    panel.innerHTML = `
+      <h4 style="font-size:13px;margin:0 0 8px 0;color:var(--text-secondary);">🔗 Blocked By
+        ${isBlocked ? '<span style="font-size:11px;color:#f43f5e;margin-left:6px;">● Blocked</span>' : ''}
+      </h4>
+      <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">${depsHtml}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="depTaskId" type="number" min="1" placeholder="Blocking task ID" class="form-input" style="width:140px;padding:5px 8px;font-size:12px;"/>
+        <button id="depAddBtn" class="btn btn--ghost" style="font-size:12px;padding:5px 10px;">+ Add Blocker</button>
+      </div>
+    `;
+    panel.querySelector('#depAddBtn').onclick = async () => {
+      const bid = parseInt(panel.querySelector('#depTaskId').value);
+      if (!bid) return;
+      try {
+        await api.addTaskDependency(task.id, bid);
+        this.renderDependencies(modal, task);
+      } catch (e) { alert(e.message || 'Failed to add blocker.'); }
+    };
+    panel.querySelectorAll('.dep-del').forEach(btn => {
+      btn.onclick = async () => {
+        await api.removeTaskDependency(task.id, parseInt(btn.dataset.bid));
+        this.renderDependencies(modal, task);
+      };
+    });
   }
 
   // ========================================================

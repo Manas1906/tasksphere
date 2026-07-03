@@ -65,6 +65,39 @@ CREATE TABLE IF NOT EXISTS payment_transaction_audits (
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS labels VARCHAR(512);
 
 -- ============================================================
+-- Feature: Time Tracking (v4 migration)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS time_logs (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    minutes INT NOT NULL,
+    note TEXT,
+    logged_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- Feature: Task Dependencies (v4 migration)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS task_dependencies (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    blocking_task_id BIGINT NOT NULL,
+    CONSTRAINT unique_dependency UNIQUE (task_id, blocking_task_id)
+);
+
+-- ============================================================
+-- Feature: Custom Kanban Columns (v4 migration)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS kanban_columns (
+    id BIGSERIAL PRIMARY KEY,
+    column_key VARCHAR(50) UNIQUE NOT NULL,
+    column_name VARCHAR(100) NOT NULL,
+    position INT NOT NULL DEFAULT 0,
+    color VARCHAR(20) DEFAULT '#6366f1'
+);
+
+-- ============================================================
 -- Feature: Recurring tasks & Sprint management (v2 migration)
 -- ============================================================
 

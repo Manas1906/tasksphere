@@ -30,8 +30,6 @@ class ApiService {
     if (API_URL) this.#startKeepAlive();
   }
 
-  // Silently pings /api/ping every 13 minutes to prevent Render free-tier sleep.
-  // Skipped on localhost (API_URL is empty string). No UI side-effects.
   #startKeepAlive() {
     const pingUrl = `${CLEAN_API_URL}/api/ping`;
     const ping = () => fetch(pingUrl, { method: 'GET', keepalive: true }).catch(() => {});
@@ -160,9 +158,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Dynamic localstorage cache handler - Day 12 LocalStorage Fallback
-   */
+ 
   handleFallback(endpoint, options) {
     const method = options.method || 'GET';
     const key = `cache_${endpoint.split('/')[1]}`; // e.g. cache_tasks, cache_users
@@ -335,6 +331,36 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify({ enabled })
     });
+  }
+
+  /* ---- Time Tracking ---- */
+  getTimeLogs(taskId) { return this.request(`/tasks/${taskId}/time-logs`); }
+  addTimeLog(taskId, body) {
+    return this.request(`/tasks/${taskId}/time-logs`, { method: 'POST', body: JSON.stringify(body) });
+  }
+  deleteTimeLog(taskId, logId, username) {
+    return this.request(`/tasks/${taskId}/time-logs/${logId}?username=${encodeURIComponent(username)}`, { method: 'DELETE' });
+  }
+
+  /* ---- Task Dependencies ---- */
+  getTaskDependencies(taskId) { return this.request(`/tasks/${taskId}/dependencies`); }
+  addTaskDependency(taskId, blockingTaskId) {
+    return this.request(`/tasks/${taskId}/dependencies/${blockingTaskId}`, { method: 'POST' });
+  }
+  removeTaskDependency(taskId, blockingTaskId) {
+    return this.request(`/tasks/${taskId}/dependencies/${blockingTaskId}`, { method: 'DELETE' });
+  }
+
+  /* ---- Kanban Columns ---- */
+  getKanbanColumns() { return this.request('/kanban-columns', {}, true); }
+  createKanbanColumn(col) {
+    return this.request('/kanban-columns', { method: 'POST', body: JSON.stringify(col) });
+  }
+  updateKanbanColumn(id, col) {
+    return this.request(`/kanban-columns/${id}`, { method: 'PUT', body: JSON.stringify(col) });
+  }
+  deleteKanbanColumn(id) {
+    return this.request(`/kanban-columns/${id}`, { method: 'DELETE' });
   }
 }
 
