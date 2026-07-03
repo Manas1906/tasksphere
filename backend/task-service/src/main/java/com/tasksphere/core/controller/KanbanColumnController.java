@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.annotation.PostConstruct;
 import java.util.List;
 
 @RestController
@@ -20,18 +19,6 @@ public class KanbanColumnController {
 
     @Autowired
     private KanbanColumnRepository columnRepository;
-
-    /** Seed default columns on first start if the table is empty. */
-    @PostConstruct
-    public void seedDefaults() {
-        if (columnRepository.count() == 0) {
-            columnRepository.save(KanbanColumn.builder().columnKey("TODO").columnName("Backlog").position(0).color("#818cf8").build());
-            columnRepository.save(KanbanColumn.builder().columnKey("IN_PROGRESS").columnName("Work In Progress").position(1).color("#34d399").build());
-            columnRepository.save(KanbanColumn.builder().columnKey("REVIEW").columnName("Quality Assurance").position(2).color("#fbbf24").build());
-            columnRepository.save(KanbanColumn.builder().columnKey("DONE").columnName("Closed Scope").position(3).color("#4ade80").build());
-            log.info("[KANBAN-COLUMNS] Seeded 4 default columns.");
-        }
-    }
 
     @GetMapping
     public ResponseEntity<List<KanbanColumn>> getColumns() {
