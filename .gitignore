@@ -47,4 +47,9 @@ replay_pid*.log
 **/brain/
 **/logs/
 
+# --- Documentation / Interview Prep (local only, not for deployment) ---
+*.docx
+*.xlsx
+*.pdf
+
 
